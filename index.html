@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <title>主播模拟器</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* ==================== 警告列表样式 ==================== */
+        .warning-item {
+            background: #161823;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid #333;
+        }
+
+        .warning-item:hover {
+            background: #1a1a1a;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .warning-item:active {
+            transform: scale(0.98);
+        }
+
+        .warning-item.severity-critical {
+            border-left: 4px solid #8B0000;
+        }
+
+        .warning-item.severity-high {
+            border-left: 4px solid #ff0050;
+        }
+
+        .warning-item.severity-medium {
+            border-left: 4px solid #ff6b00;
+        }
+
+        .warning-item.severity-low {
+            border-left: 4px solid #00f2ea;
+        }
+
+        /* 警告统计卡片 */
+        .warning-stats-card {
+            background: linear-gradient(135deg, #222 0%, #161823 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #333;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 进度条动画 */
+        .warning-progress-bar {
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ==================== 粉丝界面样式 ==================== */
+        .fans-stats-container {
+            position: relative;
+            height: 200px;
+            margin: 10px;
+            background: #161823;
+            border-radius: 15px;
+            border: 1px solid #333;
+            overflow: hidden;
+        }
+
+        .fans-stat-box {
+            position: absolute;
+            background: linear-gradient(135deg, #222 0%, #161823 100%);
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 15px;
+            width: 45%;
+            min-width: 120px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            animation: fadeIn 0.5s ease;
+        }
+
+        .fans-stat-box.top-left {
+            top: 15px;
+            left: 15px;
+        }
+
+        .fans-stat-box.bottom-left {
+            bottom: 15px;
+            left: 15px;
+        }
+
+        .fans-stat-box.top-right {
+            top: 15px;
+            right: 15px;
+        }
+
+        .fans-stat-box .stat-label {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .fans-stat-box .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #00f2ea;
+            transition: all 0.3s ease;
+        }
+
+        .fans-stat-box .stat-value.updating {
+            color: #FFD700;
+            transform: scale(1.1);
+        }
+
+        .fans-stat-box .stat-value.lost {
+            color: #ff0050;
+        }
+
+        .fans-info-section {
+            background: #161823;
+            margin: 10px;
+            padding: 15px;
+            border-radius: 15px;
+            border: 1px solid #333;
+        }
+
+        .fans-info-section .info-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #667aea;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .fans-info-section .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #222;
+        }
+
+        .fans-info-section .info-row:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .fans-info-section .info-label {
+            font-size: 13px;
+            color: #ccc;
+        }
+
+        .fans-info-section .info-value {
+            font-size: 15px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .fans-info-section .info-value.lost {
+            color: #ff0050;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ==================== 抽奖系统样式 ==================== */
+        .raffle-prize-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .prize-option {
+            background: #222;
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .prize-option:hover {
+            border-color: #667aea;
+            transform: translateY(-2px);
+        }
+
+        .prize-option.selected {
+            border-color: #667aea;
+            background: linear-gradient(135deg, #667aea 0%, #764ba2 100%);
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .prize-price {
+            font-size: 14px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .prize-option.selected .prize-price {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .raffle-form-section {
+            background: #161823;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid #333;
+        }
+
+        .raffle-form-section .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #667aea;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .raffle-days-selector {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .raffle-day-option {
+            background: #222;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .raffle-day-option:hover {
+            border-color: #667aea;
+        }
+
+        .raffle-day-option.selected {
+            border-color: #667aea;
+            background: linear-gradient(135deg, #667aea 0%, #764ba2 100%);
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .raffle-method-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .raffle-method-option {
+            background: #222;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .raffle-method-option:hover {
+            border-color: #667aea;
+        }
+
+        .raffle-method-option.selected {
+            border-color: #667aea;
+            background: linear-gradient(135deg, #667aea 0%, #764ba2 100%);
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .raffle-status-indicator {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 5px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+
+        .raffle-status-active {
+            background: #00f2ea;
+            color: #000;
+        }
+
+        .raffle-status-ended {
+            background: #999;
+            color: #fff;
+        }
+
+        .raffle-status-drawing {
+            background: #ff6b00;
+            color: #fff;
+        }
+
+        .raffle-status-pending {
+            background: #667aea;
+            color: #fff;
+        }
+
+        .raffle-winner-list {
+            background: #222;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+            border: 1px solid #333;
+        }
+
+        .raffle-winner-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin-bottom: 5px;
+            background: #161823;
+            border-radius: 5px;
+        }
+
+        .raffle-winner-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .raffle-countdown-warning {
+            background: linear-gradient(135deg, #8B0000 0%, #ff0050 100%);
+            border: 1px solid #ff0050;
+            color: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 12px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .raffle-manual-draw-btn {
+            background: linear-gradient(135deg, #ff6b00 0%, #ff0050 100%);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .raffle-manual-draw-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 0, 80, 0.4);
+        }
+
+        .raffle-manual-draw-btn:active {
+            transform: scale(0.98);
+        }
+
+        .raffle-manual-draw-btn:disabled {
+            background: #333;
+            color: #999;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="loginPage">
+    <div class="login-window">
+        <div class="login-title">主播模拟器</div>
+        <input type="text" class="login-input" id="usernameInput" placeholder="请输入你的名字" maxlength="20">
+        <button class="login-btn" onclick="startGame()">确定</button>
+    </div>
+</div>
+
+<div id="mainPage">
+    <div class="header">
+        <div class="header-left">
+            <div class="avatar" id="userAvatar" onclick="showProfile()">A</div>
+            <div class="header-title" id="usernameDisplay">主播</div>
+        </div>
+        <div class="header-right">
+            <div class="virtual-date-display" id="virtualDateDisplay">2025年01月01日 00:00:00</div>
+            <div class="header-icon appeal-icon" id="appealBtn" onclick="window.showAppeal()" style="display:none;">📝</div>
+            <!-- 已隐藏：通知中心图标（功能已停用） -->
+            <div class="header-icon" onclick="showNotifications()" style="display:none;">🔔
+                <span class="notification-badge" id="notificationBadge" style="display:none">0</span>
+            </div>
+            <div class="header-icon" onclick="showGameSettings()">⚙️</div>
+        </div>
+    </div>
+    <div class="top-notices">
+        <div class="hot-search-notice" id="hotSearchNotice"></div>
+        <div class="public-opinion-notice" id="publicOpinionNotice"></div>
+        <div class="ban-notice" id="banNotice">账号已被封禁，剩余封禁天数：<span id="banDays">0</span></div>
+    </div>
+    <div class="content" id="mainContent">
+        <div class="stats-card main-content-section">
+            <div class="stat-item" onclick="showFansFullscreen()">
+                <div class="stat-value" id="fansCount" style="position: relative;">0</div>
+                <div class="stat-label">粉丝</div>
+            </div>
+            <div class="stat-item" onclick="showLikesFullscreen()" style="cursor: pointer;">
+                <div class="stat-value" id="likesCount">0</div>
+                <div class="stat-label">点赞</div>
+            </div>
+            <div class="stat-item" onclick="showViewsFullscreen()" style="cursor: pointer;">
+                <div class="stat-value" id="viewsCount">0</div>
+                <div class="stat-label">播放</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="worksCount">0</div>
+                <div class="stat-label">作品</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="moneyCount">0</div>
+                <div class="stat-label">零钱</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="warningCount">0/20</div>
+                <div class="stat-label">警告</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="followingCount">0</div>
+                <div class="stat-label" onclick="showFollowingList()" style="cursor:pointer;">关注</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="virtualTimeStat">0K</div>
+                <div class="stat-label">热度值</div>
+            </div>
+        </div>
+        <div class="action-buttons main-content-section">
+            <div class="action-btn" onclick="showCreateVideo()">
+                <div class="action-icon">🎬</div>
+                <div class="action-text">发布视频</div>
+            </div>
+            <div class="action-btn" onclick="showCreatePost()">
+                <div class="action-icon">📝</div>
+                <div class="action-text">发布动态</div>
+            </div>
+            <div class="action-btn" onclick="startLive()">
+                <div class="action-icon">📱</div>
+                <div class="action-text">开始直播</div>
+            </div>
+            <!-- ✅ 修改：将数据分析改为发起抽奖 -->
+            <div class="action-btn" onclick="showRafflePage()">
+                <div class="action-icon">🎁</div>
+                <div class="action-text">发起抽奖</div>
+            </div>
+            <div class="action-btn" onclick="showBuyTraffic()">
+                <div class="action-icon">💰</div>
+                <div class="action-text">购买流量</div>
+            </div>
+            <div class="action-btn" onclick="showAdOrders()">
+                <div class="action-icon">💼</div>
+                <div class="action-text">接单中心</div>
+            </div>
+        </div>
+        <div class="works-section main-content-section">
+            <div class="section-title">
+                <span>我的作品</span>
+                <span style="font-size:12px;color:#999" id="updateTime">刚刚更新</span>
+            </div>
+            <div id="worksList"></div>
+        </div>
+
+        <div id="worksContent" class="tab-content">
+            <div class="section-title" style="margin: 10px; margin-top: 20px;">
+                <span>我的作品</span>
+                <span style="font-size: 12px; color: #999;" id="worksTotalCount">共0个作品</span>
+            </div>
+            <div id="worksListTab"></div>
+        </div>
+
+        <div id="messagesContent" class="tab-content">
+            <div class="section-title" style="margin: 10px; margin-top: 20px;">
+                <span>消息中心</span>
+                <span class="fullscreen-action" onclick="markAllRead()" style="font-size: 12px; padding: 5px 10px;">全部已读</span>
+            </div>
+            <div id="messagesListTab"></div>
+        </div>
+
+        <div id="achievementsContent" class="tab-content">
+            <div class="section-title" style="margin: 10px; margin-top: 20px;">
+                <span>成就系统</span>
+                <span class="fullscreen-action" onclick="showAchievementsHelp()" style="font-size: 12px; padding: 5px 10px;">?</span>
+            </div>
+            <div id="achievementsListTab"></div>
+        </div>
+    </div>
+
+    <!-- 粉丝全屏页 -->
+    <div id="fansPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFansFullscreen()">＜</div>
+            <div class="fullscreen-title">粉丝分析</div>
+            <div class="fullscreen-action" onclick="showFansFullscreen()">刷新</div>
+        </div>
+        <div id="fansPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 播放量全屏页 -->
+    <div id="viewsPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeViewsFullscreen()">＜</div>
+            <div class="fullscreen-title">播放分析</div>
+            <div class="fullscreen-action" onclick="showViewsFullscreen()">刷新</div>
+        </div>
+        <div id="viewsPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 点赞全屏页（新增） -->
+    <div id="likesPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeLikesFullscreen()">＜</div>
+            <div class="fullscreen-title">点赞分析</div>
+            <div class="fullscreen-action" onclick="showLikesFullscreen()">刷新</div>
+        </div>
+        <div id="likesPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- ✅ 新增：抽奖全屏页 -->
+    <div id="rafflePage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFullscreenPage('raffle')">＜</div>
+            <div class="fullscreen-title">发起抽奖</div>
+            <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
+        </div>
+        <div id="rafflePageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- ✅ 新增：抽奖活动管理全屏页 -->
+    <div id="raffleManagePage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFullscreenPage('raffleManage')">＜</div>
+            <div class="fullscreen-title">抽奖活动管理</div>
+            <div class="fullscreen-action" onclick="showRaffleManagePage()">刷新</div>
+        </div>
+        <div id="raffleManagePageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- ✅ 新增：抽奖详情全屏页 -->
+    <div id="raffleDetailPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFullscreenPage('raffleDetail')">＜</div>
+            <div class="fullscreen-title" id="raffleDetailTitle">抽奖详情</div>
+            <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
+        </div>
+        <div id="raffleDetailPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <div id="createVideoPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFullscreenPage('createVideo')">＜</div>
+            <div class="fullscreen-title">发布视频</div>
+            <div class="fullscreen-action" onclick="createVideo()">发布</div>
+        </div>
+        <div id="createVideoPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <div id="createPostPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFullscreenPage('createPost')">＜</div>
+            <div class="fullscreen-title">发布动态</div>
+            <div class="fullscreen-action" onclick="createPost()">发布</div>
+        </div>
+        <div id="createPostPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <div id="buyTrafficPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFullscreenPage('buyTraffic')">＜</div>
+            <div class="fullscreen-title">购买流量推送</div>
+            <div class="fullscreen-action" id="trafficPriceDisplay">0元</div>
+        </div>
+        <div id="buyTrafficPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <div id="adOrdersPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFullscreenPage('adOrders')">＜</div>
+            <div class="fullscreen-title">商单中心</div>
+            <div class="fullscreen-action" onclick="showAdOrders()">刷新</div>
+        </div>
+        <div id="adOrdersPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <div id="workDetailPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFullscreenPage('workDetail')">＜</div>
+            <div class="fullscreen-title" id="workDetailTitle">作品详情</div>
+            <div class="fullscreen-action" onclick="toggleWorkPrivacy()">🔒</div>
+        </div>
+        <div id="workDetailPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <div id="settingsPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFullscreenPage('settings')">＜</div>
+            <div class="fullscreen-title" id="settingsHeaderTitle">游戏设置</div>
+            <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
+        </div>
+        <div id="settingsPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <div id="profilePage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFullscreenPage('profile')">＜</div>
+            <div class="fullscreen-title">个人主页</div>
+            <div class="fullscreen-action" onclick="showSettings()">⚙️</div>
+        </div>
+        <div id="profilePageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 全屏用户主页 -->
+    <div id="userProfilePage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFullscreenPage('userProfile')">＜</div>
+            <div class="fullscreen-title">用户主页</div>
+            <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
+        </div>
+        <div id="userProfilePageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 全屏评论详情页 -->
+    <div id="commentDetailPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeCommentDetail()">＜</div>
+            <div class="fullscreen-title">评论详情</div>
+            <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
+        </div>
+        <div id="commentDetailPageContent" class="fullscreen-content" style="padding-bottom: 120px;"></div>
+    </div>
+
+    <!-- ✅ 新增：警告列表全屏页 -->
+    <div id="warningListPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeWarningList()">＜</div>
+            <div class="fullscreen-title">警告记录</div>
+            <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
+        </div>
+        <div id="warningListContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 新增：四个全屏消息页面 -->
+    <!-- 全部消息全屏页 -->
+    <div id="messagesAllPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeMessagesFullscreenPage('messagesAll')">＜</div>
+            <div class="fullscreen-title">全部消息</div>
+            <div class="fullscreen-action" onclick="clearMessagesByType('all')">清空</div>
+        </div>
+        <div id="messagesAllPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 点赞消息全屏页 -->
+    <div id="messagesLikePage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeMessagesFullscreenPage('messagesLike')">＜</div>
+            <div class="fullscreen-title">点赞消息</div>
+            <div class="fullscreen-action" onclick="clearMessagesByType('like')">清空</div>
+        </div>
+        <div id="messagesLikePageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 评论消息全屏页 -->
+    <div id="messagesCommentPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeMessagesFullscreenPage('messagesComment')">＜</div>
+            <div class="fullscreen-title">评论消息</div>
+            <div class="fullscreen-action" onclick="clearMessagesByType('comment')">清空</div>
+        </div>
+        <div id="messagesCommentPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 转发消息全屏页 -->
+    <div id="messagesSharePage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeMessagesFullscreenPage('messagesShare')">＜</div>
+            <div class="fullscreen-title">转发消息</div>
+            <div class="fullscreen-action" onclick="clearMessagesByType('share')">清空</div>
+        </div>
+        <div id="messagesSharePageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 私信列表全屏页 -->
+    <div id="privateMessagesPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closePrivateMessageList()">＜</div>
+            <div class="fullscreen-title">陌生人私信</div>
+            <div class="fullscreen-action" style="opacity:0;">占位</div>
+        </div>
+        <div id="privateMessagesPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 私信聊天全屏页 -->
+    <div id="privateChatPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closePrivateChat()">＜</div>
+            <div class="fullscreen-title" id="privateChatTitle">聊天</div>
+            <div class="fullscreen-action" style="opacity:0;">占位</div>
+        </div>
+        <div id="privateChatPageContent" class="fullscreen-content" style="padding-bottom: 80px;"></div>
+    </div>
+
+    <!-- ✅ 新增：系统消息全屏页 -->
+    <div id="systemMessagesPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeSystemMessagesList()">＜</div>
+            <div class="fullscreen-title">系统消息</div>
+            <div class="fullscreen-action" style="opacity:0;">占位</div>
+        </div>
+        <div id="systemMessagesPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- ✅ 新增：关注列表全屏页 -->
+    <div id="followingPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFullscreenPage('following')">＜</div>
+            <div class="fullscreen-title">关注列表</div>
+            <div class="fullscreen-action" style="opacity:0;">占位</div>
+        </div>
+        <div id="followingPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="switchTab('home')">
+            <div class="nav-icon">🏠</div>
+            <div class="nav-text">首页</div>
+        </div>
+        <div class="nav-item" onclick="switchTab('works')">
+            <div class="nav-icon">📹</div>
+            <div class="nav-text">作品</div>
+        </div>
+        <div class="nav-item" onclick="switchTab('messages')">
+            <div class="nav-icon">💬</div>
+            <div class="nav-text">消息</div>
+        </div>
+        <div class="nav-item" onclick="switchTab('achievements')">
+            <div class="nav-icon">🏆</div>
+            <div class="nav-text">成就</div>
+        </div>
+    </div>
+    <button class="live-control-btn" id="liveControlBtn" onclick="toggleLive()">📱</button>
+    
+    <button class="dev-float-button" id="devFloatButton" onclick="showDevOptions()" style="display: none;">⚡</button>
+    
+    <div class="achievement-popup" id="achievementPopup">
+        <div class="achievement-popup-icon" id="achievementPopupIcon"></div>
+        <div class="achievement-popup-title">成就解锁！</div>
+        <div class="achievement-popup-name" id="achievementPopupName"></div>
+    </div>
+</div>
+
+<div class="modal" id="modal">
+    <div class="modal-content" id="modalContent"></div>
+</div>
+<div class="warning-toast" id="warningToast"></div>
+
+<script src="chart.js"></script>
+
+<!-- 按顺序加载脚本 -->
+<script src="game_core.js"></script>
+<!-- ✅ 新增：热度值系统（在game_core之后，game_ui_core之前） -->
+<script src="game_hot_value.js"></script>
+<script src="game_ui_core.js"></script>
+<script src="game_warning_system.js"></script>
+<script src="game_appeal_ai.js"></script>
+<script src="game_fans.js"></script>
+<script src="game_views.js"></script>
+<script src="game_likes_fullscreen.js"></script>
+<script src="game_ui_works_core.js"></script>
+<script src="game_ui_comments.js"></script>
+<script src="game_ui_messages.js"></script>
+<!-- ✅ 拆分原 game_ui_settings.js 为三份 -->
+<script src="game_ui_settings_account.js"></script>
+<script src="game_ui_settings_game.js"></script>
+<script src="game_ui_settings_additional.js"></script>
+<script src="game_ad_system.js"></script>
+<script src="game_features.js"></script>
+<script src="game_random_events.js"></script>
+<script src="game_events.js"></script>
+<script src="game_dev.js"></script>
+<script src="game_private_messages.js"></script>
+<script src="game_system_messages.js"></script>
+<script src="game_global_fan_growth.js"></script>
+<!-- ✅ 新增：抽奖系统 -->
+<script src="game_raffle.js"></script>
+<!-- ✅ ✅ ✅ 新增：Mod系统 -->
+<script src="game_mod_system.js"></script>
+
+<script>
+// 游戏完全加载后启动所有实时更新
+document.addEventListener('DOMContentLoaded', function() {
+    // 启动作品实时更新
+    if (typeof startWorkUpdates === 'function') {
+        startWorkUpdates();
+    }
+    
+    // 启动私信生成系统
+    if (typeof startPrivateMessageGeneration === 'function') {
+        startPrivateMessageGeneration();
+    }
+    
+    // 启动系统消息定时器
+    if (typeof startSystemMessagesTimer === 'function') {
+        startSystemMessagesTimer();
+    }
+    
+    // ✅ 启动全局作品粉丝增长系统
+    if (typeof startGlobalWorkFanGrowth === 'function') {
+        startGlobalWorkFanGrowth();
+    }
+    
+    // ✅ 启动抽奖状态检查
+    if (typeof startRaffleStatusCheck === 'function') {
+        startRaffleStatusCheck();
+    }
+    
+    // ✅ 初始化热度值系统
+    if (typeof initHotValueSystem === 'function') {
+        setTimeout(() => {
+            initHotValueSystem();
+        }, 500);
+    }
+    
+    // ✅ 初始化Mod系统
+    if (typeof window.modManager !== 'undefined') {
+        console.log('Mod管理器已初始化');
+    }
+    
+    console.log('所有实时更新系统已启动！');
+});
+</script>
+
+</body>
+</html>
