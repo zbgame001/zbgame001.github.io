@@ -608,14 +608,17 @@ window.checkMonthlyAdOrders = function() {
                 // 从列表中删除
                 window.gameState.worksList.splice(workIndex, 1);
                 
+                // 显示删除通知
+                if (typeof window.showEventPopup === 'function') {
+                    showEventPopup('🗑️ 视频已删除', `虚假商单视频已被平台删除`);
+                }
+                
                 console.log(`[商单查处] 作品 ${work.id} 已被删除`);
             }
         });
         
         // ✅ 修改：使用小弹窗通知
-        if (typeof window.showEventPopup === 'function') {
-            showEventPopup('🚨 虚假商单被查处！', `罚款${totalFine.toLocaleString()}元，封号${banDays}天，粉丝将持续流失！`);
-        }
+        showEventPopup('🚨 虚假商单被查处！', `罚款${totalFine.toLocaleString()}元，封号${banDays}天，粉丝将持续流失！`);
         
         if (typeof window.showWarning === 'function') {
             window.showWarning(`发布虚假商单！警告${window.gameState.warnings}/20次`);
@@ -723,6 +726,13 @@ window.startFakeAdFanLoss = function(exposedWorks, isFromMonthlyCheck = false) {
             window.updateDisplay();
         }
     }, 1000);
+    
+    // 立即显示恢复提示
+    // ✅ 修改：使用小弹窗通知
+    if (typeof window.showEventPopup === 'function') {
+        const daysLeft = Math.ceil(timeLeft / VIRTUAL_DAY_MS);
+        showEventPopup('⚠️ 惩罚恢复', `检测到未完成的虚假商单惩罚，持续掉粉中（剩余${daysLeft}天）`);
+    }
 };
 
 // ✅ 终极修复：游戏加载时恢复惩罚
@@ -1290,8 +1300,8 @@ function checkAdAchievements() {
                 window.showAchievementPopup(achievement);
             }
             
-            // 保留原有的通知中心消息
-            window.showNotification('成就解锁！', `${achievement.name}：${achievement.desc}`);
+            // ✅ 修改：移除重复的通知，只保留成就弹窗
+            // 原代码：window.showNotification('成就解锁！', `${achievement.name}：${achievement.desc}`);
         }
     });
 }

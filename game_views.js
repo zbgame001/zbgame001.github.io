@@ -74,7 +74,7 @@ function renderViewsPage() {
         
         <!-- 播放增长趋势图表 -->
         <div class="views-info-section" style="margin: 10px;">
-            <div class="info-title" style="font-size: 14px; font-weight: bold; color: #667eea; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+            <div class="info-title" style="font-size: 14px; font-weight: bold; color: #667aea; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
                 📈 播放增长趋势
             </div>
             <div style="background: #161823; border-radius: 10px; border: 1px solid #333; padding: 15px;">
@@ -87,12 +87,12 @@ function renderViewsPage() {
         </div>
     `;
     
-    // 添加有状态的作品列表（排除推广状态）
+    // 添加有状态的作品列表（包含推广、抽奖、热搜话题）
     const activeWorks = getActiveStatusWorks();
     if (activeWorks.length > 0) {
         html += `
             <div class="views-info-section" style="margin: 10px;">
-                <div class="info-title" style="font-size: 14px; font-weight: bold; color: #667eea; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                <div class="info-title" style="font-size: 14px; font-weight: bold; color: #667aea; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
                     ⚡ 有状态的作品
                 </div>
                 <div id="activeStatusWorks" style="background: #161823; border-radius: 10px; border: 1px solid #333; padding: 10px;">
@@ -110,15 +110,26 @@ function renderViewsPage() {
     }, 100);
 }
 
-// 获取有状态的作品（推荐、争议、热搜，不包括推广）
+// 获取有状态的作品（包含推广、抽奖、热搜话题，排除已结束的抽奖）
 function getActiveStatusWorks() {
     return gameState.worksList.filter(work => {
-        const hasTraffic = gameState.trafficWorks[work.id] && gameState.trafficWorks[work.id].isActive;
-        return !work.isPrivate && (
-            work.isRecommended || 
-            work.isControversial || 
-            work.isHot
-        ) && !hasTraffic; // 排除推广状态
+        // 私密作品不显示
+        if (work.isPrivate) return false;
+        
+        // 检查推广状态
+        const isTrafficActive = gameState.trafficWorks[work.id] && gameState.trafficWorks[work.id].isActive;
+        
+        // 检查抽奖状态（已结束的抽奖不显示）
+        const isRaffleActive = work.isRaffle && work.raffleStatus !== 'ended' && work.raffleStatus !== 'completed';
+        
+        // 检查热搜话题状态
+        const isHotSearchActive = work.isHotSearchWork;
+        
+        // 原有推荐、争议、热搜状态
+        const hasOtherStatus = work.isRecommended || work.isControversial || work.isHot;
+        
+        // 只要有一种状态就显示
+        return isTrafficActive || isRaffleActive || isHotSearchActive || hasOtherStatus;
     }).slice(0, 10); // 最多显示10个
 }
 
@@ -131,19 +142,62 @@ function renderActiveStatusWorks(works) {
     return works.map(work => {
         const statusTags = [];
         
+        // 推广状态
+        const isTrafficActive = gameState.trafficWorks[work.id] && gameState.trafficWorks[work.id].isActive;
+        if (isTrafficActive) {
+            const trafficData = gameState.trafficWorks[work.id];
+            const timePassed = gameTimer - trafficData.startTime;
+            const daysPassed = timePassed / VIRTUAL_DAY_MS;
+            const timeLeft = Math.max(0, trafficData.days - daysPassed);
+            statusTags.push({
+                text: `📈 推广中(${timeLeft.toFixed(1)}天)`,
+                style: 'background:linear-gradient(135deg, #ff6b00 0%, #ff0050 100%);color:#fff;'
+            });
+        }
+        
+        // 抽奖状态（仅进行中）
+        if (work.isRaffle && work.raffleStatus === 'active') {
+            const timeLeft = Math.max(0, (work.activityEndTime - gameTimer) / VIRTUAL_DAY_MS);
+            statusTags.push({
+                text: `🎁 抽奖中(${timeLeft.toFixed(1)}天)`,
+                style: 'background:linear-gradient(135deg, #FFD700 0%, #ff6b00 100%);color:#000;'
+            });
+        }
+        
+        // 热搜话题状态
+        if (work.isHotSearchWork) {
+            const timeLeft = Math.max(0, work.hotSearchData.endTime - gameTimer) / VIRTUAL_DAY_MS;
+            statusTags.push({
+                text: `🔥 热搜(${timeLeft.toFixed(1)}天)`,
+                style: 'background:linear-gradient(135deg, #FFD700 0%, #ff6b00 100%);color:#000;'
+            });
+        }
+        
+        // 推荐标识
         if (work.isRecommended) {
             const timeLeft = Math.max(0, work.recommendEndTime - gameTimer) / VIRTUAL_DAY_MS;
-            statusTags.push(`<span style="background:linear-gradient(135deg, #00f2ea 0%, #667eea 100%);color:#000;padding:2px 6px;border-radius:3px;font-size:10px;margin-right:5px;">🔥推荐${timeLeft.toFixed(1)}天</span>`);
+            statusTags.push({
+                text: `🔥推荐(${timeLeft.toFixed(1)}天)`,
+                style: 'background:linear-gradient(135deg, #00f2ea 0%, #667eea 100%);color:#000;'
+            });
         }
         
+        // 争议标识
         if (work.isControversial) {
             const timeLeft = Math.max(0, work.controversyEndTime - gameTimer) / VIRTUAL_DAY_MS;
-            statusTags.push(`<span style="background:linear-gradient(135deg, #ff6b00 0%, #ff0050 100%);color:#fff;padding:2px 6px;border-radius:3px;font-size:10px;margin-right:5px;">⚠️争议${timeLeft.toFixed(1)}天</span>`);
+            statusTags.push({
+                text: `⚠️争议(${timeLeft.toFixed(1)}天)`,
+                style: 'background:linear-gradient(135deg, #ff6b00 0%, #ff0050 100%);color:#fff;'
+            });
         }
         
+        // 热搜标识
         if (work.isHot) {
             const timeLeft = Math.max(0, work.hotEndTime - gameTimer) / VIRTUAL_DAY_MS;
-            statusTags.push(`<span style="background:linear-gradient(135deg, #FFD700 0%, #ff6b00 100%);color:#000;padding:2px 6px;border-radius:3px;font-size:10px;margin-right:5px;">🔥热搜${timeLeft.toFixed(1)}天</span>`);
+            statusTags.push({
+                text: `🔥热搜(${timeLeft.toFixed(1)}天)`,
+                style: 'background:linear-gradient(135deg, #FFD700 0%, #ff6b00 100%);color:#000;'
+            });
         }
         
         const workType = work.type === 'video' ? '🎬' : work.type === 'live' ? '📱' : '📝';
@@ -151,11 +205,15 @@ function renderActiveStatusWorks(works) {
         return `
             <div class="work-item" style="margin-bottom: 8px; cursor: pointer; padding: 12px;" onclick="showWorkDetail(gameState.worksList.find(w => w.id === ${work.id}))">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px;">
-                    <div style="font-size: 12px; font-weight: bold; color: #667eea;">${workType} ${work.type === 'video' ? '视频' : work.type === 'live' ? '直播' : '动态'}</div>
+                    <div style="font-size: 12px; font-weight: bold; color: #667aea;">${workType} ${work.type === 'video' ? '视频' : work.type === 'live' ? '直播' : '动态'}</div>
                     <div style="font-size: 11px; color: #999;">${formatTime(work.time)}</div>
                 </div>
                 <div style="font-size: 13px; margin-bottom: 8px; line-height: 1.4;">${work.content.substring(0, 60)}${work.content.length > 60 ? '...' : ''}</div>
-                <div style="margin-bottom: 8px;">${statusTags.join('')}</div>
+                <div style="margin-bottom: 8px;">${statusTags.map(tag => `
+                    <span style="${tag.style}padding:2px 6px;border-radius:3px;font-size:10px;margin-right:5px;display:inline-block;">
+                        ${tag.text}
+                    </span>
+                `).join('')}</div>
                 <div style="display: flex; gap: 15px; font-size: 11px; color: #999;">
                     <span>▶️ ${work.views.toLocaleString()}</span>
                     <span>❤️ ${work.likes.toLocaleString()}</span>
@@ -397,5 +455,5 @@ window.updateViewsPageValues = window.updateViewsPageValues;
 window.drawViewsChart = window.drawViewsChart;
 window.updateViewsChartRealtime = window.updateViewsChartRealtime;
 window.cleanupViewsCache = window.cleanupViewsCache;
-window.getActiveStatusWorks = getActiveStatusWorks;
-window.renderActiveStatusWorks = renderActiveStatusWorks;
+window.getActiveStatusWorks = window.getActiveStatusWorks;
+window.renderActiveStatusWorks = window.renderActiveStatusWorks;

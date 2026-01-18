@@ -43,7 +43,7 @@ function showSettings() {
     const headerTitle = document.getElementById('settingsHeaderTitle');
     if (headerTitle) {
         headerTitle.textContent = '账号设置';
-        headerTitle.onclick = handleDevSettingsClick;
+        // ✅ 已移除：headerTitle.onclick = handleDevSettingsClick;
     }
     
     document.getElementById('settingsPage').classList.add('active');
@@ -654,10 +654,6 @@ function updateLastWorkTime() {
     gameState.lastWorkTime = gameTimer;
 }
 
-// ==================== 开发者模式相关变量 ====================
-let settingsClickCount = 0;
-let lastSettingsClickTime = 0;
-
 // ==================== 全屏关注列表页面（修复版 - 确保页面正确渲染） ====================
 // 修复重点：确保内容正确渲染到followingPageContent容器中
 function showFollowingList() {
@@ -947,6 +943,14 @@ function getRandomUserBio() {
         '用心创作，用爱分享'
     ];
     return bios[Math.floor(Math.random() * bios.length)];
+}
+
+// ==================== 全勤主播成就相关函数 ====================
+function updateLastWorkTime() {
+    if (!gameState.lastWorkTime || gameState.lastWorkTime <= 0) {
+        console.log('修复：初始化 lastWorkTime 为当前游戏时间');
+    }
+    gameState.lastWorkTime = gameTimer;
 }
 
 // ==================== 全局函数绑定 ====================

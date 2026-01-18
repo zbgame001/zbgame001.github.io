@@ -131,6 +131,818 @@
         .fans-info-section .info-title {
             font-size: 14px;
             font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .fans-info-section .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #222;
+        }
+
+        .fans-info-section .info-row:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .fans-info-section .info-label {
+            font-size: 13px;
+            color: #ccc;
+        }
+
+        .fans-info-section .info-value {
+            font-size: 15px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .fans-info-section .info-value.lost {
+            color: #ff0050;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ==================== 抽奖系统样式 ==================== */
+        .raffle-prize-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .prize-option {
+            background: #222;
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .prize-option:hover {
+            border-color: #667aea;
+            transform: translateY(-2px);
+        }
+
+        .prize-option.selected {
+            border-color: #667aea;
+            background: linear-gradient(135 deg, #667aea 0%, #764ba2 100%);
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .prize-price {
+            font-size: 14px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .prize-option.selected .prize-price {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .raffle-form-section {
+            background: #161823;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid #333;
+        }
+
+        .raffle-form-section .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #667aea;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .raffle-days-selector {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .raffle-day-option {
+            background: #222;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .raffle-day-option:hover {
+            border-color: #667aea;
+        }
+
+        .raffle-day-option.selected {
+            border-color: #667aea;
+            background: linear-gradient(135deg, #667aea 0%, #764ba2 100%);
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .raffle-method-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .raffle-method-option {
+            background: #222;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .raffle-method-option:hover {
+            border-color: #667aea;
+        }
+
+        .raffle-method-option.selected {
+            border-color: #667aea;
+            background: linear-gradient(135deg, #667aea 0%, #764ba2 100%);
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .raffle-status-indicator {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 5px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+
+        .raffle-status-active {
+            background: #00f2ea;
+            color: #000;
+        }
+
+        .raffle-status-ended {
+            background: #999;
+            color: #fff;
+        }
+
+        .raffle-status-drawing {
+            background: #ff6b00;
+            color: #fff;
+        }
+
+        .raffle-status-pending {
+            background: #667aea;
+            color: #fff;
+        }
+
+        .raffle-winner-list {
+            background: #222;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+            border: 1px solid #333;
+        }
+
+        .raffle-winner-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin-bottom: 5px;
+            background: #161823;
+            border-radius: 5px;
+        }
+
+        .raffle-winner-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .raffle-countdown-warning {
+            background: linear-gradient(135deg, #8B0000 0%, #ff0050 100%);
+            border: 1px solid #ff0050;
+            color: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 12px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .raffle-manual-draw-btn {
+            background: linear-gradient(135deg, #ff6b00 0%, #ff0050 100%);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .raffle-manual-draw-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 0, 80, 0.4);
+        }
+
+        .raffle-manual-draw-btn:active {
+            transform: scale(0.98);
+        }
+
+        .raffle-manual-draw-btn:disabled {
+            background: #333;
+            color: #999;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* ==================== 系统消息样式 ==================== */
+        .system-message-item {
+            background: #161823;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 1px solid #333;
+            transition: all 0.3s;
+        }
+
+        .system-message-item:hover {
+            background: #1a1a1a;
+            border-color: #667aea;
+            transform: translateY(-2px);
+        }
+
+        .system-message-item:active {
+            transform: scale(0.98);
+        }
+
+        /* ==================== 消息进入动画 ==================== */
+        .comment-item.new-message {
+            animation: slideInNewMessage 0.5s ease;
+        }
+
+        @keyframes slideInNewMessage {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* ==================== 警告列表样式 ==================== */
+        .warning-item {
+            background: #161823;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid #333;
+        }
+
+        .warning-item:hover {
+            background: #1a1a1a;
+            border-color: #667aea;
+            transform: translateY(-2px);
+        }
+
+        .warning-item:active {
+            transform: scale(0.98);
+        }
+
+        .warning-item.severity-critical {
+            border-left: 4px solid #8B0000;
+        }
+
+        .warning-item.severity-high {
+            border-left: 4px solid #ff0050;
+        }
+
+        .warning-item.severity-medium {
+            border-left: 4px solid #ff6b00;
+        }
+
+        .warning-item.severity-low {
+            border-left: 4px solid #00f2ea;
+        }
+
+        /* ==================== 警告统计卡片样式 ==================== */
+        .warning-stats-card {
+            background: linear-gradient(135deg, #222 0%, #161823 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #333;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* ==================== 进度条动画 ==================== */
+        .warning-progress-bar {
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ==================== 粉丝界面样式 ==================== */
+        .fans-stats-container {
+            position: relative;
+            height: 200px;
+            margin: 10px;
+            background: #161823;
+            border-radius: 15px;
+            border: 1px solid #333;
+            overflow: hidden;
+        }
+
+        .fans-stat-box {
+            position: absolute;
+            background: linear-gradient(135deg, #222 0%, #161823 100%);
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 15px;
+            width: 45%;
+            min-width: 120px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            animation: fadeIn 0.5s ease;
+        }
+
+        .fans-stat-box.top-left {
+            top: 15px;
+            left: 15px;
+        }
+
+        .fans-stat-box.bottom-left {
+            bottom: 15px;
+            left: 15px;
+        }
+
+        .fans-stat-box.top-right {
+            top: 15px;
+            right: 15px;
+        }
+
+        .fans-stat-box .stat-label {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .fans-stat-box .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #00f2ea;
+            transition: all 0.3s ease;
+        }
+
+        .fans-stat-box .stat-value.updating {
+            color: #FFD700;
+            transform: scale(1.1);
+        }
+
+        .fans-stat-box .stat-value.lost {
+            color: #ff0050;
+        }
+
+        .fans-info-section {
+            background: #161823;
+            margin: 10px;
+            padding: 15px;
+            border-radius: 15px;
+            border: 1px solid #333;
+        }
+
+        .fans-info-section .info-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #667aea;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .fans-info-section .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #222;
+        }
+
+        .fans-info-section .info-row:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .fans-info-section .info-label {
+            font-size: 13px;
+            color: #ccc;
+        }
+
+        .fans-info-section .info-value {
+            font-size: 15px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .fans-info-section .info-value.lost {
+            color: #ff0050;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ==================== 抽奖系统样式 ==================== */
+        .raffle-prize-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .prize-option {
+            background: #222;
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .prize-option:hover {
+            border-color: #667aea;
+            transform: translateY(-2px);
+        }
+
+        .prize-option.selected {
+            border-color: #667aea;
+            background: linear-gradient(135deg, #667aea 0%, #764ba2 100%);
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .prize-price {
+            font-size: 14px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .prize-option.selected .prize-price {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .raffle-form-section {
+            background: #161823;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid #333;
+        }
+
+        .raffle-form-section .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #667aea;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .raffle-days-selector {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .raffle-day-option {
+            background: #222;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .raffle-day-option:hover {
+            border-color: #667aea;
+        }
+
+        .raffle-day-option.selected {
+            border-color: #667aea;
+            background: linear-gradient(135deg, #667aea 0%, #764ba2 100%);
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .raffle-method-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .raffle-method-option {
+            background: #222;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .raffle-method-option:hover {
+            border-color: #667aea;
+        }
+
+        .raffle-method-option.selected {
+            border-color: #667aea;
+            background: linear-gradient(135deg, #667aea 0%, #764ba2 100%);
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .raffle-status-indicator {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 5px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+
+        .raffle-status-active {
+            background: #00f2ea;
+            color: #000;
+        }
+
+        .raffle-status-ended {
+            background: #999;
+            color: #fff;
+        }
+
+        .raffle-status-drawing {
+            background: #ff6b00;
+            color: #fff;
+        }
+
+        .raffle-status-pending {
+            background: #667aea;
+            color: #fff;
+        }
+
+        .raffle-winner-list {
+            background: #222;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+            border: 1px solid #333;
+        }
+
+        .raffle-winner-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin-bottom: 5px;
+            background: #161823;
+            border-radius: 5px;
+        }
+
+        .raffle-winner-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .raffle-countdown-warning {
+            background: linear-gradient(135deg, #8B0000 0%, #ff0050 100%);
+            border: 1px solid #ff0050;
+            color: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 12px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .raffle-manual-draw-btn {
+            background: linear-gradient(135deg, #ff6b00 0%, #ff0050 100%);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .raffle-manual-draw-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 0, 80, 0.4);
+        }
+
+        .raffle-manual-draw-btn:active {
+            transform: scale(0.98);
+        }
+
+        .raffle-manual-draw-btn:disabled {
+            background: #333;
+            color: #999;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* ==================== 系统消息样式 ==================== */
+        .system-message-item {
+            background: #161823;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 1px solid #333;
+            transition: all 0.3s;
+        }
+
+        .system-message-item:hover {
+            background: #1a1a1a;
+            border-color: #667aea;
+            transform: translateY(-2px);
+        }
+
+        .system-message-item:active {
+            transform: scale(0.98);
+        }
+
+        /* ==================== 消息进入动画 ==================== */
+        .comment-item.new-message {
+            animation: slideInNewMessage 0.5s ease;
+        }
+
+        @keyframes slideInNewMessage {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* ==================== 警告列表样式 ==================== */
+        .warning-item {
+            background: #161823;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid #333;
+        }
+
+        .warning-item:hover {
+            background: #1a1a1a;
+            border-color: #667aea;
+            transform: translateY(-2px);
+        }
+
+        .warning-item:active {
+            transform: scale(0.98);
+        }
+
+        .warning-item.severity-critical {
+            border-left: 4px solid #8B0000;
+        }
+
+        .warning-item.severity-high {
+            border-left: 4px solid #ff0050;
+        }
+
+        .warning-item.severity-medium {
+            border-left: 4px solid #ff6b00;
+        }
+
+        .warning-item.severity-low {
+            border-left: 4px solid #00f2ea;
+        }
+
+        /* ==================== 警告统计卡片样式 ==================== */
+        .warning-stats-card {
+            background: linear-gradient(135deg, #222 0%, #161823 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #333;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* ==================== 进度条动画 ==================== */
+        .warning-progress-bar {
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ==================== 粉丝界面样式 ==================== */
+        .fans-stats-container {
+            position: relative;
+            height: 200px;
+            margin: 10px;
+            background: #161823;
+            border-radius: 15px;
+            border: 1px solid #333;
+            overflow: hidden;
+        }
+
+        .fans-stat-box {
+            position: absolute;
+            background: linear-gradient(135deg, #222 0%, #161823 100%);
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 15px;
+            width: 45%;
+            min-width: 120px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            animation: fadeIn 0.5s ease;
+        }
+
+        .fans-stat-box.top-left {
+            top: 15px;
+            left: 15px;
+        }
+
+        .fans-stat-box.bottom-left {
+            bottom: 15px;
+            left: 15px;
+        }
+
+        .fans-stat-box.top-right {
+            top: 15px;
+            right: 15px;
+        }
+
+        .fans-stat-box .stat-label {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .fans-stat-box .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #00f2ea;
+            transition: all 0.3s ease;
+        }
+
+        .fans-stat-box .stat-value.updating {
+            color: #FFD700;
+            transform: scale(1.1);
+        }
+
+        .fans-stat-box .stat-value.lost {
+            color: #ff0050;
+        }
+
+        .fans-info-section {
+            background: #161823;
+            margin: 10px;
+            padding: 15px;
+            border-radius: 15px;
+            border: 1px solid #333;
+        }
+
+        .fans-info-section .info-title {
+            font-size: 14px;
+            font-weight: bold;
             color: #667aea;
             margin-bottom: 15px;
             display: flex;
@@ -569,6 +1381,16 @@
         <div id="raffleDetailPageContent" class="fullscreen-content"></div>
     </div>
 
+    <!-- ✅ 新增：版本信息全屏页 -->
+    <div id="versionInfoPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeVersionInfo()">＜</div>
+            <div class="fullscreen-title">版本信息</div>
+            <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
+        </div>
+        <div id="versionInfoPageContent" class="fullscreen-content"></div>
+    </div>
+
     <div id="createVideoPage" class="fullscreen-page">
         <div class="fullscreen-header">
             <div class="back-btn" onclick="closeFullscreenPage('createVideo')">＜</div>
@@ -781,7 +1603,6 @@
 
 <!-- 按顺序加载脚本 -->
 <script src="game_core.js"></script>
-<!-- ✅ 新增：热度值系统（在game_core之后，game_ui_core之前） -->
 <script src="game_hot_value.js"></script>
 <script src="game_ui_core.js"></script>
 <script src="game_warning_system.js"></script>
@@ -792,7 +1613,6 @@
 <script src="game_ui_works_core.js"></script>
 <script src="game_ui_comments.js"></script>
 <script src="game_ui_messages.js"></script>
-<!-- ✅ 拆分原 game_ui_settings.js 为三份 -->
 <script src="game_ui_settings_account.js"></script>
 <script src="game_ui_settings_game.js"></script>
 <script src="game_ui_settings_additional.js"></script>
@@ -804,10 +1624,11 @@
 <script src="game_private_messages.js"></script>
 <script src="game_system_messages.js"></script>
 <script src="game_global_fan_growth.js"></script>
-<!-- ✅ 新增：抽奖系统 -->
 <script src="game_raffle.js"></script>
-<!-- ✅ ✅ ✅ 新增：Mod系统 -->
 <script src="game_mod_system.js"></script>
+
+<!-- ✅ 新增：版本信息模块 -->
+<script src="game_version_info.js"></script>
 
 <script>
 // 游戏完全加载后启动所有实时更新

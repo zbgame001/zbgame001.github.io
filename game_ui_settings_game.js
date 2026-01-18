@@ -1,3 +1,6 @@
+// game_ui_settings_game.js
+// 游戏设置菜单和功能
+
 // ==================== 游戏设置 ====================
 function showGameSettings() {
     const headerTitle = document.getElementById('settingsHeaderTitle');
@@ -14,6 +17,12 @@ function showGameSettings() {
         </div>
         <div class="settings-item" onclick="showQQGroup()">
             <div><div class="settings-label">加入QQ交流群</div><div class="settings-value">交流讨论</div></div>
+            <div>></div>
+        </div>
+        
+        <!-- ✅ 新增：版本信息入口 -->
+        <div class="settings-item" onclick="showVersionInfo()">
+            <div><div class="settings-label">📋 版本信息</div><div class="settings-value">查看版本详情</div></div>
             <div>></div>
         </div>
         
@@ -362,7 +371,7 @@ function cleanArchiveCache() {
             console.error('清理存档缓存失败:', error);
             showAlert('清理失败：' + error.message, '错误');
         }
-    }, '清理存档缓存');
+    });
 }
 
 // ==================== 修改自动清理缓存间隔 ====================
@@ -926,6 +935,23 @@ window.showModManagement = function() {
     }
 };
 
+// ✅ 新增：版本信息函数声明（在game_version_info.js中实现）
+window.showVersionInfo = function() {
+    if (typeof window.showVersionInfo === 'function') {
+        window.showVersionInfo();
+    } else {
+        showAlert('版本信息模块未加载，请刷新页面重试', '错误');
+    }
+};
+
+window.closeVersionInfo = function() {
+    if (typeof window.closeVersionInfo === 'function') {
+        window.closeVersionInfo();
+    } else {
+        showAlert('版本信息模块未加载，请刷新页面重试', '错误');
+    }
+};
+
 // ==================== 全局函数绑定 ====================
 window.showGameSettings = showGameSettings;
 window.showPlayTime = showPlayTime;
@@ -947,3 +973,5 @@ window.showArchiveManagement = showArchiveManagement;
 window.closeArchiveManagement = closeArchiveManagement;
 window.clearData = clearData;
 window.showModManagement = window.showModManagement;
+window.showVersionInfo = window.showVersionInfo;
+window.closeVersionInfo = window.closeVersionInfo;

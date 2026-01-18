@@ -9,7 +9,7 @@ function startHotSearch(title) {
         if (gameState.isHotSearch) {
             const fanGrowth = Math.floor(Math.random() * 100) + 50;
             gameState.fans += fanGrowth;
-            // ✅ 修改：使用涨掉粉通知系统，并更新今日新增粉丝
+            // ✅ 修复：使用涨掉粉通知系统，并更新今日新增粉丝
             gameState.todayNewFans += fanGrowth; // ✅ 新增：累计今日新增粉丝
             addFanChangeNotification('⬆️', `获得了${fanGrowth.toLocaleString()}个新粉丝`, '热搜效应', 'gain', fanGrowth);
             if (typeof updateDisplay === 'function') {
@@ -628,10 +628,8 @@ function checkAchievements() {
                     showAchievementPopup(achievement);
                 }
                 
-                // ✅ 修改：只显示小弹窗通知，移除通知中心通知
-                if (typeof window.showEventPopup === 'function') {
-                    showEventPopup('🏆 成就解锁', `${achievement.name}：${achievement.desc}`);
-                }
+                // ✅ 修改：移除重复的 showEventPopup 调用，只保留上面的 showAchievementPopup
+                // 原代码：showEventPopup('🏆 成就解锁', `${achievement.name}：${achievement.desc}`);
                 
                 console.log(`✅ 成就解锁: ${achievement.name} (ID: ${achievement.id})`);
                 
@@ -645,8 +643,8 @@ function checkAchievements() {
                         legendaryAchievement.unlocked = true;
                         gameState.achievements.push(20);
                         showAchievementPopup(legendaryAchievement);
-                        // ✅ 修改：使用小弹窗通知
-                        showEventPopup('🏆 传奇成就', '恭喜解锁所有成就！');
+                        // ✅ 修改：移除重复的 showEventPopup 调用
+                        // 原代码：showEventPopup('🏆 传奇成就', '恭喜解锁所有成就！');
                     }
                 }
             }

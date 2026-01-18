@@ -33,17 +33,8 @@ const randomEvents = [
     { type: 'good', title: '粉丝福利', desc: '粉丝们给你刷了礼物', effect: { money: 1000, likes: 500 } }, 
     { type: 'bad', title: '黑粉攻击', desc: '有人组织黑粉攻击你的账号', effect: { fans: -1000, likes: -500 } }, 
     { type: 'bad', title: '竞争对手', desc: '同类型主播抢走了你的流量', effect: { views: -10000, fans: -800 } }, 
-    { type: 'neutral', title: '平淡一天', desc: '今天没什么特别的事情发生', effect: {} }, 
     { type: 'neutral', title: '粉丝互动', desc: '和粉丝们聊得很开心', effect: { likes: 100 } }, 
-    { type: 'neutral', title: '灵感枯竭', desc: '今天没有创作灵感', effect: {} }, 
-    { type: 'good', title: '技能提升', desc: '你学会了新的剪辑技巧', effect: { views: 5000 } }, 
-    { type: 'good', title: '设备升级', desc: '你购买了新的直播设备', effect: { fans: 800 } }, 
-    { type: 'bad', title: '设备故障', desc: '直播设备出现故障', effect: { fans: -200 } }, 
-    { type: 'good', title: '粉丝见面会', desc: '举办了粉丝见面会', effect: { fans: 2000, money: 2000 } }, 
-    
-    // 警告事件权重设为 0.05（极难触发）
     { type: 'bad', title: '恶意投诉', desc: '有人恶意投诉你的直播', effect: { warnings: 1 }, weight: 0.05 }, 
-    
     { type: 'good', title: '平台推荐', desc: '平台给你提供了推荐位', effect: { views: 40000, fans: 4000 } }, 
     { type: 'bad', title: '算法调整', desc: '平台算法调整，流量下降', effect: { views: -15000 } }, 
     { type: 'bad', title: '负面新闻', desc: '关于你的负面新闻在网上传播', effect: { publicOpinion: true } },
