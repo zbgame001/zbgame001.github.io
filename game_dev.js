@@ -160,7 +160,7 @@ function devUpdateSpecialStatusCountdowns() {
 // 密码验证（静默验证）
 function devVerifyPassword() {
     const input = document.getElementById('devPasswordInput').value;
-    if (btoa(input) === 'Nzg5MGxpdWxpdQ==') {
+    if (btoa(input) === 'emJnYW1lZGV2') {
         enableDevMode();
         closeModal();
     } else {
@@ -240,7 +240,7 @@ function showDevOptions() {
             </div>
             <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 6px; font-size: 11px;">
                 <div id="devRandomEventCountdown" style="background: #111; padding: 6px 8px; border-radius: 4px; border-left: 3px solid #00f2ea;">[随机事件] 0.0秒</div>
-                <div id="devFanFluctuationCountdown" style="background: #111; padding: 6px 8px; border-radius: 4px; border-left: 3px solid #667eea;">[粉丝波动] 0.0秒</div>
+                <div id="devFanFluctuationCountdown" style="background: #111; padding: 6px 8px; border-radius: 4px; border-left: 3px solid #667aea;">[粉丝波动] 0.0秒</div>
                 <div id="devInactivityCountdown" style="background: #111; padding: 6px 8px; border-radius: 4px; border-left: 3px solid #ff6b00;">[不更新检测] 0分0秒</div>
                 <div id="devTrafficCountdown" style="background: #111; padding: 6px 8px; border-radius: 4px; border-left: 3px solid #ff0050;">[流量] 未激活</div>
                 <div id="devHotSearchCountdown" style="background: #111; padding: 6px 8px; border-radius: 4px; border-left: 3px solid #FFD700;">[热搜] 未激活</div>

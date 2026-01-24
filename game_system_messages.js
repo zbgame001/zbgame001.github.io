@@ -280,6 +280,15 @@ function acceptHotSearchInvite(messageId, contentType) {
     gameState.worksList.push(hotWork);
     gameState.works++;
     
+    // ✅ 新增：热搜开始时增加热度值 (+3000~+5000)
+    if (window.HotValueSystem) {
+        const hotValueIncrease = Math.floor(Math.random() * 2001) + 3000; // 3000-5000
+        window.HotValueSystem.currentHotValue += hotValueIncrease;
+        window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue);
+        gameState.currentHotValue = window.HotValueSystem.currentHotValue;
+        console.log(`[热度值] 接受热搜邀请，热度值增加 ${hotValueIncrease}，当前热度值: ${window.HotValueSystem.currentHotValue}`);
+    }
+    
     // 添加到活跃热搜作品列表
     if (!gameState.systemMessages.hotSearchActiveWorks) {
         gameState.systemMessages.hotSearchActiveWorks = [];
@@ -330,7 +339,15 @@ function startHotSearchWorkEffect(workId) {
         const likesBoost = Math.floor((Math.random() * 400 + 100) * intensity);
         const commentsBoost = Math.floor((Math.random() * 50 + 10) * intensity);
         const sharesBoost = Math.floor((Math.random() * 30 + 5) * intensity);
-        const fanBoost = Math.floor((Math.random() * 2000 + 1000) * intensity);
+        let fanBoost = Math.floor((Math.random() * 2000 + 1000) * intensity);
+        
+        // ✅ 新增：应用热度值倍数（只影响涨粉）
+        if (fanBoost > 0) {
+            const hotMultiplier = (typeof window.getHotValueMultiplier === 'function') 
+                ? window.getHotValueMultiplier() 
+                : 1.0;
+            fanBoost = Math.floor(fanBoost * hotMultiplier);
+        }
         
         work.views += viewsBoost;
         if (work.type === 'video' || work.type === 'live') {
@@ -389,6 +406,15 @@ function endHotSearchWorkEffect(workId) {
     );
     if (inviteMessage && !inviteMessage.data.expired) {
         inviteMessage.data.expired = true;
+    }
+    
+    // ✅ 新增：热搜结束时减少热度值 (-1500~-2500)
+    if (window.HotValueSystem) {
+        const hotValueDecrease = Math.floor(Math.random() * 1001) + 1500; // 1500-2500
+        window.HotValueSystem.currentHotValue -= hotValueDecrease;
+        window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue);
+        gameState.currentHotValue = window.HotValueSystem.currentHotValue;
+        console.log(`[热度值] 热搜结束，热度值减少 ${hotValueDecrease}，当前热度值: ${window.HotValueSystem.currentHotValue}`);
     }
     
     showEventPopup('热搜结束', `话题 ${work.hotSearchData.topic} 的热度已下降`);

@@ -326,6 +326,15 @@ window.createRaffle = function() {
     // 启动抽奖数据增长
     startRaffleDataGrowth(raffleWork.id);
     
+    // ✅ 新增：创建抽奖活动时增加热度值 (+1000~+2000)
+    if (window.HotValueSystem) {
+        const hotValueIncrease = Math.floor(Math.random() * 1001) + 1000; // 1000-2000
+        window.HotValueSystem.currentHotValue += hotValueIncrease;
+        window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue);
+        gameState.currentHotValue = window.HotValueSystem.currentHotValue;
+        console.log(`[热度值] 创建抽奖活动，热度值增加 ${hotValueIncrease}，当前热度值: ${window.HotValueSystem.currentHotValue}`);
+    }
+    
     // 关闭页面
     closeFullscreenPage('raffle');
     
@@ -399,7 +408,16 @@ function startRaffleFanGrowth(workId) {
         }
         
         // 随机涨粉（1-10000）
-        const fanGrowth = Math.floor(Math.random() * 10000) + 1;
+        let fanGrowth = Math.floor(Math.random() * 10000) + 1;
+        
+        // ✅ 新增：应用热度值倍数（只影响涨粉）
+        if (fanGrowth > 0) {
+            const hotMultiplier = (typeof window.getHotValueMultiplier === 'function') 
+                ? window.getHotValueMultiplier() 
+                : 1.0;
+            fanGrowth = Math.floor(fanGrowth * hotMultiplier);
+        }
+        
         gameState.fans += fanGrowth;
         gameState.todayNewFans += fanGrowth;
         
@@ -665,6 +683,15 @@ function startRaffleDraw(workId) {
     
     work.winners = winners;
     work.raffleStatus = 'completed';
+    
+    // ✅ 新增：抽奖开奖后减少热度值 (-500~-1000)
+    if (window.HotValueSystem) {
+        const hotValueDecrease = Math.floor(Math.random() * 501) + 500; // 500-1000
+        window.HotValueSystem.currentHotValue -= hotValueDecrease;
+        window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue);
+        gameState.currentHotValue = window.HotValueSystem.currentHotValue;
+        console.log(`[热度值] 抽奖活动开奖，热度值减少 ${hotValueDecrease}，当前热度值: ${window.HotValueSystem.currentHotValue}`);
+    }
     
     // 发送中奖消息
     winners.forEach((winner, index) => {

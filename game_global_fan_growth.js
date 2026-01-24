@@ -166,6 +166,21 @@ function processGlobalFanGrowth() {
         }
     });
     
+    // ==================== 核心修改：应用热度值倍数（只影响涨粉） ====================
+    if (totalFanChange > 0) {
+        // 获取热度值影响倍数（热度越高，倍数越高；热度越低，倍数越低）
+        const hotMultiplier = (typeof window.getHotValueMultiplier === 'function') 
+            ? window.getHotValueMultiplier() 
+            : 1.0;
+        
+        // 应用倍数到涨粉数量
+        totalFanChange = Math.floor(totalFanChange * hotMultiplier);
+        
+        console.log(`[全局系统] 热度值倍数: ${hotMultiplier.toFixed(2)}x, 调整后涨粉: ${totalFanChange}`);
+    }
+    // 注意：掉粉（totalFanChange < 0）不受影响，保持原值
+    // ==============================================================================
+    
     // 应用粉丝变化
     if (totalFanChange !== 0) {
         gameState.fans = Math.max(0, gameState.fans + totalFanChange);
@@ -198,7 +213,7 @@ function processGlobalFanGrowth() {
 }
 
 // 模块加载完成日志
-console.log('✅ 全局作品粉丝增长系统模块已加载');
+console.log('✅ 全局作品粉丝增长系统模块已加载（已接入热度值系统）');
 
 // ==================== 全局函数绑定 ====================
 window.startGlobalWorkFanGrowth = window.startGlobalWorkFanGrowth;

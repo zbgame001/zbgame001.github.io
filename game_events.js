@@ -5,9 +5,27 @@ function startHotSearch(title) {
     gameState.hotSearchDaysCount = Math.floor(Math.random() * 3) + 1;
     gameState.hotSearchStartTime = gameTimer; // 使用游戏计时器
     gameState.hotSearchTitle = title || '🔥 话题热议中';
+    
+    // ==================== 新增：热搜增加热度值 ====================
+    if (window.HotValueSystem) {
+        const hotValueIncrease = Math.floor(Math.random() * 2000) + 3000; // 增加3000-5000热度值
+        window.HotValueSystem.currentHotValue += hotValueIncrease;
+        gameState.currentHotValue = window.HotValueSystem.currentHotValue;
+        console.log(`🔥 热搜上榜！热度值增加 ${hotValueIncrease}，当前热度值：${window.HotValueSystem.currentHotValue}`);
+    }
+    // ============================================================
+    
     if (!gameState.hotSearchInterval) gameState.hotSearchInterval = setInterval(() => {
         if (gameState.isHotSearch) {
-            const fanGrowth = Math.floor(Math.random() * 100) + 50;
+            let fanGrowth = Math.floor(Math.random() * 100) + 50;
+            
+            // ==================== 应用热度值倍数（只影响涨粉） ====================
+            const hotMultiplier = (typeof window.getHotValueMultiplier === 'function') 
+                ? window.getHotValueMultiplier() 
+                : 1.0;
+            fanGrowth = Math.floor(fanGrowth * hotMultiplier);
+            // ==================================================================
+            
             gameState.fans += fanGrowth;
             // ✅ 修复：使用涨掉粉通知系统，并更新今日新增粉丝
             gameState.todayNewFans += fanGrowth; // ✅ 新增：累计今日新增粉丝
@@ -37,6 +55,15 @@ function showHotSearchNotice() {
 }
 
 function endHotSearch() {
+    // ==================== 新增：热搜结束减少热度值 ====================
+    if (window.HotValueSystem && gameState.isHotSearch) {
+        const hotValueDecrease = Math.floor(Math.random() * 1000) + 1500; // 减少1500-2500热度值
+        window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - hotValueDecrease);
+        gameState.currentHotValue = window.HotValueSystem.currentHotValue;
+        console.log(`📉 热搜结束！热度值减少 ${hotValueDecrease}，当前热度值：${window.HotValueSystem.currentHotValue}`);
+    }
+    // ============================================================
+    
     gameState.isHotSearch = false;
     gameState.hotSearchTitle = '';
     if (gameState.hotSearchInterval) {
@@ -56,6 +83,16 @@ function banAccount(reason) {
     gameState.banDaysCount = Math.floor(Math.random() * 30) + 1;
     gameState.banStartTime = gameTimer;
     gameState.appealAvailable = true;
+    
+    // ==================== 新增：封禁大幅减少热度值 ====================
+    if (window.HotValueSystem) {
+        const hotValueDecrease = Math.floor(Math.random() * 3000) + 2000; // 减少2000-5000热度值
+        window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - hotValueDecrease);
+        gameState.currentHotValue = window.HotValueSystem.currentHotValue;
+        console.log(`🚫 账号被封禁！热度值减少 ${hotValueDecrease}，当前热度值：${window.HotValueSystem.currentHotValue}`);
+    }
+    // ============================================================
+    
     if (gameState.liveStatus) {
         endLiveStream();
         // ✅ 修改：使用小弹窗通知
@@ -102,6 +139,15 @@ function showBanNotice() {
             gameState.banDropInterval = null;
         }
         
+        // ==================== 新增：解封恢复部分热度值 ====================
+        if (window.HotValueSystem) {
+            const hotValueIncrease = Math.floor(Math.random() * 1000) + 500; // 恢复500-1500热度值
+            window.HotValueSystem.currentHotValue += hotValueIncrease;
+            gameState.currentHotValue = window.HotValueSystem.currentHotValue;
+            console.log(`🔓 账号解封！热度值恢复 ${hotValueIncrease}，当前热度值：${window.HotValueSystem.currentHotValue}`);
+        }
+        // ============================================================
+        
         // ✅ 修改：只显示小弹窗通知
         showEventPopup('🔓 账号已解封', '封禁结束！警告次数已清空，可以继续创作啦');
         
@@ -132,6 +178,16 @@ function startPublicOpinionCrisis(title) {
     gameState.publicOpinionDaysCount = Math.floor(Math.random() * 3) + 1;
     gameState.publicOpinionStartTime = gameTimer; // 使用游戏计时器
     gameState.publicOpinionTitle = title || '⚠️ 舆论风波中';
+    
+    // ==================== 新增：舆论风波减少热度值 ====================
+    if (window.HotValueSystem) {
+        const hotValueDecrease = Math.floor(Math.random() * 2000) + 1500; // 减少1500-3500热度值
+        window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - hotValueDecrease);
+        gameState.currentHotValue = window.HotValueSystem.currentHotValue;
+        console.log(`⚠️ 舆论风波！热度值减少 ${hotValueDecrease}，当前热度值：${window.HotValueSystem.currentHotValue}`);
+    }
+    // ============================================================
+    
     if (!gameState.publicOpinionInterval) {
         gameState.publicOpinionInterval = setInterval(() => {
             if (gameState.isPublicOpinionCrisis && gameState.fans > 0) {
@@ -178,6 +234,15 @@ function showPublicOpinionNotice() {
 }
 
 function endPublicOpinionCrisis() {
+    // ==================== 新增：舆论风波结束恢复热度值 ====================
+    if (window.HotValueSystem && gameState.isPublicOpinionCrisis) {
+        const hotValueIncrease = Math.floor(Math.random() * 1000) + 800; // 恢复800-1800热度值
+        window.HotValueSystem.currentHotValue += hotValueIncrease;
+        gameState.currentHotValue = window.HotValueSystem.currentHotValue;
+        console.log(`📉 舆论风波结束！热度值恢复 ${hotValueIncrease}，当前热度值：${window.HotValueSystem.currentHotValue}`);
+    }
+    // ============================================================
+    
     gameState.isPublicOpinionCrisis = false;
     gameState.publicOpinionTitle = '';
     if (gameState.publicOpinionInterval) {
@@ -342,7 +407,7 @@ function checkInactivityPenalty() {
     }
 }
 
-// ==================== 游戏主循环（核心修改：加权随机事件） ====================
+// ==================== 游戏主循环（核心修改：加权随机事件 + 热度值影响自然涨粉） ====================
 function startGameLoop() {
     // 每虚拟天（1分钟）精确更新一次图表
     setInterval(() => {
@@ -398,11 +463,23 @@ function startGameLoop() {
         }
     }, 1000);
     
-    // ==================== 自然涨粉/掉粉（核心修改：每3秒触发1次，带作品增益） ====================
+    // ==================== 自然涨粉/掉粉（核心修改：每3秒触发1次，带热度值增益） ====================
     setInterval(() => {
-        // 每3秒固定触发1次，数量受作品增益影响
+        // 每3秒固定触发1次，数量受作品增益和热度值影响
         const baseChange = Math.floor(Math.random() * 100) - 50;
-        const boostedChange = baseChange + gameState.baseFanChangeBoost; // 应用作品增益
+        let boostedChange = baseChange + gameState.baseFanChangeBoost; // 应用作品增益
+        
+        // ==================== 核心修改：应用热度值倍数（只影响涨粉） ====================
+        if (boostedChange > 0) {
+            const hotMultiplier = (typeof window.getHotValueMultiplier === 'function') 
+                ? window.getHotValueMultiplier() 
+                : 1.0;
+            boostedChange = Math.floor(boostedChange * hotMultiplier);
+            console.log(`[自然涨粉] 热度值倍数: ${hotMultiplier.toFixed(2)}x, 调整后: ${boostedChange}`);
+        }
+        // 注意：掉粉（boostedChange <= 0）不受影响
+        // ==============================================================================
+        
         const change = boostedChange;
         
         gameState.fans = Math.max(0, gameState.fans + change);

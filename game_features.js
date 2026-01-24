@@ -300,6 +300,11 @@ function startLiveStream() {
     
     if (!gameState.liveHistory) gameState.liveHistory = [];
     
+    // ✅ 获取热度值倍数（在函数开始处获取，避免重复获取）
+    const hotMultiplier = (typeof window.getHotValueMultiplier === 'function') 
+        ? window.getHotValueMultiplier() 
+        : 1.0;
+    
     gameState.liveInterval = setInterval(() => {
         if (!gameState.liveStatus) { 
             clearInterval(gameState.liveInterval); 
@@ -309,7 +314,8 @@ function startLiveStream() {
         const viewerChange = Math.floor(Math.random() * 100) - 50;
         liveData.viewers = Math.max(50, liveData.viewers + viewerChange);
         if (Math.random() < 0.3) {
-            const likeGain = Math.floor(Math.random() * 50) + 10;
+            // ✅ 修改：应用热度值倍数到点赞
+            const likeGain = Math.floor((Math.floor(Math.random() * 50) + 10) * hotMultiplier);
             liveData.likes += likeGain;
             
             // ✅ 新增：直播点赞生成消息
@@ -327,20 +333,27 @@ function startLiveStream() {
             }
         }
         if (Math.random() < 0.1) {
-            const commentGain = Math.floor(Math.random() * 10) + 1;
+            // ✅ 修改：应用热度值倍数到评论
+            const commentGain = Math.floor((Math.floor(Math.random() * 10) + 1) * hotMultiplier);
             liveData.comments += commentGain;
         }
         if (Math.random() < 0.05) {
-            const shareGain = Math.floor(Math.random() * 5) + 1;
+            // ✅ 修改：应用热度值倍数到转发
+            const shareGain = Math.floor((Math.floor(Math.random() * 5) + 1) * hotMultiplier);
             liveData.shares += shareGain;
         }
         if (Math.random() < 0.2) {
-            const revenue = Math.floor(Math.random() * 100) + 10;
+            // ✅ 修改：应用热度值倍数到收益
+            const revenue = Math.floor((Math.floor(Math.random() * 100) + 10) * hotMultiplier);
             liveData.revenue += revenue;
             gameState.money += revenue;
         }
         if (Math.random() < 0.1) {
-            const newFans = Math.floor(Math.random() * 20) + 1;
+            let newFans = Math.floor(Math.random() * 20) + 1;
+            
+            // ✅ 修改：应用热度值倍数到涨粉
+            newFans = Math.floor(newFans * hotMultiplier);
+            
             gameState.fans += newFans;
             
             // ✅ 修复：记录直播涨粉
@@ -666,6 +679,13 @@ function confirmBuyTraffic() {
         startNewTraffic(workId, days);
     });
     
+    // ✅ 增加热度值（购买流量）
+    if (window.HotValueSystem) {
+        const hotValueIncrease = Math.floor(Math.random() * 501) + 500; // 500-1000
+        window.HotValueSystem.currentHotValue += hotValueIncrease;
+        gameState.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue);
+    }
+    
     closeFullscreenPage('buyTraffic');
     
     // ✅ 修改：只显示小弹窗通知，移除通知中心通知
@@ -810,6 +830,13 @@ function submitBanAppeal() {
                     gameState.warnings = Math.max(0, gameState.warnings - 5);
                     gameState.appealAvailable = true;
                     
+                    // ✅ 恢复热度值（解封）
+                    if (window.HotValueSystem) {
+                        const hotValueRecover = Math.floor(Math.random() * 1001) + 500; // 500-1500
+                        window.HotValueSystem.currentHotValue += hotValueRecover;
+                        gameState.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue);
+                    }
+                    
                     const achievement = achievements.find(a => a.id === 14);
                     if (achievement && !achievement.unlocked) {
                         achievement.unlocked = true;
@@ -923,10 +950,15 @@ function startTrafficProcess(workId) {
             return;
         }
         
-        const viewsBoost = Math.floor(Math.random() * 4000) + 1000;
-        const fanBoost = Math.floor(Math.random() * 40) + 10;
-        const commentBoost = Math.floor(Math.random() * 50) + 10;
-        const shareBoost = Math.floor(Math.random() * 30) + 5;
+        // ✅ 修改：获取热度值倍数并应用到所有数据增长
+        const hotMultiplier = (typeof window.getHotValueMultiplier === 'function') 
+            ? window.getHotValueMultiplier() 
+            : 1.0;
+        
+        const viewsBoost = Math.floor((Math.floor(Math.random() * 4000) + 1000) * hotMultiplier);
+        let fanBoost = Math.floor((Math.floor(Math.random() * 40) + 10) * hotMultiplier);
+        const commentBoost = Math.floor((Math.floor(Math.random() * 50) + 10) * hotMultiplier);
+        const shareBoost = Math.floor((Math.floor(Math.random() * 30) + 5) * hotMultiplier);
         
         work.views += viewsBoost;
         if (work.type === 'video' || work.type === 'live') {
@@ -943,6 +975,7 @@ function startTrafficProcess(workId) {
         }
         
         work.comments += commentBoost;
+        work.shares += shareBoost;
         
         gameState.totalInteractions += commentBoost + shareBoost;
         

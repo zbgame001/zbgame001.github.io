@@ -229,7 +229,7 @@ function showModManagement() {
                               style="background: #222; border: 2px solid #333; color: #fff; font-family: monospace; font-size: 12px;"></textarea>
                     <div style="margin-top: 10px;">
                         <button class="btn" onclick="confirmAddMod()" style="width: 100%; background: linear-gradient(135deg, #00f2ea 0%, #667eea 100%); color: #000; font-weight: bold;">
-                            将以上代码组成Mod
+                            将以上代码组建Mod
                         </button>
                     </div>
                 </div>
@@ -251,6 +251,9 @@ function showModManagement() {
                         </button>
                         <button class="btn" onclick="loadSelectedMods()" style="flex: 2; min-width: 200px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); font-weight: bold;">
                             🚀 确定加载Mod
+                        </button>
+                        <button class="btn btn-danger" onclick="unloadSelectedMods()" style="flex: 2; min-width: 200px; background: linear-gradient(135deg, #ff6b00 0%, #ff0050 100%); font-weight: bold;">
+                            ⚠️ 取消加载Mod
                         </button>
                     </div>
                 </div>
@@ -772,7 +775,12 @@ function deleteSelectedMods() {
         return;
     }
     
-    showConfirm(`确定要删除选中的 ${window.selectedModIds.length} 个Mod吗？此操作不可恢复！`, function(confirmed) {
+    showConfirm(`确定要删除选中的 ${window.selectedModIds.length} 个Mod吗？
+
+⚠️ 重要提示：
+删除Mod后，需要重新进入游戏才能完全清除Mod的影响。
+
+此操作不可恢复！`, function(confirmed) {
         if (!confirmed) return;
         
         window.selectedModIds.forEach(modId => {
@@ -782,7 +790,7 @@ function deleteSelectedMods() {
         window.selectedModIds = [];
         refreshModFileList();
         
-        showNotification('删除成功', '选中的Mod已删除');
+        showNotification('删除成功', '选中的Mod已删除，请重新进入游戏生效');
     }, '删除Mod');
 }
 
@@ -853,6 +861,71 @@ window.loadSelectedMods = function() {
     }, '加载Mod');
 };
 
+// ==================== ✅ 新增：取消加载选中的Mod ====================
+function unloadSelectedMods() {
+    // 获取选中的mod
+    const selectedMods = window.selectedModIds.map(id => 
+        window.modManager.mods.find(mod => mod.id === id)
+    ).filter(mod => mod && mod.enabled); // 过滤掉未找到的
+    
+    if (selectedMods.length === 0) {
+        showAlert('请先选择要取消加载的Mod（只能选择已启用的Mod）', '提示');
+        return;
+    }
+    
+    showConfirm(`确定要取消加载 ${selectedMods.length} 个Mod吗？
+
+⚠️ 重要提示：
+取消加载Mod后，必须重新进入游戏（刷新页面）才能真正取消Mod加载。`, function(confirmed) {
+        if (!confirmed) return;
+        
+        try {
+            // 从已加载列表中移除选中的Mod
+            let successCount = 0;
+            selectedMods.forEach(mod => {
+                const index = window.modManager.loadedMods.indexOf(mod.id);
+                if (index > -1) {
+                    window.modManager.loadedMods.splice(index, 1);
+                    successCount++;
+                    
+                    // 同时取消激活状态
+                    mod.enabled = false;
+                    const activeIndex = window.modManager.activeMods.indexOf(mod.id);
+                    if (activeIndex > -1) {
+                        window.modManager.activeMods.splice(activeIndex, 1);
+                    }
+                    
+                    console.log(`✅ 取消加载Mod: ${mod.name}`);
+                }
+            });
+            
+            // ✅ 保存所有状态
+            window.modManager.saveMods();
+            window.modManager.saveActiveMods();
+            window.modManager.saveLoadedMods(); // ✅ 保存已加载列表
+            
+            // ✅ 更新已加载计数
+            window.loadedModCount = window.modManager.loadedMods.length;
+            updateLoadedModCount();
+            
+            // ✅ 显示成功提示，重点告知需要重新进入游戏
+            showAlert(`成功取消加载 ${successCount} 个Mod！
+
+⚠️ 重要提示：
+Mod已标记为未加载状态，但需要重新进入游戏（刷新页面）才能真正生效。`, '取消加载成功');
+            
+            // ✅ 刷新Mod列表显示
+            refreshModFileList();
+            
+            // ✅ 重置选择状态
+            window.selectedModIds = [];
+            
+        } catch (error) {
+            showAlert(`取消加载失败: ${error.message}`, '错误');
+        }
+    }, '取消加载Mod');
+}
+
 // ==================== 刷新Mod文件列表 ====================
 function refreshModFileList() {
     const listContainer = document.getElementById('modFileList');
@@ -900,5 +973,6 @@ window.refreshModFileList = refreshModFileList;
 window.updateLoadedModCount = updateLoadedModCount;
 window.generateGameDescription = generateGameDescription;
 window.escapeHtml = escapeHtml;
+window.unloadSelectedMods = unloadSelectedMods; // ✅ 导出取消加载函数
 
 console.log('✅ Mod系统已加载（带自动描述生成器）');

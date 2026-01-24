@@ -10,10 +10,17 @@ window.cachedViewsStats = {
     date: 0
 };
 
+// 有状态作品分页相关全局变量
+window.viewsActiveWorksPage = 1;
+window.viewsActiveWorksPerPage = 5;
+
 // 显示播放量全屏界面
 window.showViewsFullscreen = function() {
     // 停止之前的更新
     stopViewsRealtimeUpdate();
+    
+    // 重置分页到第一页
+    window.viewsActiveWorksPage = 1;
     
     // 计算初始统计数据
     calculateViewsStats();
@@ -60,6 +67,24 @@ function renderViewsPage() {
     
     const dailyViews = window.cachedViewsStats.dailyViews;
     
+    // 获取有状态的作品
+    const allActiveWorks = getActiveStatusWorks();
+    const totalWorks = allActiveWorks.length;
+    const totalPages = Math.max(1, Math.ceil(totalWorks / window.viewsActiveWorksPerPage));
+    
+    // 确保当前页码有效
+    if (window.viewsActiveWorksPage > totalPages) {
+        window.viewsActiveWorksPage = totalPages;
+    }
+    if (window.viewsActiveWorksPage < 1) {
+        window.viewsActiveWorksPage = 1;
+    }
+    
+    // 计算当前页的作品
+    const startIndex = (window.viewsActiveWorksPage - 1) * window.viewsActiveWorksPerPage;
+    const endIndex = startIndex + window.viewsActiveWorksPerPage;
+    const pageWorks = allActiveWorks.slice(startIndex, endIndex);
+    
     // 生成HTML内容（移除今日新增部分）
     let html = `
         <div class="views-stats-container" style="margin: 10px; background: #161823; border-radius: 15px; border: 1px solid #333; padding: 20px;">
@@ -88,19 +113,17 @@ function renderViewsPage() {
     `;
     
     // 添加有状态的作品列表（包含推广、抽奖、热搜话题）
-    const activeWorks = getActiveStatusWorks();
-    if (activeWorks.length > 0) {
-        html += `
-            <div class="views-info-section" style="margin: 10px;">
-                <div class="info-title" style="font-size: 14px; font-weight: bold; color: #667aea; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
-                    ⚡ 有状态的作品
-                </div>
-                <div id="activeStatusWorks" style="background: #161823; border-radius: 10px; border: 1px solid #333; padding: 10px;">
-                    ${renderActiveStatusWorks(activeWorks)}
-                </div>
+    html += `
+        <div class="views-info-section" style="margin: 10px;">
+            <div class="info-title" style="font-size: 14px; font-weight: bold; color: #667aea; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                ⚡ 有状态的作品 <span style="font-size: 12px; color: #999; font-weight: normal;">(${totalWorks}个)</span>
             </div>
-        `;
-    }
+            <div id="activeStatusWorks" style="background: #161823; border-radius: 10px; border: 1px solid #333; padding: 10px;">
+                ${renderActiveStatusWorks(pageWorks)}
+            </div>
+            ${totalPages > 1 ? renderViewsActiveWorksPagination(totalPages, totalWorks) : ''}
+        </div>
+    `;
     
     content.innerHTML = html;
     
@@ -110,7 +133,7 @@ function renderViewsPage() {
     }, 100);
 }
 
-// 获取有状态的作品（包含推广、抽奖、热搜话题，排除已结束的抽奖）
+// 获取有状态的作品（包含推广、抽奖、热搜话题，排除已结束的抽奖，不分页）
 function getActiveStatusWorks() {
     return gameState.worksList.filter(work => {
         // 私密作品不显示
@@ -130,10 +153,10 @@ function getActiveStatusWorks() {
         
         // 只要有一种状态就显示
         return isTrafficActive || isRaffleActive || isHotSearchActive || hasOtherStatus;
-    }).slice(0, 10); // 最多显示10个
+    });
 }
 
-// 渲染有状态的作品
+// 渲染有状态的作品（接收当前页的作品数组）
 function renderActiveStatusWorks(works) {
     if (works.length === 0) {
         return '<div style="text-align:center;color:#999;padding:20px;font-size:12px;">暂无特殊状态作品</div>';
@@ -224,6 +247,85 @@ function renderActiveStatusWorks(works) {
     }).join('');
 }
 
+// 渲染有状态作品分页控件
+function renderViewsActiveWorksPagination(totalPages, totalWorks) {
+    const currentPage = window.viewsActiveWorksPage;
+    
+    let html = '<div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #333; flex-wrap: wrap;">';
+    
+    // 上一页按钮
+    html += `<button class="page-btn ${currentPage === 1 ? 'disabled' : ''}" onclick="changeViewsActiveWorksPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} style="background: #222; border: 1px solid #333; color: #ccc; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; min-width: 32px;">‹</button>`;
+    
+    // 页码按钮（最多显示5个）
+    const maxVisible = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    
+    if (endPage - startPage + 1 < maxVisible) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+    
+    // 第一页和省略号
+    if (startPage > 1) {
+        html += `<button class="page-btn" onclick="changeViewsActiveWorksPage(1)" style="background: #222; border: 1px solid #333; color: #ccc; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; min-width: 32px;">1</button>`;
+        if (startPage > 2) {
+            html += `<span style="color: #666; padding: 0 5px;">...</span>`;
+        }
+    }
+    
+    // 中间页码
+    for (let i = startPage; i <= endPage; i++) {
+        const isActive = i === currentPage;
+        html += `<button class="page-btn ${isActive ? 'active' : ''}" onclick="changeViewsActiveWorksPage(${i})" style="background: ${isActive ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#222'}; border: 1px solid ${isActive ? '#667eea' : '#333'}; color: ${isActive ? '#fff' : '#ccc'}; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; min-width: 32px; font-weight: ${isActive ? 'bold' : 'normal'};">${i}</button>`;
+    }
+    
+    // 最后一页和省略号
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            html += `<span style="color: #666; padding: 0 5px;">...</span>`;
+        }
+        html += `<button class="page-btn" onclick="changeViewsActiveWorksPage(${totalPages})" style="background: #222; border: 1px solid #333; color: #ccc; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; min-width: 32px;">${totalPages}</button>`;
+    }
+    
+    // 下一页按钮
+    html += `<button class="page-btn ${currentPage === totalPages ? 'disabled' : ''}" onclick="changeViewsActiveWorksPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''} style="background: #222; border: 1px solid #333; color: #ccc; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; min-width: 32px;">›</button>`;
+    
+    // 统计信息
+    const startItem = totalWorks > 0 ? (currentPage - 1) * window.viewsActiveWorksPerPage + 1 : 0;
+    const endItem = Math.min(currentPage * window.viewsActiveWorksPerPage, totalWorks);
+    html += `<span style="margin-left: 10px; font-size: 12px; color: #999; white-space: nowrap;">${startItem}-${endItem} / ${totalWorks}</span>`;
+    
+    html += '</div>';
+    
+    return html;
+}
+
+// 切换有状态作品页面
+window.changeViewsActiveWorksPage = function(page) {
+    const allActiveWorks = getActiveStatusWorks();
+    const totalPages = Math.max(1, Math.ceil(allActiveWorks.length / window.viewsActiveWorksPerPage));
+    
+    if (page < 1 || page > totalPages) return;
+    
+    window.viewsActiveWorksPage = page;
+    
+    // 重新渲染作品列表和分页控件
+    const container = document.getElementById('activeStatusWorks');
+    if (container) {
+        const startIndex = (page - 1) * window.viewsActiveWorksPerPage;
+        const endIndex = startIndex + window.viewsActiveWorksPerPage;
+        const pageWorks = allActiveWorks.slice(startIndex, endIndex);
+        
+        container.innerHTML = renderActiveStatusWorks(pageWorks);
+        
+        // 更新分页控件
+        const paginationContainer = container.parentElement.querySelector('div[style*="justify-content: center"]');
+        if (paginationContainer) {
+            paginationContainer.outerHTML = renderViewsActiveWorksPagination(totalPages, allActiveWorks.length);
+        }
+    }
+}
+
 // 计算播放量统计数据
 function calculateViewsStats() {
     // 获取当前虚拟天数
@@ -260,11 +362,34 @@ function startViewsRealtimeUpdate() {
             // 更新图表
             updateViewsChartRealtime();
             
-            // 更新有状态作品列表
-            const activeWorks = getActiveStatusWorks();
+            // 更新有状态作品列表（保持当前页码）
+            const allActiveWorks = getActiveStatusWorks();
+            const totalWorks = allActiveWorks.length;
+            const totalPages = Math.max(1, Math.ceil(totalWorks / window.viewsActiveWorksPerPage));
+            
+            // 确保当前页码有效
+            if (window.viewsActiveWorksPage > totalPages) {
+                window.viewsActiveWorksPage = totalPages;
+            }
+            if (window.viewsActiveWorksPage < 1) {
+                window.viewsActiveWorksPage = 1;
+            }
+            
+            const startIndex = (window.viewsActiveWorksPage - 1) * window.viewsActiveWorksPerPage;
+            const endIndex = startIndex + window.viewsActiveWorksPerPage;
+            const pageWorks = allActiveWorks.slice(startIndex, endIndex);
+            
             const container = document.getElementById('activeStatusWorks');
             if (container) {
-                container.innerHTML = renderActiveStatusWorks(activeWorks);
+                container.innerHTML = renderActiveStatusWorks(pageWorks);
+                
+                // 更新分页控件（如果存在）
+                const paginationContainer = container.parentElement.querySelector('div[style*="justify-content: center"]');
+                if (paginationContainer && totalPages > 1) {
+                    paginationContainer.outerHTML = renderViewsActiveWorksPagination(totalPages, totalWorks);
+                } else if (paginationContainer && totalPages <= 1) {
+                    paginationContainer.remove();
+                }
             }
         }
     }, 1000);
@@ -457,3 +582,5 @@ window.updateViewsChartRealtime = window.updateViewsChartRealtime;
 window.cleanupViewsCache = window.cleanupViewsCache;
 window.getActiveStatusWorks = window.getActiveStatusWorks;
 window.renderActiveStatusWorks = window.renderActiveStatusWorks;
+window.changeViewsActiveWorksPage = window.changeViewsActiveWorksPage;
+window.renderViewsActiveWorksPagination = window.renderViewsActiveWorksPagination;

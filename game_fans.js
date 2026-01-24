@@ -11,6 +11,51 @@ window.cachedDailyStats = {
     date: 0
 };
 
+// ==================== 新增：互动数据只涨不减控制变量 ====================
+let currentDayInteractionsMax = 0;  // 当天显示的最大互动值
+let currentDayIndex = -1;           // 当前记录的天数索引，用于检测天数变化
+
+// ==================== 新增：获取热度值调整后的今日互动数据（只涨不减版） ====================
+function getTodayInteractionsWithHotValue() {
+    const dayIndex = gameState.chartData.currentIndex || 0;
+    
+    // 检测是否为新的一天（索引变化或首次调用）
+    if (dayIndex !== currentDayIndex) {
+        currentDayIndex = dayIndex;
+        currentDayInteractionsMax = 0;  // 新的一天，清零重新开始
+        console.log(`[粉丝界面] 新的一天开始，互动数据已清零 (dayIndex: ${dayIndex})`);
+    }
+    
+    // 获取基础互动数据（原始存储的今日增量）
+    const baseInteractions = gameState.chartData.interactions[dayIndex] || 0;
+    
+    // 如果没有粉丝，互动为0
+    if (!gameState.fans || gameState.fans <= 0) {
+        return 0;
+    }
+    
+    // 获取热度值倍数
+    const hotMultiplier = (typeof window.getHotValueMultiplier === 'function') 
+        ? window.getHotValueMultiplier() 
+        : 1.0;
+    
+    // 应用热度值倍数（热度值越高，互动数据越高）
+    let adjustedInteractions = Math.floor(baseInteractions * hotMultiplier);
+    
+    // 确保不超过粉丝数本身（关键限制）
+    adjustedInteractions = Math.min(adjustedInteractions, gameState.fans);
+    
+    // ==================== 核心修改：只涨不减逻辑 ====================
+    // 如果新计算的值大于之前显示的最大值，则更新最大值
+    if (adjustedInteractions > currentDayInteractionsMax) {
+        currentDayInteractionsMax = adjustedInteractions;
+    }
+    
+    // 返回当天显示过的最大值（确保不会减少）
+    return currentDayInteractionsMax;
+    // ============================================================
+}
+
 // Chart.js图表系统（从game_features.js移动过来）
 function drawFansChart(canvasId, data, color, label) {
     const canvas = document.getElementById(canvasId);
@@ -155,9 +200,9 @@ function updateFansChartStatsRealtime() {
     
     if (statElements.fans) statElements.fans.textContent = gameState.fans.toLocaleString();
     
-    // 修改：互动统计显示今日增量
+    // 修改：互动统计显示今日增量（应用热度值倍数，只涨不减，且不超过粉丝数）
     if (statElements.interactions) {
-        const todayInteractions = gameState.chartData.interactions[gameState.chartData.currentIndex] || 0;
+        const todayInteractions = getTodayInteractionsWithHotValue();
         statElements.interactions.textContent = '+' + todayInteractions.toLocaleString();
     }
 }
@@ -186,6 +231,10 @@ window.updateFansChartsRealtime = updateFansChartsRealtime;
 window.showFansFullscreen = function() {
     // 停止之前的更新
     stopFansRealtimeUpdate();
+    
+    // ==================== 新增：打开界面时重置天数检测 ====================
+    currentDayIndex = -1;  // 强制重置，确保重新检测天数
+    currentDayInteractionsMax = 0;
     
     // 计算初始统计数据
     calculateDailyStats();
@@ -236,6 +285,9 @@ function renderFansPage() {
     const newFansToday = window.cachedDailyStats.newFans;
     const lostFansToday = window.cachedDailyStats.lostFans;
     
+    // 计算热度值调整后的互动数据（关键修改：只涨不减）
+    const todayInteractionsAdjusted = getTodayInteractionsWithHotValue();
+    
     // 生成HTML内容（增强版：添加图表和涨掉粉通知区域）
     content.innerHTML = `
         <div class="fans-stats-container">
@@ -273,7 +325,7 @@ function renderFansPage() {
             <div class="chart-item" style="margin: 0; padding: 15px;">
                 <div class="chart-header" style="margin-bottom: 10px;">
                     <div class="chart-title">互动次数</div>
-                    <div class="chart-value" id="interactionsStatValue">+${(gameState.chartData.interactions[gameState.chartData.currentIndex] || 0).toLocaleString()}</div>
+                    <div class="chart-value" id="interactionsStatValue">+${todayInteractionsAdjusted.toLocaleString()}</div>
                 </div>
                 <canvas class="chart-canvas" id="interactionsChart" style="height: 200px !important;"></canvas>
             </div>
@@ -426,6 +478,9 @@ function cleanupFansCache() {
         lostFans: 0,
         date: 0
     };
+    // ==================== 新增：清理只涨不减控制变量 ====================
+    currentDayInteractionsMax = 0;
+    currentDayIndex = -1;
 }
 
 // 模块加载时自动清理
@@ -480,3 +535,5 @@ window.cleanupFansCache = window.cleanupFansCache;
 window.convertDaysToMD = window.convertDaysToMD;
 // ✅ 新增：绑定涨掉粉通知渲染函数
 window.renderFanChangeNotifications = renderFanChangeNotifications;
+// ✅ 新增：绑定热度值互动计算函数（供其他模块可能需要使用）
+window.getTodayInteractionsWithHotValue = getTodayInteractionsWithHotValue;

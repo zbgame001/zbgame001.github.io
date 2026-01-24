@@ -168,9 +168,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial
 .fullscreen-page { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 998; display: none; flex-direction: column; }
 .fullscreen-page.active { display: flex; }
 .fullscreen-header { background: #161823; padding: 15px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-.back-btn { font-size: 24px; cursor: pointer; padding: 5px; color: #667eea; }
+.back-btn { font-size: 24px; cursor: pointer; padding: 5px; color: #667aea; }
 .fullscreen-title { font-size: 18px; font-weight: bold; flex: 1; text-align: center; }
-.fullscreen-action { font-size: 14px; color: #667eea; cursor: pointer; padding: 5px; white-space: nowrap; }
+.fullscreen-action { font-size: 14px; color: #667aea; cursor: pointer; padding: 5px; white-space: nowrap; }
 .fullscreen-content { flex: 1; overflow-y: auto; padding: 10px; }
 .achievement-progress { margin-top: 8px; background: #333; border-radius: 10px; height: 6px; overflow: hidden; }
 .achievement-progress-bar { height: 100%; background: linear-gradient(90deg, #667aea, #764ba2); transition: width 0.5s ease; }
@@ -329,25 +329,25 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial
 /* ==================== 抽奖系统样式 ==================== */
 .raffle-prize-selector { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 15px 0; }
 .prize-option { background: #222; border: 2px solid #333; border-radius: 10px; padding: 12px; cursor: pointer; transition: all 0.3s; text-align: center; }
-.prize-option:hover { border-color: #667ea; transform: translateY(-2px); }
-.prize-option.selected { border-color: #667ea; background: linear-gradient(135deg, #667ea 0%, #764ba2 100%); color: #fff; font-weight: bold; }
+.prize-option:hover { border-color: #667aea; transform: translateY(-2px); }
+.prize-option.selected { border-color: #667aea; background: linear-gradient(135deg, #667aea 0%, #764ba2 100%); color: #fff; font-weight: bold; }
 .prize-price { font-size: 14px; color: #999; margin-top: 5px; }
 .prize-option.selected .prize-price { color: rgba(255, 255, 255, 0.8); }
 .raffle-form-section { background: #161823; border-radius: 10px; padding: 15px; margin-bottom: 15px; border: 1px solid #333; }
-.raffle-form-section .section-title { font-size: 14px; font-weight: bold; color: #667ea; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.raffle-form-section .section-title { font-size: 14px; font-weight: bold; color: #667aea; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
 .raffle-days-selector { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 10px 0; }
 .raffle-day-option { background: #222; border: 2px solid #333; border-radius: 8px; padding: 8px; cursor: pointer; transition: all 0.3s; text-align: center; font-size: 12px; }
-.raffle-day-option:hover { border-color: #667ea; }
-.raffle-day-option.selected { border-color: #667ea; background: linear-gradient(135deg, #667ea 0%, #764ba2 100%); color: #fff; font-weight: bold; }
+.raffle-day-option:hover { border-color: #667aea; }
+.raffle-day-option.selected { border-color: #667aea; background: linear-gradient(135deg, #667aea 0%, #764ba2 100%); color: #fff; font-weight: bold; }
 .raffle-method-selector { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 10px 0; }
 .raffle-method-option { background: #222; border: 2px solid #333; border-radius: 8px; padding: 12px; cursor: pointer; transition: all 0.3s; text-align: center; }
-.raffle-method-option:hover { border-color: #667ea; }
-.raffle-method-option.selected { border-color: #667ea; background: linear-gradient(135deg, #667ea 0%, #764ba2 100%); color: #fff; font-weight: bold; }
+.raffle-method-option:hover { border-color: #667aea; }
+.raffle-method-option.selected { border-color: #667aea; background: linear-gradient(135deg, #667aea 0%, #764ba2 100%); color: #fff; font-weight: bold; }
 .raffle-status-indicator { display: inline-block; padding: 4px 8px; border-radius: 5px; font-size: 10px; font-weight: bold; margin-left: 5px; }
 .raffle-status-active { background: #00f2ea; color: #000; }
 .raffle-status-ended { background: #999; color: #fff; }
 .raffle-status-drawing { background: #ff6b00; color: #fff; }
-.raffle-status-pending { background: #667ea; color: #fff; }
+.raffle-status-pending { background: #667aea; color: #fff; }
 .raffle-winner-list { background: #222; border-radius: 8px; padding: 10px; margin-top: 10px; border: 1px solid #333; }
 .raffle-winner-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 5px; background: #161823; border-radius: 5px; }
 .raffle-winner-item:last-child { margin-bottom: 0; }
@@ -359,7 +359,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial
 
 /* ==================== 系统消息样式 ==================== */
 .system-message-item { background: #161823; border-radius: 10px; padding: 15px; margin-bottom: 10px; border: 1px solid #333; transition: all 0.3s; }
-.system-message-item:hover { background: #1a1a1a; border-color: #667ea; transform: translateY(-2px); }
+.system-message-item:hover { background: #1a1a1a; border-color: #667aea; transform: translateY(-2px); }
 .system-message-item:active { transform: scale(0.98); }
 
 /* ==================== 消息进入动画 ==================== */
@@ -368,7 +368,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial
 
 /* ==================== 警告列表样式 ==================== */
 .warning-item { background: #161823; border-radius: 10px; padding: 15px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s ease; border: 1px solid #333; }
-.warning-item:hover { background: #1a1a1a; border-color: #667ea; transform: translateY(-2px); }
+.warning-item:hover { background: #1a1a1a; border-color: #667aea; transform: translateY(-2px); }
 .warning-item:active { transform: scale(0.98); }
 .warning-item.severity-critical { border-left: 4px solid #8B0000; }
 .warning-item.severity-high { border-left: 4px solid #ff0050; }
@@ -421,7 +421,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial
 .raffle-status-active { background: #00f2ea; color: #000; }
 .raffle-status-ended { background: #999; color: #fff; }
 .raffle-status-drawing { background: #ff6b00; color: #fff; }
-.raffle-status-pending { background: #667ea; color: #fff; }
+.raffle-status-pending { background: #667aea; color: #fff; }
 .raffle-winner-list { background: #222; border-radius: 8px; padding: 10px; margin-top: 10px; border: 1px solid #333; }
 .raffle-winner-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 5px; background: #161823; border-radius: 5px; }
 .raffle-winner-item:last-child { margin-bottom: 0; }
@@ -433,7 +433,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial
 
 /* ==================== 系统消息样式 ==================== */
 .system-message-item { background: #161823; border-radius: 10px; padding: 15px; margin-bottom: 10px; border: 1px solid #333; transition: all 0.3s; }
-.system-message-item:hover { background: #1a1a1a; border-color: #667ea; transform: translateY(-2px); }
+.system-message-item:hover { background: #1a1a1a; border-color: #667aea; transform: translateY(-2px); }
 .system-message-item:active { transform: scale(0.98); }
 
 /* ==================== 消息进入动画 ==================== */
@@ -442,7 +442,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial
 
 /* ==================== 警告列表样式 ==================== */
 .warning-item { background: #161823; border-radius: 10px; padding: 15px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s ease; border: 1px solid #333; }
-.warning-item:hover { background: #1a1a1a; border-color: #667ea; transform: translateY(-2px); }
+.warning-item:hover { background: #1a1a1a; border-color: #667aea; transform: translateY(-2px); }
 .warning-item:active { transform: scale(0.98); }
 .warning-item.severity-critical { border-left: 4px solid #8B0000; }
 .warning-item.severity-high { border-left: 4px solid #ff0050; }

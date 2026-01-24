@@ -44,14 +44,12 @@ function closeVersionInfo() {
 // ==================== 显示更新内容模态框 ====================
 function showUpdateContentModal() {
     const versionData = {
-        version: "V6.3-5",
-        updateDate: "2026-01-18",
+        version: "V6.3-7",
+        updateDate: "2026-01-24",
         author: "用户8044",
         updateContent: [
-            "🗑️ 移除了6个随机事件",
-            "🔕 移除了成就的重复通知",
-            "📋 新增版本信息",
-            "🎨 部分UI变动"
+            "1.热度机制值重做，现在热度值可以影响到所有数据增长，遇到热搜负面什么等会涨降热度值。",
+            "2.粉丝互动改为跟据热度值计算。"
         ]
     };
     
@@ -99,14 +97,12 @@ function renderVersionPage() {
     
     // 版本信息数据
     const versionData = {
-        version: "V6.3-5",
-        updateDate: "2026-01-18",
+        version: "V6.3-7",
+        updateDate: "2026-01-24",
         author: "用户8044",
         updateContent: [
-            "🗑️ 移除了6个随机事件",
-            "🔕 移除了成就的重复通知",
-            "📋 新增版本信息",
-            "🎨 部分UI变动"
+            "1.热度机制值重做，现在热度值可以影响到所有数据增长，遇到热搜负面什么等会涨降热度值。",
+            "2.粉丝互动改为跟据热度值计算。"
         ]
     };
     

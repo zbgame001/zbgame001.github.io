@@ -2,44 +2,30 @@
 
 window.HotValueSystem = {
     // 系统状态
-    currentHotValue: 0,
-    previousHotValue: 0,
-    lastUpdateTime: 0,
+    currentHotValue: 1000,  // 初始热度值
     updateInterval: null,
     displayElement: null,
     
     // 配置项
     config: {
-        // 数据变化权重配置
-        weights: {
-            fanChangeSpeed: 10,      // 粉丝变化速度权重
-            viewGrowthSpeed: 20,     // 播放量增长速度权重
-            likeGrowthSpeed: 15,     // 点赞增长速度权重
-            commentGrowthSpeed: 10,  // 评论增长速度权重
-            totalViews: 0.01,        // 总播放量权重
-            totalLikes: 0.005,       // 总点赞数权重
-            eventBonus: 100          // 事件加成基数
-        },
+        // 热度值随机变化范围（每3秒）
+        minChange: -500,
+        maxChange: 500,
         
-        // 特殊状态加成
-        statusBonus: {
-            hotSearch: 5000,         // 热搜状态加成
-            ban: -10000,             // 封禁状态减成
-            publicOpinion: -3000,    // 舆论风波减成
-            traffic: 2000            // 流量推广加成
-        },
+        // 热度值对粉丝增长的影响系数
+        fanGrowthFactor: 0.05,  // 热度值 * 此系数 = 粉丝增长基数
         
         // 更新频率（毫秒）
-        updateFrequency: 3000
-    },
-    
-    // 历史数据用于计算变化率
-    history: {
-        fans: [],
-        views: [],
-        likes: [],
-        comments: [],
-        timestamp: []
+        updateFrequency: 3000,
+        
+        // 基准热度值（用于计算倍数）
+        baseHotValue: 1000,
+        
+        // 最小倍数（热度值为0时的倍数）
+        minMultiplier: 0.1,
+        
+        // 最大倍数（无上限，但热度值越高倍数越高）
+        maxMultiplier: 5.0
     },
     
     // 初始化系统
@@ -55,9 +41,14 @@ window.HotValueSystem = {
             console.warn('热度值显示元素未找到');
         }
         
-        // 初始化当前热度值
-        this.calculateCurrentHotValue();
-        this.previousHotValue = this.currentHotValue;
+        // 从存档恢复热度值（如果有）
+        if (gameState.currentHotValue !== undefined) {
+            this.currentHotValue = gameState.currentHotValue;
+        } else {
+            // 初始热度值基于当前粉丝数
+            this.currentHotValue = Math.max(1000, gameState.fans * 0.1);
+            gameState.currentHotValue = this.currentHotValue;
+        }
         
         // 开始自动更新
         this.startAutoUpdate();
@@ -65,90 +56,75 @@ window.HotValueSystem = {
         console.log('✅ 热度值系统已初始化，初始值：' + this.formatHotValue(this.currentHotValue));
     },
     
-    // 计算当前热度值
-    calculateCurrentHotValue: function() {
-        try {
-            let hotValue = 0;
-            
-            // 1. 基础数据权重计算
-            hotValue += gameState.fans * this.config.weights.totalViews;
-            hotValue += gameState.views * this.config.weights.totalViews;
-            hotValue += gameState.likes * this.config.weights.totalLikes;
-            
-            // 2. 计算变化速度
-            const now = gameTimer || 0;
-            const timeDiff = Math.max(1, now - this.lastUpdateTime) / VIRTUAL_DAY_MS; // 转换为虚拟天
-            
-            // 计算各项数据变化率
-            const fanChange = (gameState.fans - (this.history.fans[0] || gameState.fans)) / timeDiff;
-            const viewChange = (gameState.views - (this.history.views[0] || gameState.views)) / timeDiff;
-            const likeChange = (gameState.likes - (this.history.likes[0] || gameState.likes)) / timeDiff;
-            const totalComments = gameState.worksList.reduce((sum, work) => sum + (work.comments || 0), 0);
-            const commentChange = (totalComments - (this.history.comments[0] || totalComments)) / timeDiff;
-            
-            // 变化率占比计算
-            const maxChange = 1000; // 最大变化量限制
-            const normalizedFanChange = Math.max(-1, Math.min(1, fanChange / maxChange));
-            const normalizedViewChange = Math.max(-1, Math.min(1, viewChange / maxChange));
-            const normalizedLikeChange = Math.max(-1, Math.min(1, likeChange / maxChange));
-            const normalizedCommentChange = Math.max(-1, Math.min(1, commentChange / (maxChange * 0.5)));
-            
-            hotValue += normalizedFanChange * this.config.weights.fanChangeSpeed * 1000;
-            hotValue += normalizedViewChange * this.config.weights.viewGrowthSpeed * 1000;
-            hotValue += normalizedLikeChange * this.config.weights.likeGrowthSpeed * 1000;
-            hotValue += normalizedCommentChange * this.config.weights.commentGrowthSpeed * 1000;
-            
-            // 3. 特殊状态加成
-            if (gameState.isHotSearch) hotValue += this.config.statusBonus.hotSearch;
-            if (gameState.isBanned) hotValue += this.config.statusBonus.ban;
-            if (gameState.isPublicOpinionCrisis) hotValue += this.config.statusBonus.publicOpinion;
-            
-            // 4. 流量推广加成
-            const activeTraffic = Object.keys(gameState.trafficWorks).filter(id => gameState.trafficWorks[id].isActive);
-            hotValue += activeTraffic.length * this.config.statusBonus.traffic;
-            
-            // 5. 活跃度加成
-            const worksThisDay = gameState.worksList.filter(work => 
-                (now - work.time) < VIRTUAL_DAY_MS
-            ).length;
-            hotValue += worksThisDay * 500;
-            
-            // 6. 直播状态加成
-            if (gameState.liveStatus) hotValue += 2000;
-            
-            // 确保热度值不为负
-            this.currentHotValue = Math.max(0, Math.floor(hotValue));
-            
-            return this.currentHotValue;
-            
-        } catch (error) {
-            console.error('计算热度值失败:', error);
-            return this.currentHotValue || 0;
-        }
+    // 获取热度值影响倍数（核心方法：供其他模块调用）
+    getHotValueMultiplier: function() {
+        // 以1000热度值为基准（1.0倍）
+        // 热度值越高，倍数越高；热度值越低，倍数越低
+        // 公式：倍数 = (当前热度值 / 基准热度值) ^ 0.5 （平方根曲线，避免增长过快）
+        let multiplier = Math.sqrt(this.currentHotValue / this.config.baseHotValue);
+        
+        // 限制最小倍数（避免热度值为0时完全无法涨粉）
+        multiplier = Math.max(this.config.minMultiplier, multiplier);
+        
+        // 限制最大倍数（可选，避免过高热度值导致涨粉失控）
+        // multiplier = Math.min(this.config.maxMultiplier, multiplier);
+        
+        return multiplier;
     },
     
-    // 更新历史数据
-    updateHistory: function() {
-        const now = gameTimer || 0;
+    // 计算热度值变化对粉丝的影响（热度值系统自身的粉丝增长）
+    calculateFanGrowth: function() {
+        // 基础增长 = 热度值 * 系数
+        let growth = this.currentHotValue * this.config.fanGrowthFactor;
         
-        // 添加当前数据到历史记录
-        this.history.fans.push(gameState.fans);
-        this.history.views.push(gameState.views);
-        this.history.likes.push(gameState.likes);
-        this.history.comments.push(
-            gameState.worksList.reduce((sum, work) => sum + (work.comments || 0), 0)
-        );
-        this.history.timestamp.push(now);
+        // 添加随机波动
+        growth += (Math.random() - 0.5) * growth * 0.2;
         
-        // 只保留最近10个记录（约30秒）
-        const maxRecords = 10;
-        if (this.history.fans.length > maxRecords) {
-            this.history.fans.shift();
-            this.history.views.shift();
-            this.history.likes.shift();
-            this.history.comments.shift();
-            this.history.timestamp.shift();
+        // 确保最少也有少量波动（避免完全停滞）
+        if (Math.abs(growth) < 1) {
+            growth = (Math.random() > 0.5 ? 1 : -1) * Math.floor(Math.random() * 3);
         }
+        
+        // 应用热度值倍数（热度值系统自身的增长也受热度值影响）
+        const multiplier = this.getHotValueMultiplier();
+        growth = growth * multiplier;
+        
+        return Math.floor(growth);
+    },
+    
+    // 随机更新热度值
+    updateHotValue: function() {
+        // 随机增减热度值
+        const change = Math.floor(
+            Math.random() * (this.config.maxChange - this.config.minChange + 1)
+        ) + this.config.minChange;
+        
+        this.currentHotValue = Math.max(0, this.currentHotValue + change);
+        
+        // 保存到游戏状态
+        gameState.currentHotValue = this.currentHotValue;
+        
+        // 根据热度值计算粉丝变化
+        const fanChange = this.calculateFanGrowth();
+        
+        if (fanChange !== 0) {
+            gameState.fans = Math.max(0, gameState.fans + fanChange);
+            
+            // 更新今日统计
+            if (fanChange > 0) {
+                gameState.todayNewFans += fanChange;
+            } else {
+                gameState.todayLostFans += Math.abs(fanChange);
+            }
+            
+            // 更新显示（但不通知热度值变化）
+            if (typeof updateDisplay === 'function') {
+                updateDisplay();
+            }
+        }
+        
+        // 更新热度值显示
+        this.updateDisplay();
     },
     
     // 开始自动更新
@@ -158,7 +134,7 @@ window.HotValueSystem = {
         }
         
         this.updateInterval = setInterval(() => {
-            this.update();
+            this.updateHotValue();
         }, this.config.updateFrequency);
     },
     
@@ -170,48 +146,22 @@ window.HotValueSystem = {
         }
     },
     
-    // 更新热度值
-    update: function() {
-        this.previousHotValue = this.currentHotValue;
-        this.calculateCurrentHotValue();
-        this.updateHistory();
-        this.lastUpdateTime = gameTimer || 0;
-        
-        // 更新显示
-        this.updateDisplay();
-        
-        // 输出调试信息
-        if (window.debugMode || gameState.devMode) {
-            const change = this.currentHotValue - this.previousHotValue;
-            const changePercent = ((change / (this.previousHotValue || 1)) * 100).toFixed(1);
-            console.log(`🔥 热度值更新: ${this.formatHotValue(this.previousHotValue)} → ${this.formatHotValue(this.currentHotValue)} (${change >= 0 ? '+' : ''}${changePercent}%)`);
-        }
-    },
-    
-    // 更新显示
+    // 更新热度值显示
     updateDisplay: function() {
         if (!this.displayElement) return;
         
-        const change = this.currentHotValue - this.previousHotValue;
-        const hotValueFormatted = this.formatHotValue(this.currentHotValue);
+        this.displayElement.textContent = this.formatHotValue(this.currentHotValue);
         
-        // 设置文本
-        this.displayElement.textContent = hotValueFormatted;
-        
-        // 根据变化设置颜色（只改颜色，不弹通知）
-        if (change > 0) {
-            this.displayElement.style.color = '#00f2ea'; // 绿色上涨
-        } else if (change < 0) {
-            this.displayElement.style.color = '#ff0050'; // 红色下降
+        // 根据热度值高低设置颜色
+        if (this.currentHotValue >= 5000) {
+            this.displayElement.style.color = '#ff0050'; // 高热度 - 红色
+        } else if (this.currentHotValue >= 2000) {
+            this.displayElement.style.color = '#ff6b00'; // 中热度 - 橙色
+        } else if (this.currentHotValue >= 1000) {
+            this.displayElement.style.color = '#00f2ea'; // 正常 - 青色
         } else {
-            this.displayElement.style.color = '#ccc'; // 灰色持平
+            this.displayElement.style.color = '#999'; // 低热度 - 灰色
         }
-        
-        // 添加动画效果
-        this.displayElement.classList.add('updating');
-        setTimeout(() => {
-            this.displayElement.classList.remove('updating');
-        }, 300);
     },
     
     // 格式化热度值显示
@@ -231,21 +181,14 @@ window.HotValueSystem = {
         return this.currentHotValue;
     },
     
-    // 获取热度值变化
+    // 获取热度值变化（兼容旧代码）
     getHotValueChange: function() {
-        return this.currentHotValue - this.previousHotValue;
+        return 0; // 返回0，因为不需要显示变化
     },
     
     // 清理系统
     cleanup: function() {
         this.stopAutoUpdate();
-        this.history = {
-            fans: [],
-            views: [],
-            likes: [],
-            comments: [],
-            timestamp: []
-        };
         console.log('🔥 热度值系统已清理');
     }
 };
@@ -278,8 +221,16 @@ window.stopHotValueSystem = function() {
 // 手动更新热度值
 window.updateHotValue = function() {
     if (window.HotValueSystem) {
-        window.HotValueSystem.update();
+        window.HotValueSystem.updateHotValue();
     }
+};
+
+// 获取热度值影响倍数（供其他模块调用）
+window.getHotValueMultiplier = function() {
+    if (window.HotValueSystem) {
+        return window.HotValueSystem.getHotValueMultiplier();
+    }
+    return 1.0; // 默认返回1.0倍（无影响）
 };
 
 // 清理热度值系统
