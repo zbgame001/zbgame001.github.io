@@ -78,6 +78,9 @@ function startGame() {
     achievements.forEach(a => a.unlocked = false);
     window.charts = { fans: null, likes: null, views: null, interactions: null };
     
+    // ✅ 修改：UID生成改为纯数字（9位随机数）
+    gameState.userId = Math.floor(Math.random() * 900000000 + 100000000).toString();
+    
     initGame();
 }
 

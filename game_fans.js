@@ -11,20 +11,44 @@ window.cachedDailyStats = {
     date: 0
 };
 
-// ==================== 新增：互动数据只涨不减控制变量 ====================
-let currentDayInteractionsMax = 0;  // 当天显示的最大互动值
+// ==================== 新增：互动数据只涨不减控制变量（仅用于右上角显示） ====================
+let currentDayInteractionsMax = 0;  // 当天显示的最大互动值（仅用于右上角）
 let currentDayIndex = -1;           // 当前记录的天数索引，用于检测天数变化
 
-// ==================== 新增：获取热度值调整后的今日互动数据（只涨不减版） ====================
+// ==================== 新增：23:47快照相关变量 ====================
+window.interactionsSnapshot = [];    // 存储每天23:47的快照数据
+window.lastSnapshotDay = -1;         // 记录上次快照的日期索引，避免重复保存
+
+// ==================== 新增：获取热度值调整后的今日互动数据（只涨不减版 - 仅用于右上角显示） ====================
 function getTodayInteractionsWithHotValue() {
-    const dayIndex = gameState.chartData.currentIndex || 0;
+    // ==================== 关键修复：使用虚拟天数计算索引，确保每天使用正确的位置 ====================
+    const virtualDays = Math.floor(getVirtualDaysPassed());
+    const dayIndex = virtualDays % 60;
     
     // 检测是否为新的一天（索引变化或首次调用）
     if (dayIndex !== currentDayIndex) {
+        // 如果之前有记录的天数，保存那天的最终数据到 gameState（关键修复）
+        if (currentDayIndex >= 0 && currentDayInteractionsMax > 0) {
+            // 保存到 gameState.chartData.interactions，确保历史数据持久化
+            if (gameState.chartData && gameState.chartData.interactions) {
+                gameState.chartData.interactions[currentDayIndex] = currentDayInteractionsMax;
+            }
+            
+            // 同时保存到 snapshot，用于图表显示
+            if (!window.interactionsSnapshot) window.interactionsSnapshot = new Array(60).fill(null);
+            window.interactionsSnapshot[currentDayIndex] = currentDayInteractionsMax;
+            
+            // 保存游戏状态
+            saveGame();
+            
+            console.log(`[粉丝界面] 保存第${currentDayIndex}天数据: ${currentDayInteractionsMax}`);
+        }
+        
         currentDayIndex = dayIndex;
         currentDayInteractionsMax = 0;  // 新的一天，清零重新开始
-        console.log(`[粉丝界面] 新的一天开始，互动数据已清零 (dayIndex: ${dayIndex})`);
+        console.log(`[粉丝界面] 新的一天开始，互动数据索引: ${dayIndex}`);
     }
+    // =========================================================================================
     
     // 获取基础互动数据（原始存储的今日增量）
     const baseInteractions = gameState.chartData.interactions[dayIndex] || 0;
@@ -45,10 +69,14 @@ function getTodayInteractionsWithHotValue() {
     // 确保不超过粉丝数本身（关键限制）
     adjustedInteractions = Math.min(adjustedInteractions, gameState.fans);
     
-    // ==================== 核心修改：只涨不减逻辑 ====================
+    // ==================== 核心修改：只涨不减逻辑（仅用于右上角显示） ====================
     // 如果新计算的值大于之前显示的最大值，则更新最大值
     if (adjustedInteractions > currentDayInteractionsMax) {
         currentDayInteractionsMax = adjustedInteractions;
+        // 同时更新 gameState 中的数据，确保持久化
+        if (gameState.chartData && gameState.chartData.interactions) {
+            gameState.chartData.interactions[dayIndex] = currentDayInteractionsMax;
+        }
     }
     
     // 返回当天显示过的最大值（确保不会减少）
@@ -56,15 +84,44 @@ function getTodayInteractionsWithHotValue() {
     // ============================================================
 }
 
+// ==================== 新增：23:47快照保存函数 ====================
+function saveInteractionsSnapshot() {
+    const virtualDate = getVirtualDate();
+    const currentIdx = Math.floor(getVirtualDaysPassed()) % 60;
+    
+    // 检查是否是23:47（允许1分钟误差范围，即23:47-23:48）
+    if (virtualDate.hours === 23 && virtualDate.minutes >= 47 && virtualDate.minutes <= 48) {
+        // 确保今天还没有保存过快照
+        if (window.lastSnapshotDay !== currentIdx) {
+            // 初始化快照数组（如果未初始化）
+            if (!window.interactionsSnapshot || window.interactionsSnapshot.length === 0) {
+                window.interactionsSnapshot = new Array(60).fill(null);
+            }
+            
+            // 保存当前互动数据到快照（应用热度值倍数后的值）
+            const baseVal = gameState.chartData.interactions[currentIdx] || 0;
+            if (baseVal > 0) {
+                const hotMultiplier = (typeof window.getHotValueMultiplier === 'function') 
+                    ? window.getHotValueMultiplier() 
+                    : 1.0;
+                window.interactionsSnapshot[currentIdx] = Math.floor(baseVal * hotMultiplier);
+                window.lastSnapshotDay = currentIdx;
+                console.log(`[23:47快照] 已保存第${currentIdx}天的互动数据: ${window.interactionsSnapshot[currentIdx]}`);
+            }
+        }
+    }
+}
+
 // Chart.js图表系统（从game_features.js移动过来）
-function drawFansChart(canvasId, data, color, label) {
+// ==================== 修复：添加showZero参数，控制是否显示0值 ====================
+function drawFansChart(canvasId, data, color, label, showZero = false) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
     
     const ctx = canvas.getContext('2d');
     const virtualDays = Math.floor(getVirtualDaysPassed());
-    const currentIndex = gameState.chartData.currentIndex || 0;
-    const currentDay = gameState.chartData.currentDay || 0;
+    const currentIndex = virtualDays % 60; // 使用虚拟天数计算索引
+    const currentDay = virtualDays;
     
     // 生成正确对齐的标签和数据（从第X-59天到第X天）
     const labels = [];
@@ -84,9 +141,17 @@ function drawFansChart(canvasId, data, color, label) {
             // 将天数转换为月日格式
             labels.push(convertDaysToMD(dayNumber));
             
-            // 如果数据为0，也设为null，避免画直线
-            const value = data[dataIndex] || 0;
-            displayData.push(value > 0 ? value : null);
+            // ==================== 修复：根据showZero参数决定是否显示0值 ====================
+            const value = data[dataIndex];
+            if (showZero) {
+                // 显示0值（用于互动图表，确保新游戏也能绘制）
+                // 注意：这里不修改原始数据，只是确保0值不被转为null
+                displayData.push(typeof value === 'number' ? value : 0);
+            } else {
+                // 原逻辑：0值设为null（用于粉丝图表，避免画直线）
+                displayData.push(value > 0 ? value : null);
+            }
+            // =============================================================================
         }
     }
     
@@ -200,7 +265,7 @@ function updateFansChartStatsRealtime() {
     
     if (statElements.fans) statElements.fans.textContent = gameState.fans.toLocaleString();
     
-    // 修改：互动统计显示今日增量（应用热度值倍数，只涨不减，且不超过粉丝数）
+    // 修改：互动统计显示今日增量（应用热度值倍数，只涨不减，且不超过粉丝数）- 仅右上角
     if (statElements.interactions) {
         const todayInteractions = getTodayInteractionsWithHotValue();
         statElements.interactions.textContent = '+' + todayInteractions.toLocaleString();
@@ -226,15 +291,29 @@ function updateFansChartsRealtime() {
 window.drawFansChart = drawFansChart;
 window.updateFansChartStatsRealtime = updateFansChartStatsRealtime;
 window.updateFansChartsRealtime = updateFansChartsRealtime;
+window.saveInteractionsSnapshot = saveInteractionsSnapshot;
 
 // 显示粉丝全屏界面
 window.showFansFullscreen = function() {
     // 停止之前的更新
     stopFansRealtimeUpdate();
     
-    // ==================== 新增：打开界面时重置天数检测 ====================
-    currentDayIndex = -1;  // 强制重置，确保重新检测天数
-    currentDayInteractionsMax = 0;
+    // ==================== 新增：打开界面时重置天数检测（仅影响右上角） ====================
+    // 重新计算当前天数，确保数据同步
+    const virtualDays = Math.floor(getVirtualDaysPassed());
+    const dayIndex = virtualDays % 60;
+    
+    // 如果检测到天数的实际变化，保存旧数据
+    if (dayIndex !== currentDayIndex && currentDayIndex >= 0) {
+        if (currentDayInteractionsMax > 0) {
+            gameState.chartData.interactions[currentDayIndex] = currentDayInteractionsMax;
+            if (!window.interactionsSnapshot) window.interactionsSnapshot = new Array(60).fill(null);
+            window.interactionsSnapshot[currentDayIndex] = currentDayInteractionsMax;
+            saveGame();
+        }
+        currentDayIndex = dayIndex;
+        currentDayInteractionsMax = 0;
+    }
     
     // 计算初始统计数据
     calculateDailyStats();
@@ -285,8 +364,43 @@ function renderFansPage() {
     const newFansToday = window.cachedDailyStats.newFans;
     const lostFansToday = window.cachedDailyStats.lostFans;
     
-    // 计算热度值调整后的互动数据（关键修改：只涨不减）
+    // 计算热度值调整后的互动数据（关键修改：只涨不减）- 用于右上角显示
     const todayInteractionsAdjusted = getTodayInteractionsWithHotValue();
+    
+    // ==================== 关键修改：图表使用23:47快照数据（如果存在），否则使用 gameState 数据 ====================
+    // 初始化快照数组（如果未初始化）
+    if (!window.interactionsSnapshot || window.interactionsSnapshot.length === 0) {
+        window.interactionsSnapshot = new Array(60).fill(null);
+    }
+    
+    // 准备图表数据：优先使用23:47快照，如果没有则使用 gameState.chartData.interactions
+    const interactionsDataForChart = [];
+    for (let i = 0; i < 60; i++) {
+        // 优先使用快照数据（23:47记录）
+        let baseVal = window.interactionsSnapshot[i];
+        
+        // 如果没有快照（null），则使用 gameState.chartData.interactions 中的数据
+        if (baseVal === null || baseVal === undefined) {
+            baseVal = gameState.chartData.interactions[i] || 0;
+        }
+        
+        // 应用热度值倍数
+        if (baseVal > 0) {
+            const hotMultiplier = (typeof window.getHotValueMultiplier === 'function') 
+                ? window.getHotValueMultiplier() 
+                : 1.0;
+            let adjustedVal = Math.floor(baseVal * hotMultiplier);
+            
+            // 限制不超过当天的粉丝数
+            const dayFans = gameState.chartData.fans[i] || 1;
+            adjustedVal = Math.min(adjustedVal, dayFans);
+            
+            interactionsDataForChart[i] = adjustedVal;
+        } else {
+            interactionsDataForChart[i] = 0;
+        }
+    }
+    // ============================================================================================
     
     // 生成HTML内容（增强版：添加图表和涨掉粉通知区域）
     content.innerHTML = `
@@ -345,8 +459,15 @@ function renderFansPage() {
     
     // 绘制图表（延迟100ms确保DOM已渲染）
     setTimeout(() => {
+        // 粉丝图表（不显示0值，保持原逻辑）
         drawFansChart('fansChart', gameState.chartData.fans, '#667eea', '粉丝数');
-        drawFansChart('interactionsChart', gameState.chartData.interactions, '#FFD700', '互动次数');
+        
+        // ==================== 关键修改：互动图表使用已保存的历史数据 ====================
+        // 使用 interactionsDataForChart（优先使用23:47快照或 gameState 数据），确保历史数据不被第二天清零影响
+        // showZero=true 确保0值也能绘制（修复新游戏不绘制的问题）
+        drawFansChart('interactionsChart', interactionsDataForChart, '#FFD700', '互动次数', true);
+        // ================================================================================
+        
         // 渲染涨掉粉通知列表
         renderFanChangeNotifications();
     }, 100);
@@ -389,6 +510,10 @@ function startFansRealtimeUpdate() {
             
             // ✅ 渲染涨掉粉通知列表
             renderFanChangeNotifications();
+            
+            // ==================== 新增：23:47快照检查 ====================
+            saveInteractionsSnapshot();
+            // ============================================================
         }
     }, 1000);
 }
@@ -478,9 +603,10 @@ function cleanupFansCache() {
         lostFans: 0,
         date: 0
     };
-    // ==================== 新增：清理只涨不减控制变量 ====================
+    // ==================== 新增：清理只涨不减控制变量（仅右上角） ====================
     currentDayInteractionsMax = 0;
     currentDayIndex = -1;
+    // 注意：不清理 interactionsSnapshot，因为它需要持久化保存23:47的记录
 }
 
 // 模块加载时自动清理
@@ -537,3 +663,5 @@ window.convertDaysToMD = window.convertDaysToMD;
 window.renderFanChangeNotifications = renderFanChangeNotifications;
 // ✅ 新增：绑定热度值互动计算函数（供其他模块可能需要使用）
 window.getTodayInteractionsWithHotValue = getTodayInteractionsWithHotValue;
+// ✅ 新增：绑定23:47快照函数
+window.saveInteractionsSnapshot = saveInteractionsSnapshot;

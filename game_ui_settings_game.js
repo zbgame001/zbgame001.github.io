@@ -38,6 +38,12 @@ function showGameSettings() {
             <div>></div>
         </div>
         
+        <!-- ✅ 新增：mod下载入口 -->
+        <div class="settings-item" onclick="window.open('http://zbgamemod.ysepan.com/', '_blank')">
+            <div><div class="settings-label">📥 mod下载（可以分享自己制作的mod）</div><div class="settings-value">访问mod分享网站</div></div>
+            <div>></div>
+        </div>
+        
         <div class="settings-item" onclick="clearData()" style="background:#ff0050">
             <div><div class="settings-label">清除数据</div><div class="settings-value">谨慎操作</div></div>
         </div>

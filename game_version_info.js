@@ -44,12 +44,14 @@ function closeVersionInfo() {
 // ==================== 显示更新内容模态框 ====================
 function showUpdateContentModal() {
     const versionData = {
-        version: "V6.3-7",
-        updateDate: "2026-01-24",
+        version: "V6.4",
+        updateDate: "2026-01-25",
         author: "用户8044",
         updateContent: [
-            "1.热度机制值重做，现在热度值可以影响到所有数据增长，遇到热搜负面什么等会涨降热度值。",
-            "2.粉丝互动改为跟据热度值计算。"
+            "1.个人主页翻新",
+            "2.游戏设置新增下载mod选项",
+            "3.私信界面新增清空功能",
+            "4.修复了粉丝互动两个问题，目前还不够全面"
         ]
     };
     
@@ -97,12 +99,14 @@ function renderVersionPage() {
     
     // 版本信息数据
     const versionData = {
-        version: "V6.3-7",
-        updateDate: "2026-01-24",
+        version: "V6.4",
+        updateDate: "2026-01-25",
         author: "用户8044",
         updateContent: [
-            "1.热度机制值重做，现在热度值可以影响到所有数据增长，遇到热搜负面什么等会涨降热度值。",
-            "2.粉丝互动改为跟据热度值计算。"
+            "1.个人主页翻新",
+            "2.游戏设置新增下载mod选项",
+            "3.私信界面新增清空功能",
+            "4.修复了粉丝互动两个问题，目前还不够全面"
         ]
     };
     

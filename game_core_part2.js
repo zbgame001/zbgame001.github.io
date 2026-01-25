@@ -710,8 +710,9 @@ function initGame() {
         window.charts = { fans: null, likes: null, views: null, interactions: null };
     }
     
+    // ✅ 修改：UID生成改为纯数字（9位随机数）
     if (!gameState.userId) {
-        gameState.userId = 'UID' + Math.random().toString(36).substr(2, 9).toUpperCase();
+        gameState.userId = Math.floor(Math.random() * 900000000 + 100000000).toString();
     }
     
     // ✅ 新增：启动每日数据重置检查

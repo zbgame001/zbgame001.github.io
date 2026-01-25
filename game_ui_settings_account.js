@@ -4,7 +4,6 @@ function showSettings() {
     
     const content = document.getElementById('settingsPageContent');
     
-    // ✅ 新增：消息免打扰状态显示
     const doNotDisturbStatus = gameState.doNotDisturb ? '已开启' : '已关闭';
     const doNotDisturbStatusColor = gameState.doNotDisturb ? '#ff6b00' : '#999';
     
@@ -21,12 +20,10 @@ function showSettings() {
             <div><div class="settings-label">修改头像文字</div><div class="settings-value">点击修改</div></div>
             <div>></div>
         </div>
-        <!-- 新增上传头像功能 -->
         <div class="settings-item" onclick="uploadAvatar()">
             <div><div class="settings-label">上传头像图片</div><div class="settings-value" style="color: #667aea;">选择图片</div></div>
             <div>📷</div>
         </div>
-        <!-- ✅ 新增：消息免打扰开关 -->
         <div class="settings-item" onclick="toggleDoNotDisturb()" style="background: ${gameState.doNotDisturb ? '#1a2a1a' : '#161823'}; border: ${gameState.doNotDisturb ? '1px solid #00f2ea' : '1px solid #333'};">
             <div>
                 <div class="settings-label" style="color: ${gameState.doNotDisturb ? '#00f2ea' : '#fff'};">🔕 消息免打扰</div>
@@ -43,7 +40,6 @@ function showSettings() {
     const headerTitle = document.getElementById('settingsHeaderTitle');
     if (headerTitle) {
         headerTitle.textContent = '账号设置';
-        // ✅ 已移除：headerTitle.onclick = handleDevSettingsClick;
     }
     
     document.getElementById('settingsPage').classList.add('active');
@@ -51,93 +47,451 @@ function showSettings() {
     document.querySelector('.bottom-nav').style.display = 'none';
 }
 
-// ==================== ✅ 新增：切换消息免打扰状态 ====================
 function toggleDoNotDisturb() {
-    // 切换状态
     gameState.doNotDisturb = !gameState.doNotDisturb;
-    
-    // 保存设置
     saveGame();
-    
-    // 更新UI显示
     showSettings();
-    
-    // 立即刷新导航栏徽章（根据新状态）
     if (typeof updateNavMessageBadge === 'function') {
         updateNavMessageBadge();
     }
-    
-    // ✅ 新增：小弹窗通知
     const status = gameState.doNotDisturb ? '已开启' : '已关闭';
     const icon = gameState.doNotDisturb ? '🔕' : '🔔';
     showEventPopup(`${icon} 消息免打扰`, `消息小红点提醒${status}`);
 }
 
-// ==================== 个人主页（全屏 + 移除等级 + 添加关注数） ====================
-function showProfile() {
-    const content = document.getElementById('profilePageContent');
+// ==================== 个人主页（翻新Mod整合版 - 修复作品点击） ====================
+const PROFILE_CONFIG = {
+    worksPerPage: 5,
+    avatarSize: 65,
+    categories: [
+        { id: 'all', name: '作品', icon: '📁' },
+        { id: 'video', name: '视频', icon: '🎬' },
+        { id: 'post', name: '动态', icon: '📝' },
+        { id: 'live', name: '直播', icon: '📱' }
+    ]
+};
+
+let profileCurrentCategory = 'all';
+let profileCurrentPage = 1;
+
+window.profileWorksCache = {};
+
+function calculateProfileStats() {
+    const works = gameState.worksList || [];
+    return {
+        total: works.length,
+        video: works.filter(w => w.type === 'video').length,
+        post: works.filter(w => w.type === 'post').length,
+        live: works.filter(w => w.type === 'live').length,
+        likes: gameState.likes || 0,
+        following: (gameState.following || []).length,
+        fans: gameState.fans || 0
+    };
+}
+
+function generateProfileWorkBadges(work) {
+    if (typeof window.generateStatusBadges === 'function') {
+        return window.generateStatusBadges(work);
+    }
+    const badges = [];
+    if (work.isRecommended) {
+        badges.push({ text: '🔥推荐', style: 'background:linear-gradient(135deg, #00f2ea 0%, #667eea 100%);color:#000;' });
+    }
+    if (work.isHot || work.isHotSearchWork) {
+        badges.push({ text: '🔥热搜', style: 'background:linear-gradient(135deg, #FFD700 0%, #ff6b00 100%);color:#000;' });
+    }
+    if (work.isRaffle) {
+        badges.push({ text: '🎁抽奖', style: 'background:linear-gradient(135deg, #FFD700 0%, #ff6b00 100%);color:#000;' });
+    }
+    if (work.isControversial) {
+        badges.push({ text: '⚠️争议', style: 'background:linear-gradient(135deg, #ff6b00 0%, #ff0050 100%);color:#fff;' });
+    }
+    return badges;
+}
+
+function renderProfileWorkCard(work) {
+    window.profileWorksCache[work.id] = work;
     
-    // 头像预览HTML
-    const avatarPreview = gameState.avatarImage ? 
-        `<div style="width:80px;height:80px;border-radius:50%;overflow:hidden;margin:0 auto 10px">
-            <img src="${gameState.avatarImage}" style="width:100%;height:100%;object-fit:cover;">
-         </div>` :
-        `<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 10px">
-            ${gameState.avatar || 'A'}
-         </div>`;
+    const badges = generateProfileWorkBadges(work);
+    const statusHtml = badges.map(badge => `
+        <span style="${badge.style}animation:glow 2s infinite;padding:2px 6px;border-radius:3px;font-size:10px;margin-right:5px;display:inline-block;">
+            ${badge.text}
+        </span>
+    `).join('');
     
-    // 添加关注数显示（确保gameState.following存在）
-    if (gameState.following === undefined) {
-        gameState.following = [];
+    const typeIcon = work.type === 'video' ? '🎬' : work.type === 'live' ? '📱' : '📝';
+    const viewIcon = work.type === 'post' ? '👁️' : '▶️';
+    
+    return `
+        <div class="profile-work-item" 
+             onclick="openProfileWorkDetail(${work.id})" 
+             style="background: #161823; border-radius: 10px; padding: 15px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; border: 1px solid #222; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation;">
+            ${statusHtml ? `<div style="margin-bottom:8px;">${statusHtml}</div>` : ''}
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="background: ${work.type === 'video' ? '#667eea' : work.type === 'live' ? '#ff0050' : '#00f2ea'}; padding: 3px 8px; border-radius: 5px; font-size: 12px;">
+                    ${typeIcon} ${work.type === 'video' ? '视频' : work.type === 'live' ? '直播' : '动态'}
+                    ${work.isPrivate ? '<span style="background:#999;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">🔒</span>' : ''}
+                </span>
+                <span style="font-size: 12px; color: #999;">
+                    ${formatTime(work.time)}
+                    ${work.isAd ? '<span style="background:#ff0050;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">商单</span>' : ''}
+                </span>
+            </div>
+            <div style="margin-bottom: 10px; line-height: 1.5; word-wrap: break-word; ${work.isPrivate ? 'opacity: 0.7;' : ''}">
+                ${work.content}
+            </div>
+            <div style="display: flex; gap: 15px; font-size: 12px; color: #999;">
+                <span>${viewIcon} ${formatNumber(work.views)}</span>
+                <span>❤️ ${formatNumber(work.likes)}</span>
+                <span>💬 ${formatNumber(work.comments || 0)}</span>
+                <span>🔄 ${formatNumber(work.shares)}</span>
+            </div>
+        </div>
+    `;
+}
+
+// ✅ 关键修复：打开作品详情前先关闭个人主页
+window.openProfileWorkDetail = function(workId) {
+    console.log('点击作品ID:', workId);
+    const work = window.profileWorksCache[workId];
+    if (!work) {
+        console.error('未找到作品:', workId);
+        const foundWork = gameState.worksList.find(w => w.id === workId);
+        if (foundWork) {
+            console.log('从gameState找到作品:', foundWork.id);
+            closeProfilePage(); // 关闭个人主页
+            if (typeof showWorkDetail === 'function') {
+                showWorkDetail(foundWork);
+            } else {
+                showAlert('作品详情功能加载失败，请刷新页面', '错误');
+            }
+        } else {
+            showAlert('作品数据丢失，请刷新页面重试', '错误');
+        }
+        return;
     }
     
-    content.innerHTML = `
-        <div style="text-align:center;padding:20px">
-            ${avatarPreview}
-            <div style="font-size:20px;font-weight:bold;margin-bottom:5px">${gameState.username}</div>
-            <div style="font-size:14px;color:#999;margin-bottom:20px">${gameState.userId}</div>
-            <div style="display:flex;justify-content:space-around;margin-bottom:20px">
-                <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${gameState.fans}</div><div style="font-size:12px;color:#999" style="cursor:pointer;" onclick="showFollowingList()" style="cursor:pointer;">粉丝</div></div>
-                <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${gameState.following.length}</div><div style="font-size:12px;color:#999" style="cursor:pointer;" onclick="showFollowingList()" style="cursor:pointer;">关注</div></div>
-                <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${gameState.works}</div><div style="font-size:12px;color:#999">作品</div></div>
-                <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${gameState.likes}</div><div style="font-size:12px;color:#999">获赞</div></div>
+    console.log('找到作品:', work.id, work.content.substring(0, 20));
+    
+    // ✅ 关键：先关闭个人主页，否则会被遮挡
+    closeProfilePage();
+    
+    // 延迟一点确保页面关闭动画完成
+    setTimeout(() => {
+        if (typeof showWorkDetail === 'function') {
+            showWorkDetail(work);
+        } else {
+            console.error('showWorkDetail函数未定义');
+            showAlert('作品详情功能未加载，请刷新页面', '错误');
+        }
+    }, 50);
+};
+
+// ✅ 新增：专门关闭个人主页的函数
+function closeProfilePage() {
+    const profilePage = document.getElementById('profilePage');
+    if (profilePage) {
+        profilePage.classList.remove('active');
+    }
+    // 恢复主内容显示（但showWorkDetail会再次隐藏它）
+    document.getElementById('mainContent').style.display = 'block';
+    document.querySelector('.bottom-nav').style.display = 'flex';
+}
+
+function renderProfilePagination(currentPage, totalPages, totalWorks) {
+    if (totalPages <= 1) return '';
+    
+    let html = `<button onclick="changeProfilePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}
+                    style="background: #222; border: 1px solid #333; color: #ccc; padding: 8px 12px; border-radius: 6px; cursor: pointer; margin: 0 2px; opacity: ${currentPage === 1 ? '0.5' : '1'};">‹</button>`;
+    
+    const maxVisible = 5;
+    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let end = Math.min(totalPages, start + maxVisible - 1);
+    if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
+    
+    if (start > 1) {
+        html += `<button onclick="changeProfilePage(1)" style="background: #222; border: 1px solid #333; color: #ccc; padding: 8px 12px; border-radius: 6px; cursor: pointer; margin: 0 2px;">1</button>`;
+        if (start > 2) html += `<span style="color: #666; padding: 0 5px;">...</span>`;
+    }
+    
+    for (let i = start; i <= end; i++) {
+        const isActive = i === currentPage;
+        html += `<button onclick="changeProfilePage(${i})" 
+                        style="background: ${isActive ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#222'}; 
+                               border: 1px solid ${isActive ? '#667eea' : '#333'}; 
+                               color: ${isActive ? '#fff' : '#ccc'}; 
+                               padding: 8px 12px; border-radius: 6px; cursor: pointer; margin: 0 2px; font-weight: ${isActive ? 'bold' : 'normal'};">${i}</button>`;
+    }
+    
+    if (end < totalPages) {
+        if (end < totalPages - 1) html += `<span style="color: #666; padding: 0 5px;">...</span>`;
+        html += `<button onclick="changeProfilePage(${totalPages})" style="background: #222; border: 1px solid #333; color: #ccc; padding: 8px 12px; border-radius: 6px; cursor: pointer; margin: 0 2px;">${totalPages}</button>`;
+    }
+    
+    html += `<button onclick="changeProfilePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}
+                    style="background: #222; border: 1px solid #333; color: #ccc; padding: 8px 12px; border-radius: 6px; cursor: pointer; margin: 0 2px; opacity: ${currentPage === totalPages ? '0.5' : '1'};">›</button>`;
+    
+    const startItem = totalWorks > 0 ? (currentPage - 1) * PROFILE_CONFIG.worksPerPage + 1 : 0;
+    const endItem = Math.min(currentPage * PROFILE_CONFIG.worksPerPage, totalWorks);
+    html += `<span style="margin-left: 10px; font-size: 12px; color: #999;">${startItem}-${endItem} / ${totalWorks}</span>`;
+    
+    return html;
+}
+
+function getProfileFilteredWorks() {
+    let works = [...(gameState.worksList || [])].sort((a, b) => (b.time || 0) - (a.time || 0));
+    if (profileCurrentCategory !== 'all') {
+        works = works.filter(w => w.type === profileCurrentCategory);
+    }
+    return works;
+}
+
+window.changeProfileCategory = function(category) {
+    profileCurrentCategory = category;
+    profileCurrentPage = 1;
+    updateProfileCategoryTabs();
+    renderProfileWorksList();
+};
+
+function updateProfileCategoryTabs() {
+    const container = document.getElementById('profileCategoryTabs');
+    if (!container) return;
+    
+    const stats = calculateProfileStats();
+    
+    container.innerHTML = PROFILE_CONFIG.categories.map(cat => {
+        const count = cat.id === 'all' ? stats.total : 
+                     cat.id === 'video' ? stats.video : 
+                     cat.id === 'post' ? stats.post : stats.live;
+        const isActive = profileCurrentCategory === cat.id;
+        return `
+            <div onclick="changeProfileCategory('${cat.id}')" 
+                 style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 5px 0; position: relative;">
+                <span style="font-size: 14px; color: ${isActive ? '#fff' : '#666'}; font-weight: ${isActive ? 'bold' : 'normal'};">
+                    ${cat.name}
+                </span>
+                <span style="font-size: 16px; font-weight: bold; color: ${isActive ? '#667eea' : '#999'};">
+                    ${formatNumber(count)}
+                </span>
+                ${isActive ? `<div style="position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #667eea, #00f2ea); border-radius: 2px;"></div>` : ''}
             </div>
-            <button class="btn" onclick="showAllWorks()">查看所有作品</button>
+        `;
+    }).join('');
+}
+
+function renderProfileWorksList() {
+    const container = document.getElementById('profileWorksList');
+    const paginationContainer = document.getElementById('profilePagination');
+    
+    if (!container) return;
+    
+    const works = getProfileFilteredWorks();
+    const totalWorks = works.length;
+    
+    if (totalWorks === 0) {
+        container.innerHTML = `<div style="text-align: center; color: #666; padding: 40px;">暂无${profileCurrentCategory === 'all' ? '' : PROFILE_CONFIG.categories.find(c => c.id === profileCurrentCategory).name}作品</div>`;
+        if (paginationContainer) paginationContainer.innerHTML = '';
+        return;
+    }
+    
+    const totalPages = Math.ceil(totalWorks / PROFILE_CONFIG.worksPerPage);
+    if (profileCurrentPage > totalPages) profileCurrentPage = totalPages;
+    
+    const start = (profileCurrentPage - 1) * PROFILE_CONFIG.worksPerPage;
+    const pageWorks = works.slice(start, start + PROFILE_CONFIG.worksPerPage);
+    
+    window.profileWorksCache = {};
+    
+    container.innerHTML = pageWorks.map(work => renderProfileWorkCard(work)).join('');
+    
+    if (paginationContainer) {
+        paginationContainer.innerHTML = renderProfilePagination(profileCurrentPage, totalPages, totalWorks);
+    }
+}
+
+window.changeProfilePage = function(page) {
+    const works = getProfileFilteredWorks();
+    const totalPages = Math.ceil(works.length / PROFILE_CONFIG.worksPerPage);
+    if (page < 1 || page > totalPages) return;
+    profileCurrentPage = page;
+    renderProfileWorksList();
+    const listContainer = document.getElementById('profileWorksList');
+    if (listContainer) listContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+function renderProfileContent() {
+    const content = document.getElementById('profilePageContent');
+    if (!content) return;
+    
+    const stats = calculateProfileStats();
+    
+    content.innerHTML = `
+        <div style="padding: 0; animation: fadeIn 0.3s ease;">
+            
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #ff6b00 50%, #ff0050 75%, #667eea 100%); 
+                        background-size: 400% 400%;
+                        animation: dynamicGradient 8s ease infinite;
+                        padding: 25px 20px; 
+                        margin: 0; 
+                        display: flex; 
+                        align-items: center;
+                        position: relative;
+                        overflow: hidden;
+                        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);">
+                
+                <div style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; 
+                            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+                            animation: shimmer 3s infinite;
+                            pointer-events: none;"></div>
+                
+                <div style="width: ${PROFILE_CONFIG.avatarSize}px; height: ${PROFILE_CONFIG.avatarSize}px; border-radius: 50%; 
+                            background: rgba(255,255,255,0.2); backdrop-filter: blur(10px);
+                            display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: bold; 
+                            margin-right: 18px; flex-shrink: 0; overflow: hidden; border: 2px solid rgba(255,255,255,0.4); 
+                            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+                            position: relative; z-index: 1;">
+                    ${gameState.avatarImage ? 
+                        `<img src="${gameState.avatarImage}" style="width:100%;height:100%;object-fit:cover;">` : 
+                        (gameState.avatar || '👤')
+                    }
+                </div>
+                
+                <div style="flex: 1; min-width: 0; position: relative; z-index: 1;">
+                    <div style="font-size: 20px; font-weight: bold; margin-bottom: 4px; color: #fff; 
+                                text-shadow: 0 2px 4px rgba(0,0,0,0.3); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
+                        ${gameState.username || '未命名主播'}
+                    </div>
+                    <div style="font-size: 11px; color: rgba(255,255,255,0.9); font-family: monospace; letter-spacing: 1px;">
+                        UID: ${gameState.userId || '000000000'}
+                    </div>
+                </div>
+            </div>
+            
+            <div style="padding: 20px; display: flex; justify-content: space-around; align-items: center; gap: 10px; flex-wrap: nowrap;">
+                <div style="display: flex; align-items: center; gap: 6px; min-width: fit-content;">
+                    <span style="font-size: 14px; color: #999; white-space: nowrap;">点赞</span>
+                    <span style="font-size: 18px; font-weight: bold; color: #00f2ea; white-space: nowrap;">${formatNumber(stats.likes)}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px; min-width: fit-content;">
+                    <span style="font-size: 14px; color: #999; white-space: nowrap;">关注</span>
+                    <span style="font-size: 18px; font-weight: bold; color: #667eea; white-space: nowrap;">${formatNumber(stats.following)}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px; min-width: fit-content;">
+                    <span style="font-size: 14px; color: #999; white-space: nowrap;">粉丝</span>
+                    <span style="font-size: 18px; font-weight: bold; color: #ff0050; white-space: nowrap;">${formatNumber(stats.fans)}</span>
+                </div>
+            </div>
+            
+            <div id="profileCategoryTabs" style="padding: 0 20px 20px 20px; display: flex; justify-content: flex-start; align-items: center; gap: 25px; flex-wrap: wrap;">
+                ${PROFILE_CONFIG.categories.map(cat => {
+                    const count = cat.id === 'all' ? stats.total : 
+                                 cat.id === 'video' ? stats.video : 
+                                 cat.id === 'post' ? stats.post : stats.live;
+                    const isActive = profileCurrentCategory === cat.id;
+                    return `
+                        <div onclick="changeProfileCategory('${cat.id}')" 
+                             style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 5px 0; position: relative;">
+                            <span style="font-size: 14px; color: ${isActive ? '#fff' : '#666'}; font-weight: ${isActive ? 'bold' : 'normal'};">
+                                ${cat.name}
+                            </span>
+                            <span style="font-size: 16px; font-weight: bold; color: ${isActive ? '#667eea' : '#999'};">
+                                ${formatNumber(count)}
+                            </span>
+                            ${isActive ? `<div style="position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #667eea, #00f2ea); border-radius: 2px;"></div>` : ''}
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+            
+            <div style="padding: 0 15px 20px 15px;">
+                <div id="profileWorksList" style="min-height: 200px;">
+                    <div style="text-align: center; color: #666; padding: 40px;">加载中...</div>
+                </div>
+                <div id="profilePagination" style="display: flex; justify-content: center; align-items: center; margin-top: 20px; flex-wrap: wrap;"></div>
+            </div>
+            
         </div>
     `;
     
-    document.getElementById('profilePage').classList.add('active');
-    document.getElementById('mainContent').style.display = 'none';
-    document.querySelector('.bottom-nav').style.display = 'none';
+    addProfileStyles();
+    renderProfileWorksList();
 }
 
-// ==================== 全屏用户主页（移除等级 + 数据缓存） ====================
-window.cachedUserProfile = null; // 缓存用户数据
+function addProfileStyles() {
+    if (document.getElementById('profileRedesignStyles')) return;
+    
+    const style = document.createElement('style');
+    style.id = 'profileRedesignStyles';
+    style.textContent = `
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes dynamicGradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .profile-work-item:hover {
+            background: #1a1a2e !important;
+            border-color: #667eea !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+        
+        .profile-work-item:active {
+            opacity: 0.8;
+            transform: scale(0.98);
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+function showProfile() {
+    profileCurrentCategory = 'all';
+    profileCurrentPage = 1;
+    
+    renderProfileContent();
+    
+    const profilePage = document.getElementById('profilePage');
+    if (profilePage) profilePage.classList.add('active');
+    
+    const mainContent = document.getElementById('mainContent');
+    const bottomNav = document.querySelector('.bottom-nav');
+    if (mainContent) mainContent.style.display = 'none';
+    if (bottomNav) bottomNav.style.display = 'none';
+}
+
+window.cachedUserProfile = null;
 
 function showUserProfile(username, avatar) {
-    // 如果已缓存数据，直接使用缓存
     if (window.cachedUserProfile && window.cachedUserProfile.username === username) {
         renderUserProfile(window.cachedUserProfile);
         return;
     }
     
-    // 从关注列表中查找用户数据
     const fromFollowing = gameState.following.find(u => 
         (typeof u === 'object' ? u.username : u) === username
     );
     
     if (fromFollowing && typeof fromFollowing === 'object') {
-        // 如果关注列表中有完整数据，使用它
         window.cachedUserProfile = fromFollowing;
         renderUserProfile(fromFollowing);
         return;
     }
     
-    // 生成新用户数据并缓存
+    // ✅ 修改：UID生成改为纯数字（9位随机数）
     const profileData = {
         username: username,
         avatar: avatar,
-        userId: 'UID' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+        userId: Math.floor(Math.random() * 900000000 + 100000000).toString(),
         joinDays: Math.floor(Math.random() * 365) + 1,
         fanCount: Math.floor(Math.random() * 50000) + 100,
         workCount: Math.floor(Math.random() * 500) + 10,
@@ -162,7 +516,6 @@ function renderUserProfile(profileData) {
         `<div class="user-profile-avatar">${profileData.avatar}</div>` :
         `<div class="user-profile-avatar">?</div>`;
     
-    // ✅ 新增功能：判断关注状态
     const isFollowing = gameState.following.some(u => 
         (typeof u === 'object' ? u.username : u) === profileData.username
     );
@@ -221,59 +574,44 @@ function renderUserProfile(profileData) {
     document.querySelector('.bottom-nav').style.display = 'none';
 }
 
-// ==================== 显示所有作品 ====================
-// 彻底修复版：直接跳转到作品标签页，不依赖 event 对象
 function showAllWorks() {
-    // 关闭个人主页（全屏页面）
     if (typeof closeFullscreenPage === 'function') {
         closeFullscreenPage('profile');
     }
     
-    // 延迟执行，确保关闭动画完成
     setTimeout(() => {
-        // 手动设置作品标签为活动状态
         document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-        const worksTab = document.querySelector('.nav-item:nth-child(2)'); // 作品标签是第二个
+        const worksTab = document.querySelector('.nav-item:nth-child(2)');
         if (worksTab) {
             worksTab.classList.add('active');
         }
         
-        // 显示主内容区域
         document.getElementById('mainContent').style.display = 'block';
         document.querySelector('.bottom-nav').style.display = 'flex';
         
-        // 隐藏所有主内容区块
         document.querySelectorAll('.main-content-section').forEach(el => el.style.display = 'none');
         
-        // 显示作品内容区域
         document.getElementById('worksContent').style.display = 'block';
         
-        // 调用作品全屏显示函数
         if (typeof showWorksFullscreen === 'function') {
             showWorksFullscreen();
         }
         
-        // 更新显示
         if (typeof updateDisplay === 'function') {
             updateDisplay();
         }
     }, 100);
 }
 
-// ==================== 全屏成就页 ====================
 function showAchievementsFullscreen() {
     const content = document.getElementById('achievementsListTab');
     if (!content) return;
     
-    // ==================== 修复版：特殊成就进度显示 ====================
     const progressMap = {
-        // 基础成就
         1: { current: () => gameState.fans || 0, target: 1 },
         2: { current: () => gameState.fans || 0, target: 1000 },
         3: { current: () => gameState.fans || 0, target: 100000 },
         4: { current: () => gameState.fans || 0, target: 10000000 },
-        
-        // 爆款制造机
         5: { 
             current: () => {
                 const videoWorks = gameState.worksList.filter(w => !w.isPrivate && (w.type === 'video' || w.type === 'live'));
@@ -281,14 +619,8 @@ function showAchievementsFullscreen() {
             }, 
             target: 1000000 
         },
-        
-        // 点赞狂魔
         6: { current: () => gameState.likes || 0, target: 100000 },
-        
-        // 高产创作者
         7: { current: () => gameState.worksList.filter(w => !w.isPrivate).length, target: 100 },
-        
-        // 直播新星
         8: { 
             current: () => {
                 const liveWorks = gameState.worksList.filter(w => !w.isPrivate && w.type === 'live');
@@ -296,14 +628,8 @@ function showAchievementsFullscreen() {
             }, 
             target: 1000 
         },
-        
-        // 收益第一桶金
         9: { current: () => gameState.money || 0, target: 1 },
-        
-        // 百万富翁
         10: { current: () => gameState.money || 0, target: 1000000 },
-        
-        // 话题之王
         11: { 
             current: () => {
                 const publicWorks = gameState.worksList.filter(w => !w.isPrivate);
@@ -311,8 +637,6 @@ function showAchievementsFullscreen() {
             }, 
             target: 10000 
         },
-        
-        // 评论互动达人
         12: { 
             current: () => {
                 const publicWorks = gameState.worksList.filter(w => !w.isPrivate);
@@ -320,11 +644,8 @@ function showAchievementsFullscreen() {
             }, 
             target: 5000 
         },
-        
-        // 全勤主播 - 修复版：正确计算真实天数
         13: { 
             current: () => {
-                // 只有当gameStartTime被正确设置时才计算，否则返回0
                 if (!gameState.gameStartTime || gameState.gameStartTime <= 0) {
                     return 0;
                 }
@@ -334,23 +655,12 @@ function showAchievementsFullscreen() {
             }, 
             target: 30 
         },
-        
-        // 逆风翻盘 - 特殊成就，显示申诉次数
         14: { 
-            current: () => {
-                // 显示申诉成功次数（此成就只需要一次）
-                return 0; // 无法获取申诉次数，显示0/1表示未达成
-            }, 
+            current: () => 0, 
             target: 1 
         },
-        
-        // 幸运儿
         15: { current: () => gameState.eventCount || 0, target: 50 },
-        
-        // 社交达人
         16: { current: () => (gameState.following && gameState.following.length) || 0, target: 1000 },
-        
-        // 夜猫子 - 新增：显示凌晨3点直播次数
         17: { 
             current: () => {
                 if (!gameState.liveHistory) return 0;
@@ -358,8 +668,6 @@ function showAchievementsFullscreen() {
             }, 
             target: 1 
         },
-        
-        // 早起鸟儿 - 新增：显示早上6点直播次数
         18: { 
             current: () => {
                 if (!gameState.liveHistory) return 0;
@@ -367,11 +675,7 @@ function showAchievementsFullscreen() {
             }, 
             target: 1 
         },
-        
-        // 宠粉狂魔
         19: { current: () => gameState.commentRepliesCount || 0, target: 1000 },
-        
-        // 传奇主播 - 新增：显示已解锁成就进度
         20: { 
             current: () => {
                 const otherAchievements = achievements.filter(a => a.id !== 20);
@@ -382,14 +686,8 @@ function showAchievementsFullscreen() {
                 return otherAchievements.length;
             }
         },
-        
-        // 商单新人
         21: { current: () => gameState.worksList.filter(w => w.isAd && !w.isPrivate).length, target: 1 },
-        
-        // 广告达人
         22: { current: () => gameState.worksList.filter(w => w.isAd && !w.isPrivate).length, target: 10 },
-        
-        // 百万单王
         23: { 
             current: () => {
                 const adWorks = gameState.worksList.filter(w => w.isAd && !w.isPrivate);
@@ -398,55 +696,37 @@ function showAchievementsFullscreen() {
             }, 
             target: 50000 
         },
-        
-        // 火眼金睛
         24: { current: () => gameState.rejectedAdOrders || 0, target: 5 },
-        
-        // 商单大师 - 需要同时满足两个条件
         25: { 
             current: () => {
                 const adWorksCount = gameState.worksList.filter(w => w.isAd && !w.isPrivate).length;
                 const warningsCount = gameState.warnings || 0;
-                // 如果条件满足返回target，否则返回当前进度
                 if (adWorksCount >= 50 && warningsCount < 5) return 50;
-                return Math.min(adWorksCount, 49); // 显示到49/50
+                return Math.min(adWorksCount, 49);
             }, 
             target: 50 
         },
-        
-        // 赌徒
         26: { current: () => gameState.worksList.filter(w => w.isAd && w.adOrder && !w.adOrder.real && !w.isPrivate).length, target: 10 },
-        
-        // 身败名裂 - 新增：显示因虚假商单被封号次数
         27: { 
-            current: () => {
-                return gameState.fakeAdBans || 0;
-            }, 
+            current: () => gameState.fakeAdBans || 0, 
             target: 3 
         },
-        
-        // 诚信经营
         28: { current: () => gameState.monthsWithoutFakeAd || 0, target: 3 }
     };
-    // ==================== 修复结束 ====================
     
     const achievementHtml = achievements.map(achievement => {
         const progress = progressMap[achievement.id];
         let progressHtml = '';
         
-        // 检查是否为已解锁状态
         if (achievement.unlocked) {
             progressHtml = '<div style="color: #667aea; font-size: 12px; margin-top: 5px;">✅ 已完成</div>';
-        } 
-        // 检查是否有进度映射且为正常数值型进度
-        else if (progress && typeof progress.current === 'function') {
+        } else if (progress && typeof progress.current === 'function') {
             try {
                 const current = progress.current();
                 const target = typeof progress.target === 'function' ? progress.target() : progress.target;
                 
-                // 安全校验：确保数值有效
                 if (typeof current === 'number' && typeof target === 'number' && target > 0) {
-                    const actualCurrent = Math.min(current, target); // 防止超过100%
+                    const actualCurrent = Math.min(current, target);
                     const percentage = Math.min(100, Math.floor((actualCurrent / target) * 100));
                     
                     progressHtml = `
@@ -454,7 +734,7 @@ function showAchievementsFullscreen() {
                             <div class="achievement-progress-bar" style="width: ${percentage}%"></div>
                         </div>
                         <div class="achievement-progress-text">
-                            ${actualCurrent.toLocaleString()} / ${target.toLocaleString()} (${percentage}%)
+                            ${formatNumber(actualCurrent)} / ${formatNumber(target)} (${percentage}%)
                         </div>
                     `;
                 } else {
@@ -464,9 +744,7 @@ function showAchievementsFullscreen() {
                 console.error(`成就 ${achievement.id} 进度计算失败:`, e);
                 progressHtml = '<div style="color: #999; font-size: 12px; margin-top: 5px;">🔒 未解锁</div>';
             }
-        } 
-        // 特殊成就或无进度条成就
-        else {
+        } else {
             progressHtml = '<div style="color: #999; font-size: 12px; margin-top: 5px;">🔒 未解锁</div>';
         }
         
@@ -488,7 +766,6 @@ function showAchievementsFullscreen() {
     content.innerHTML = achievementHtml;
 }
 
-// ==================== 账号设置相关函数 ====================
 function changeUsername() {
     showPrompt('请输入新昵称（最多10个字符）', gameState.username, function(newName) {
         if (newName && newName.trim()) {
@@ -500,11 +777,23 @@ function changeUsername() {
     });
 }
 
+// ✅ 修改：输入新的UID只支持输入数字和字母和标点符号
 function changeUserId() {
-    showPrompt('请输入新ID（最多20个字符）', gameState.userId, function(newId) {
+    showPrompt('请输入新ID（最多20个字符，仅限数字、字母和标点符号）', gameState.userId, function(newId) {
         if (newId && newId.trim()) {
-            gameState.userId = newId.trim().substring(0, 20);
+            const trimmedId = newId.trim();
+            // 验证只能包含数字、字母和标点符号（包括下划线、横线等）
+            if (!/^[a-zA-Z0-9\p{P}\p{S}]+$/u.test(trimmedId)) {
+                showAlert('ID只能包含数字、字母和标点符号！', '输入错误');
+                return;
+            }
+            if (trimmedId.length > 20) {
+                showAlert('ID不能超过20个字符！', '输入错误');
+                return;
+            }
+            gameState.userId = trimmedId;
             showNotification('修改成功', 'ID已更新');
+            saveGame();
         }
     });
 }
@@ -513,11 +802,10 @@ function changeAvatar() {
     showPrompt('请输入头像文字（1个字符），留空则使用图片头像', gameState.avatar || '', function(avatar) {
         if (avatar && avatar.trim()) {
             gameState.avatar = avatar.trim().substring(0, 1);
-            gameState.avatarImage = ''; // 清空图片头像
+            gameState.avatarImage = '';
             updateDisplay();
             showNotification('修改成功', '头像文字已更新');
         } else {
-            // 如果留空且有图片，则使用图片
             if (gameState.avatarImage) {
                 gameState.avatar = '';
                 updateDisplay();
@@ -550,7 +838,6 @@ function clearData() {
     });
 }
 
-// ==================== 新增：带自动压缩的的头像上传功能 ====================
 function uploadAvatar() {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -561,14 +848,12 @@ function uploadAvatar() {
         const file = e.target.files[0];
         if (!file) return;
         
-        // 检查文件类型
         if (!file.type.startsWith('image/')) {
             showAlert('请选择图片文件！', '错误');
             document.body.removeChild(fileInput);
             return;
         }
         
-        // 检查文件大小（限制5MB）
         if (file.size > 5 * 1024 * 1024) {
             showAlert('图片太大！请选择小于5MB的图片', '错误');
             document.body.removeChild(fileInput);
@@ -579,14 +864,12 @@ function uploadAvatar() {
         reader.onload = function(event) {
             const img = new Image();
             img.onload = function() {
-                // 压缩图片
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
                 
-                // 计算压缩后的尺寸
                 let width = img.width;
                 let height = img.height;
-                const maxSize = 800; // 最大边长800px
+                const maxSize = 800;
                 
                 if (width > maxSize || height > maxSize) {
                     const ratio = Math.min(maxSize / width, maxSize / height);
@@ -597,40 +880,31 @@ function uploadAvatar() {
                 canvas.width = width;
                 canvas.height = height;
                 
-                // 绘制压缩后的图片
                 ctx.drawImage(img, 0, 0, width, height);
                 
-                // 转换为base64，质量0.8
                 const imageData = canvas.toDataURL('image/jpeg', 0.8);
                 
-                // 检查压缩后的大小
-                const base64Size = imageData.length * 0.75; // base64大小约为原图的75%
+                const base64Size = imageData.length * 0.75;
                 
                 let finalImageData = imageData;
                 if (base64Size > 2 * 1024 * 1024) {
-                    // 如果还太大，进一步降低质量到0.6
                     finalImageData = canvas.toDataURL('image/jpeg', 0.6);
                     
-                    // 再次检查
                     const newBase64Size = finalImageData.length * 0.75;
                     if (newBase64Size > 2 * 1024 * 1024) {
-                        // 如果仍然太大，提示用户
                         showAlert('图片压缩后仍超过2MB，请选择更小的图片', '提示');
                         document.body.removeChild(fileInput);
                         return;
                     }
                 }
                 
-                // 保存到游戏状态
                 gameState.avatarImage = finalImageData;
-                gameState.avatar = ''; // 清空文字头像
+                gameState.avatar = '';
                 
-                // 更新显示
                 updateDisplay();
                 showNotification('上传成功', '头像已更新并压缩！');
                 saveGame();
                 
-                // 清理
                 document.body.removeChild(fileInput);
             };
             img.src = event.target.result;
@@ -646,7 +920,6 @@ function uploadAvatar() {
     fileInput.click();
 }
 
-// ==================== 全勤主播成就相关函数 ====================
 function updateLastWorkTime() {
     if (!gameState.lastWorkTime || gameState.lastWorkTime <= 0) {
         console.log('修复：初始化 lastWorkTime 为当前游戏时间');
@@ -654,27 +927,21 @@ function updateLastWorkTime() {
     gameState.lastWorkTime = gameTimer;
 }
 
-// ==================== 全屏关注列表页面（修复版 - 确保页面正确渲染） ====================
-// 修复重点：确保内容正确渲染到followingPageContent容器中
 function showFollowingList() {
     if (!gameState.following || gameState.following.length === 0) {
         showAlert('你还没有关注任何人', '关注列表');
         return;
     }
     
-    // 先关闭所有全屏页面
     document.querySelectorAll('.fullscreen-page').forEach(page => page.classList.remove('active'));
     
-    // 显示主内容（防止空白页面）
     document.getElementById('mainContent').style.display = 'none';
     document.querySelector('.bottom-nav').style.display = 'none';
     
-    // 检查followingPage是否已存在
     let followingPage = document.getElementById('followingPage');
     let isNewPage = false;
     
     if (!followingPage) {
-        // 创建新的关注列表页面
         followingPage = document.createElement('div');
         followingPage.id = 'followingPage';
         followingPage.className = 'fullscreen-page';
@@ -688,12 +955,12 @@ function showFollowingList() {
         `;
         document.body.appendChild(followingPage);
         isNewPage = true;
+    } else {
+        followingPage.querySelector('.fullscreen-title').textContent = `关注列表 (${gameState.following.length})`;
     }
     
-    // 显示关注列表页面
     followingPage.classList.add('active');
     
-    // 延迟渲染内容，确保DOM已准备好
     setTimeout(() => {
         try {
             renderFollowingList();
@@ -705,7 +972,6 @@ function showFollowingList() {
     }, isNewPage ? 100 : 0);
 }
 
-// 渲染关注列表（修复版 - 增加错误处理和空状态处理）
 function renderFollowingList() {
     const content = document.getElementById('followingPageContent');
     if (!content) {
@@ -718,15 +984,13 @@ function renderFollowingList() {
         return;
     }
     
-    // 生成关注列表HTML
     try {
         const followingHtml = gameState.following.map((userData, index) => {
-            // 如果 userData 是字符串（旧数据格式），转换为对象
             if (typeof userData === 'string') {
                 userData = {
                     username: userData,
                     avatar: userData.charAt(0),
-                    userId: 'UID' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+                    userId: Math.floor(Math.random() * 900000000 + 100000000).toString(),
                     fanCount: Math.floor(Math.random() * 50000) + 100,
                     workCount: Math.floor(Math.random() * 500) + 10,
                     likeCount: Math.floor(Math.random() * 100000) + 1000,
@@ -734,7 +998,6 @@ function renderFollowingList() {
                     following: Math.floor(Math.random() * 500) + 50,
                     bio: getRandomUserBio()
                 };
-                // 更新数组中的数据
                 gameState.following[index] = userData;
                 saveGame();
             }
@@ -757,7 +1020,6 @@ function renderFollowingList() {
             `;
         }).join('');
         
-        // 检查是否有内容，如果没有显示空状态
         if (followingHtml.trim() === '') {
             content.innerHTML = '<div style="text-align:center;color:#999;padding:40px;">关注列表为空</div>';
         } else {
@@ -769,27 +1031,22 @@ function renderFollowingList() {
     }
 }
 
-// 从关注列表打开用户主页
 function showUserProfileFromFollowing(username, avatar) {
-    // 先关闭关注列表
     closeFollowingPage();
     
-    // 查找用户数据
     const userData = gameState.following.find(u => 
         (typeof u === 'object' ? u.username : u) === username
     );
     
-    // 延迟执行，确保页面切换完成
     setTimeout(() => {
         if (typeof userData === 'object') {
-            // 如果有完整数据，直接渲染
             renderUserProfile(userData);
         } else {
-            // 如果是旧数据格式，生成新数据
+            // ✅ 修改：UID生成改为纯数字（9位随机数）
             const profileData = {
                 username: username,
                 avatar: avatar,
-                userId: 'UID' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+                userId: Math.floor(Math.random() * 900000000 + 100000000).toString(),
                 fanCount: Math.floor(Math.random() * 50000) + 100,
                 workCount: Math.floor(Math.random() * 500) + 10,
                 likeCount: Math.floor(Math.random() * 100000) + 1000,
@@ -799,7 +1056,6 @@ function showUserProfileFromFollowing(username, avatar) {
                 isFollowing: false
             };
             
-            // 更新关注列表中的数据
             const index = gameState.following.findIndex(u => 
                 (typeof u === 'object' ? u.username : u) === username
             );
@@ -813,41 +1069,32 @@ function showUserProfileFromFollowing(username, avatar) {
     }, 100);
 }
 
-// 关闭关注列表页面（修复版 - 正确恢复页面状态）
 function closeFollowingPage() {
-    // 移除关注列表页面
     const followingPage = document.getElementById('followingPage');
     if (followingPage) {
         followingPage.classList.remove('active');
     }
     
-    // 恢复主内容显示
     document.getElementById('mainContent').style.display = 'block';
     document.querySelector('.bottom-nav').style.display = 'flex';
     
-    // 隐藏所有标签页内容
     document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
     
-    // 确保首页标签处于激活状态
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     document.querySelector('.nav-item').classList.add('active');
     
-    // 显示首页的主内容区块
     document.querySelectorAll('.main-content-section').forEach(el => el.style.display = '');
     
-    // 更新显示
     if (typeof updateDisplay === 'function') {
         updateDisplay();
     }
 }
 
-// ==================== 关注/取消关注逻辑（修复版） ====================
 function toggleFollow(username) {
     if (!gameState.following) {
         gameState.following = [];
     }
     
-    // 查找用户数据
     let userData = gameState.following.find(u => 
         (typeof u === 'object' ? u.username : u) === username
     );
@@ -857,16 +1104,13 @@ function toggleFollow(username) {
     );
     
     if (index > -1) {
-        // 取消关注
         gameState.following.splice(index, 1);
         showNotification('取消关注', `已取消关注 ${username}`);
         
-        // 如果在用户主页，更新按钮
         const profilePage = document.getElementById('userProfilePage');
         if (profilePage && profilePage.classList.contains('active')) {
             const userProfileContent = document.getElementById('userProfilePageContent');
             if (userProfileContent) {
-                // 重新渲染用户主页
                 const currentUserData = window.cachedUserProfile;
                 if (currentUserData && currentUserData.username === username) {
                     renderUserProfile(currentUserData);
@@ -874,22 +1118,19 @@ function toggleFollow(username) {
             }
         }
         
-        // 如果在关注列表页面，重新渲染
         const followingPage = document.getElementById('followingPage');
         if (followingPage && followingPage.classList.contains('active')) {
             renderFollowingList();
         }
     } else {
-        // 关注用户
-        // 如果之前访问过，使用缓存数据
         if (window.cachedUserProfile && window.cachedUserProfile.username === username) {
             userData = window.cachedUserProfile;
         } else {
-            // 生成新用户数据
+            // ✅ 修改：UID生成改为纯数字（9位随机数）
             userData = {
                 username: username,
                 avatar: username.charAt(0),
-                userId: 'UID' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+                userId: Math.floor(Math.random() * 900000000 + 100000000).toString(),
                 fanCount: Math.floor(Math.random() * 50000) + 100,
                 workCount: Math.floor(Math.random() * 500) + 10,
                 likeCount: Math.floor(Math.random() * 100000) + 1000,
@@ -903,7 +1144,6 @@ function toggleFollow(username) {
         gameState.following.push(userData);
         showNotification('关注成功', `已关注 ${username}`);
         
-        // 如果在用户主页，更新按钮
         const profilePage = document.getElementById('userProfilePage');
         if (profilePage && profilePage.classList.contains('active')) {
             const userProfileContent = document.getElementById('userProfilePageContent');
@@ -912,7 +1152,6 @@ function toggleFollow(username) {
             }
         }
         
-        // 如果在关注列表页面，重新渲染
         const followingPage = document.getElementById('followingPage');
         if (followingPage && followingPage.classList.contains('active')) {
             renderFollowingList();
@@ -923,7 +1162,6 @@ function toggleFollow(username) {
     saveGame();
 }
 
-// ==================== 新增：获取随机用户简介 ====================
 function getRandomUserBio() {
     const bios = [
         '热爱生活，喜欢分享',
@@ -945,15 +1183,6 @@ function getRandomUserBio() {
     return bios[Math.floor(Math.random() * bios.length)];
 }
 
-// ==================== 全勤主播成就相关函数 ====================
-function updateLastWorkTime() {
-    if (!gameState.lastWorkTime || gameState.lastWorkTime <= 0) {
-        console.log('修复：初始化 lastWorkTime 为当前游戏时间');
-    }
-    gameState.lastWorkTime = gameTimer;
-}
-
-// ==================== 全局函数绑定 ====================
 window.showSettings = showSettings;
 window.showProfile = showProfile;
 window.showUserProfile = showUserProfile;
@@ -970,8 +1199,11 @@ window.changeUserId = changeUserId;
 window.changeAvatar = changeAvatar;
 window.uploadAvatar = uploadAvatar;
 window.clearData = clearData;
-function showAllWorks() { return window.showAllWorks(); }
 window.showAllWorks = showAllWorks;
 window.showAchievementsFullscreen = showAchievementsFullscreen;
 window.updateLastWorkTime = updateLastWorkTime;
-window.toggleDoNotDisturb = toggleDoNotDisturb; // ✅ 导出免打扰切换函数
+window.toggleDoNotDisturb = toggleDoNotDisturb;
+window.changeProfileCategory = window.changeProfileCategory;
+window.changeProfilePage = window.changeProfilePage;
+window.openProfileWorkDetail = window.openProfileWorkDetail;
+window.closeProfilePage = closeProfilePage;

@@ -346,6 +346,45 @@ function renderPrivateMessageList() {
     `;
 }
 
+// 清空所有私信
+function clearAllPrivateMessages() {
+    if (!gameState.privateMessageSystem || gameState.privateMessageSystem.conversations.length === 0) {
+        showNotification('提示', '没有需要清理的私信');
+        return;
+    }
+    
+    // 显示确认对话框
+    showConfirm('确定要清空所有私信吗？此操作不可恢复！', function(confirmed) {
+        if (confirmed) {
+            // 停止实时更新避免冲突
+            stopPrivateMessagesRealtimeUpdate();
+            
+            // 清空所有会话
+            gameState.privateMessageSystem.conversations = [];
+            gameState.privateMessageSystem.unreadCount = 0;
+            gameState.privateMessageSystem.lastCheckTime = gameTimer;
+            
+            // 保存游戏
+            saveGame();
+            
+            // 更新UI
+            updatePrivateMessageUI();
+            updateNavMessageBadge();
+            
+            // 重新渲染列表（显示空状态）
+            renderPrivateMessageList();
+            
+            // 显示成功通知
+            showNotification('清理成功', '所有私信已清空');
+            
+            // 重新启动实时更新
+            if (window.isPrivateMessageListOpen) {
+                startPrivateMessagesRealtimeUpdate();
+            }
+        }
+    });
+}
+
 // 打开私信聊天界面（保持静态，不启动实时更新）
 function openPrivateChat(username) {
     // 标记私信列表为关闭状态（新增）
@@ -542,5 +581,7 @@ window.cleanupPrivateMessages = cleanupPrivateMessages;
 window.startPrivateMessagesRealtimeUpdate = startPrivateMessagesRealtimeUpdate;
 window.stopPrivateMessagesRealtimeUpdate = stopPrivateMessagesRealtimeUpdate;
 window.checkForNewPrivateMessages = checkForNewPrivateMessages;
+// ✅ 新增：导出清空私信函数
+window.clearAllPrivateMessages = clearAllPrivateMessages;
 
 console.log('私信系统模块已加载');
