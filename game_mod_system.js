@@ -122,32 +122,99 @@ class ModManager {
         this.saveLoadedMods();
     }
 
-    // 从文件导入Mod
+    // ✅ 新增：从JS代码中提取元数据
+    extractMetadataFromJS(code) {
+        try {
+            // 匹配各种形式的元数据定义
+            const patterns = [
+                // window.xxxMetadata = {...};
+                /window\.(\w+Metadata)\s*=\s*({[\s\S]*?});?\s*$/m,
+                // var xxxMetadata = {...};
+                /var\s+(\w+Metadata)\s*=\s*({[\s\S]*?});?\s*$/m,
+                // const xxxMetadata = {...};
+                /const\s+(\w+Metadata)\s*=\s*({[\s\S]*?});?\s*$/m,
+                // let xxxMetadata = {...};
+                /let\s+(\w+Metadata)\s*=\s*({[\s\S]*?});?\s*$/m,
+                // 匹配 Mod元数据对象，支持没有分号结尾的情况
+                /window\.(\w+Metadata)\s*=\s*({[\s\S]*?})(?:\s*;|\s*$)/m
+            ];
+            
+            for (const pattern of patterns) {
+                const match = code.match(pattern);
+                if (match && match[2]) {
+                    try {
+                        // 清理可能的尾部逗号（JSON不允许，但JS对象允许）
+                        let metadataStr = match[2].trim()
+                            .replace(/,\s*}/g, '}')  // 移除对象末尾的逗号
+                            .replace(/,\s*]/g, ']'); // 移除数组末尾的逗号
+                        
+                        // 使用Function构造器安全地解析对象（比eval安全）
+                        const metadata = new Function('return ' + metadataStr)();
+                        if (metadata && typeof metadata === 'object') {
+                            return metadata;
+                        }
+                    } catch (parseError) {
+                        console.warn('解析元数据对象失败，尝试下一个模式:', parseError);
+                        continue;
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn('提取Mod元数据失败:', error);
+        }
+        return null;
+    }
+
+    // ✅ 新增：直接通过内容和文件名导入Mod（无需File对象）
+    importModFromContent(content, fileName) {
+        return new Promise((resolve, reject) => {
+            try {
+                // 尝试提取元数据
+                const metadata = this.extractMetadataFromJS(content);
+                let name = fileName;
+                let description = '';
+
+                if (metadata) {
+                    name = metadata.name || name;
+                    description = metadata.description || '';
+                } else {
+                    // 移除文件扩展名作为默认名称
+                    name = fileName.replace(/\.(js|json|txt)$/i, '');
+                }
+
+                // 如果内容是JSON格式，尝试解析
+                let code = content;
+                if (fileName.endsWith('.json')) {
+                    try {
+                        const jsonObj = JSON.parse(content);
+                        if (jsonObj.code) {
+                            code = jsonObj.code;
+                            name = jsonObj.name || name;
+                            description = jsonObj.description || description;
+                        }
+                    } catch (e) {
+                        // 不是有效的JSON，当作纯文本处理
+                    }
+                }
+
+                // 添加到Mod列表
+                const mod = this.addMod(name, code, description);
+                resolve(mod);
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    // 从文件导入Mod（复用importModFromContent）
     importModFromFile(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
                     const content = e.target.result;
-                    // 检查是否是JSON格式的Mod文件
-                    if (file.name.endsWith('.json')) {
-                        const modData = JSON.parse(content);
-                        if (modData.name && modData.code) {
-                            const mod = this.addMod(
-                                modData.name,
-                                modData.code,
-                                modData.description || ''
-                            );
-                            resolve(mod);
-                        } else {
-                            reject(new Error('无效的Mod文件格式'));
-                        }
-                    } else {
-                        // 假设是JS文件，使用文件名作为Mod名
-                        const name = file.name.replace('.js', '');
-                        const mod = this.addMod(name, content);
-                        resolve(mod);
-                    }
+                    // 直接调用新增方法
+                    this.importModFromContent(content, file.name).then(resolve).catch(reject);
                 } catch (error) {
                     reject(error);
                 }
@@ -203,7 +270,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function showModManagement() {
     const content = `
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeModManagement()">＜</div>
+            <div class="back-btn" onclick="closeModManagement()">←</div>
             <div class="fullscreen-title">🎮 Mod管理中心</div>
             <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
         </div>
@@ -318,7 +385,7 @@ function closeModManagement() {
 function showModHelp() {
     const helpContent = `
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeModHelp()">＜</div>  <!-- ✅ 改为close函数 -->
+            <div class="back-btn" onclick="closeModHelp()">←</div>  <!-- ✅ 改为close函数 -->
             <div class="fullscreen-title">📚 Mod制作教程</div>
             <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
         </div>
@@ -383,7 +450,7 @@ function showModHelp() {
     
     console.log('✅ 自动发布Mod已激活！');
 })();</textarea>
-                    
+
                     <!-- 新增：教程2按钮 -->
                     <button class="btn" onclick="window.location.href='jz.html'" style="width: 100%; margin-top: 15px; background: linear-gradient(135deg, #00f2ea 0%, #667eea 100%); color: #000; font-weight: bold;">
                         📚 教程2：让AI看到游戏文件来制作
@@ -751,7 +818,7 @@ function importModFile() {
             return;
         }
         
-        // 读取文件
+        // 读取文件（已重构为调用importModFromContent）
         window.modManager.importModFromFile(file)
             .then(mod => {
                 showNotification('导入成功', `Mod "${mod.name}" 已导入`);
@@ -975,4 +1042,4 @@ window.generateGameDescription = generateGameDescription;
 window.escapeHtml = escapeHtml;
 window.unloadSelectedMods = unloadSelectedMods; // ✅ 导出取消加载函数
 
-console.log('✅ Mod系统已加载（带自动描述生成器）');
+console.log('✅ Mod系统已加载（带自动描述生成器和JS元数据提取）');

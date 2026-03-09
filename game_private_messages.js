@@ -214,10 +214,7 @@ function generatePrivateMessage() {
     
     saveGame();
     
-    // 触发通知（如果是负面消息）
-    if (!messageData.isPositive) {
-        showNotification('📩 负面私信', `${userData.username}: ${messageData.content.substring(0, 20)}...`);
-    }
+    // 负面私信弹窗通知已删除
 }
 
 // 启动私信生成定时器

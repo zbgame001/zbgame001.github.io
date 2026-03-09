@@ -38,8 +38,8 @@ function showGameSettings() {
             <div>></div>
         </div>
         
-        <!-- ✅ 新增：mod下载入口 -->
-        <div class="settings-item" onclick="window.open('http://zbgamemod.ysepan.com/', '_blank')">
+        <!-- ✅ 修改：mod下载入口 - 现在点击弹出网址复制弹窗，不再自动跳转 -->
+        <div class="settings-item" onclick="window.openModDownloadSite()">
             <div><div class="settings-label">📥 mod下载（可以分享自己制作的mod）</div><div class="settings-value">访问mod分享网站</div></div>
             <div>></div>
         </div>
@@ -61,6 +61,13 @@ function showPlayTime() {
     const minutes = totalMinutes % 60;
     const days = Math.floor(getVirtualDaysPassed());
     
+    // ✅ 获取虚拟起始日期，如果没有则显示为"随机起始日期"
+    let startDateInfo = "随机起始日期";
+    if (gameState.virtualStartDate) {
+        const startDate = gameState.virtualStartDate;
+        startDateInfo = `${startDate.year}年${String(startDate.month).padStart(2, '0')}月${String(startDate.day).padStart(2, '0')}日`;
+    }
+    
     const modalContent = `
         <div class="modal-header">
             <div class="modal-title">游玩时间统计</div>
@@ -77,7 +84,7 @@ function showPlayTime() {
             </div>
             <div style="background: #161823; padding: 15px; border-radius: 10px; font-size: 12px; color: #999; line-height: 1.5;">
                 <p>• 虚拟时间：1分钟 = 1虚拟天</p>
-                <p>• 游戏从2025年1月1日开始</p>
+                <p>• 游戏起始时间：${startDateInfo}</p>
                 <p>• 当前时间：${formatVirtualDate(true)}</p>
             </div>
             <button class="btn" onclick="closeModal()" style="margin-top: 20px;">确定</button>
@@ -182,7 +189,7 @@ function showArchiveManagement() {
     
     const content = `
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeArchiveManagement()">＜</div>
+            <div class="back-btn" onclick="closeArchiveManagement()">←</div>
             <div class="fullscreen-title">📦 存档管理</div>
             <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
         </div>
@@ -593,7 +600,7 @@ function exportSaveData() {
         gameState.gameTimer = gameTimer;
         gameState.realStartTime = realStartTime;
         
-        // 生成文件名，包含用户名和日期
+        // ✅ 生成文件名，包含用户名和当前虚拟日期
         const currentDate = getVirtualDate();
         const fileName = `主播模拟器存档_${gameState.username}_${currentDate.year}年${currentDate.month}月${currentDate.day}日_${Date.now()}.json`;
         
@@ -958,6 +965,47 @@ window.closeVersionInfo = function() {
     }
 };
 
+// ==================== ✅ 修改：MOD下载网站 - 改为弹窗复制网址，不再自动跳转 ====================
+window.openModDownloadSite = function() {
+    const url = 'http://zbgame.555436.xyz'; // 已更新网址
+    
+    const modalContent = `
+        <div class="modal-header">
+            <div class="modal-title">📥 Mod下载</div>
+            <div class="close-btn" onclick="closeModal()">✕</div>
+        </div>
+        <div style="padding: 20px; text-align: center;">
+            <div style="margin-bottom: 20px;">
+                <div style="font-size: 16px; color: #667aea; margin-bottom: 10px;">Mod分享网站</div>
+                <div style="background: #161823; border-radius: 8px; padding: 12px; font-size: 14px; color: #fff; word-break: break-all;">
+                    ${url}
+                </div>
+                <div style="font-size: 12px; color: #999; margin-top: 10px;">请复制网址在浏览器中打开</div>
+            </div>
+            <button class="btn" onclick="copyModDownloadUrl('${url}')">复制网址</button>
+        </div>
+    `;
+    showModal(modalContent);
+};
+
+// ==================== 复制Mod下载网址 ====================
+function copyModDownloadUrl(url) {
+    const textarea = document.createElement('textarea');
+    textarea.value = url;
+    document.body.appendChild(textarea);
+    textarea.select();
+    
+    try {
+        document.execCommand('copy');
+        showNotification('复制成功', '网址已复制到剪贴板');
+    } catch (err) {
+        showWarning('复制失败，请手动复制：' + url);
+    }
+    
+    document.body.removeChild(textarea);
+    closeModal(); // 复制后自动关闭弹窗，与复制QQ群行为一致
+}
+
 // ==================== 全局函数绑定 ====================
 window.showGameSettings = showGameSettings;
 window.showPlayTime = showPlayTime;
@@ -981,3 +1029,5 @@ window.clearData = clearData;
 window.showModManagement = window.showModManagement;
 window.showVersionInfo = window.showVersionInfo;
 window.closeVersionInfo = window.closeVersionInfo;
+window.openModDownloadSite = window.openModDownloadSite;
+window.copyModDownloadUrl = copyModDownloadUrl; // 新增绑定

@@ -67,7 +67,8 @@
                 <div class="stat-value" id="followingCount">0</div>
                 <div class="stat-label" onclick="showFollowingList()" style="cursor:pointer;">关注</div>
             </div>
-            <div class="stat-item">
+            <!-- ✅ 修改：热度值可点击进入全屏页 -->
+            <div class="stat-item" onclick="showHotValueFullscreen()" style="cursor: pointer;">
                 <div class="stat-value" id="virtualTimeStat">0K</div>
                 <div class="stat-label">热度值</div>
             </div>
@@ -135,9 +136,9 @@
     <!-- 粉丝全屏页 -->
     <div id="fansPage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeFansFullscreen()">＜</div>
+            <div class="back-btn" onclick="closeFansFullscreen()">←</div>
             <div class="fullscreen-title">粉丝分析</div>
-            <div class="fullscreen-action" onclick="showFansFullscreen()">刷新</div>
+            <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
         </div>
         <div id="fansPageContent" class="fullscreen-content"></div>
     </div>
@@ -145,9 +146,9 @@
     <!-- 播放量全屏页 -->
     <div id="viewsPage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeViewsFullscreen()">＜</div>
+            <div class="back-btn" onclick="closeViewsFullscreen()">←</div>
             <div class="fullscreen-title">播放分析</div>
-            <div class="fullscreen-action" onclick="showViewsFullscreen()">刷新</div>
+            <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
         </div>
         <div id="viewsPageContent" class="fullscreen-content"></div>
     </div>
@@ -155,17 +156,56 @@
     <!-- 点赞全屏页（新增） -->
     <div id="likesPage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeLikesFullscreen()">＜</div>
+            <div class="back-btn" onclick="closeLikesFullscreen()">←</div>
             <div class="fullscreen-title">点赞分析</div>
-            <div class="fullscreen-action" onclick="showLikesFullscreen()">刷新</div>
+            <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
         </div>
         <div id="likesPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- ✅ 新增：热度值全屏页 -->
+    <div id="hotValuePage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeHotValueFullscreen()">←</div>
+            <div class="fullscreen-title">热度值详情</div>
+            <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
+        </div>
+        <div id="hotValuePageContent" class="fullscreen-content">
+            <!-- 第一行：大长方形热度值数据 -->
+            <div id="hotValueBigBox" style="background: linear-gradient(135deg, #161823 0%, #1a1a2e 100%); border: 1px solid #333; border-radius: 20px; padding: 40px 20px; margin: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); min-height: 200px; display: flex; align-items: center; justify-content: center;">
+                <div style="text-align: center; color: #666; font-size: 14px;">
+                    加载中...<br>
+                    <span style="font-size: 12px; color: #444;">正在获取热度值数据</span>
+                </div>
+            </div>
+            
+            <!-- 统计信息区域 -->
+            <div id="hotValueStatsInfo" style="margin: 10px;"></div>
+            
+            <!-- 第二行：热度值增加记录（8条） -->
+            <div style="margin: 20px 10px 10px 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <div style="font-size: 16px; font-weight: bold; color: #fff;">
+                        📈 热度变化记录
+                    </div>
+                    <div style="font-size: 12px; color: #999;">
+                        最近8条
+                    </div>
+                </div>
+                <div id="hotValueHistoryList" style="min-height: 200px;">
+                    <div style="text-align: center; color: #666; padding: 40px 20px; font-size: 14px;">
+                        暂无记录<br>
+                        <span style="font-size: 12px; color: #444;">热度值变化超过10时将自动记录</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- ✅ 新增：抽奖全屏页 -->
     <div id="rafflePage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeFullscreenPage('raffle')">＜</div>
+            <div class="back-btn" onclick="closeFullscreenPage('raffle')">←</div>
             <div class="fullscreen-title">发起抽奖</div>
             <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
         </div>
@@ -175,9 +215,9 @@
     <!-- ✅ 新增：抽奖活动管理全屏页 -->
     <div id="raffleManagePage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeFullscreenPage('raffleManage')">＜</div>
+            <div class="back-btn" onclick="closeFullscreenPage('raffleManage')">←</div>
             <div class="fullscreen-title">抽奖活动管理</div>
-            <div class="fullscreen-action" onclick="showRaffleManagePage()">刷新</div>
+            <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
         </div>
         <div id="raffleManagePageContent" class="fullscreen-content"></div>
     </div>
@@ -185,7 +225,7 @@
     <!-- ✅ 新增：抽奖详情全屏页 -->
     <div id="raffleDetailPage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeFullscreenPage('raffleDetail')">＜</div>
+            <div class="back-btn" onclick="closeFullscreenPage('raffleDetail')">←</div>
             <div class="fullscreen-title" id="raffleDetailTitle">抽奖详情</div>
             <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
         </div>
@@ -195,7 +235,7 @@
     <!-- ✅ 新增：版本信息全屏页 -->
     <div id="versionInfoPage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeVersionInfo()">＜</div>
+            <div class="back-btn" onclick="closeVersionInfo()">←</div>
             <div class="fullscreen-title">版本信息</div>
             <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
         </div>
@@ -204,7 +244,7 @@
 
     <div id="createVideoPage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeFullscreenPage('createVideo')">＜</div>
+            <div class="back-btn" onclick="closeFullscreenPage('createVideo')">←</div>
             <div class="fullscreen-title">发布视频</div>
             <div class="fullscreen-action" onclick="createVideo()">发布</div>
         </div>
@@ -213,7 +253,7 @@
 
     <div id="createPostPage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeFullscreenPage('createPost')">＜</div>
+            <div class="back-btn" onclick="closeFullscreenPage('createPost')">←</div>
             <div class="fullscreen-title">发布动态</div>
             <div class="fullscreen-action" onclick="createPost()">发布</div>
         </div>
@@ -222,7 +262,7 @@
 
     <div id="buyTrafficPage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeFullscreenPage('buyTraffic')">＜</div>
+            <div class="back-btn" onclick="closeFullscreenPage('buyTraffic')">←</div>
             <div class="fullscreen-title">购买流量推送</div>
             <div class="fullscreen-action" id="trafficPriceDisplay">0元</div>
         </div>
@@ -231,7 +271,7 @@
 
     <div id="adOrdersPage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeFullscreenPage('adOrders')">＜</div>
+            <div class="back-btn" onclick="closeFullscreenPage('adOrders')">←</div>
             <div class="fullscreen-title">商单中心</div>
             <div class="fullscreen-action" onclick="showAdOrders()">刷新</div>
         </div>
@@ -240,7 +280,7 @@
 
     <div id="workDetailPage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeFullscreenPage('workDetail')">＜</div>
+            <div class="back-btn" onclick="closeFullscreenPage('workDetail')">←</div>
             <div class="fullscreen-title" id="workDetailTitle">作品详情</div>
             <div class="fullscreen-action" onclick="toggleWorkPrivacy()">🔒</div>
         </div>
@@ -249,7 +289,7 @@
 
     <div id="settingsPage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeFullscreenPage('settings')">＜</div>
+            <div class="back-btn" onclick="closeFullscreenPage('settings')">←</div>
             <div class="fullscreen-title" id="settingsHeaderTitle">游戏设置</div>
             <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
         </div>
@@ -258,7 +298,7 @@
 
     <div id="profilePage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeFullscreenPage('profile')">＜</div>
+            <div class="back-btn" onclick="closeFullscreenPage('profile')">←</div>
             <div class="fullscreen-title">个人主页</div>
             <div class="fullscreen-action" onclick="showSettings()">⚙️</div>
         </div>
@@ -268,7 +308,7 @@
     <!-- 全屏用户主页 -->
     <div id="userProfilePage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeFullscreenPage('userProfile')">＜</div>
+            <div class="back-btn" onclick="closeFullscreenPage('userProfile')">←</div>
             <div class="fullscreen-title">用户主页</div>
             <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
         </div>
@@ -278,7 +318,7 @@
     <!-- 全屏评论详情页 -->
     <div id="commentDetailPage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeCommentDetail()">＜</div>
+            <div class="back-btn" onclick="closeCommentDetail()">←</div>
             <div class="fullscreen-title">评论详情</div>
             <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
         </div>
@@ -288,7 +328,7 @@
     <!-- ✅ 新增：警告列表全屏页 -->
     <div id="warningListPage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeWarningList()">＜</div>
+            <div class="back-btn" onclick="closeWarningList()">←</div>
             <div class="fullscreen-title">警告记录</div>
             <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
         </div>
@@ -299,7 +339,7 @@
     <!-- 全部消息全屏页 -->
     <div id="messagesAllPage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeMessagesFullscreenPage('messagesAll')">＜</div>
+            <div class="back-btn" onclick="closeMessagesFullscreenPage('messagesAll')">←</div>
             <div class="fullscreen-title">全部消息</div>
             <div class="fullscreen-action" onclick="clearMessagesByType('all')">清空</div>
         </div>
@@ -309,7 +349,7 @@
     <!-- 点赞消息全屏页 -->
     <div id="messagesLikePage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeMessagesFullscreenPage('messagesLike')">＜</div>
+            <div class="back-btn" onclick="closeMessagesFullscreenPage('messagesLike')">←</div>
             <div class="fullscreen-title">点赞消息</div>
             <div class="fullscreen-action" onclick="clearMessagesByType('like')">清空</div>
         </div>
@@ -319,7 +359,7 @@
     <!-- 评论消息全屏页 -->
     <div id="messagesCommentPage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeMessagesFullscreenPage('messagesComment')">＜</div>
+            <div class="back-btn" onclick="closeMessagesFullscreenPage('messagesComment')">←</div>
             <div class="fullscreen-title">评论消息</div>
             <div class="fullscreen-action" onclick="clearMessagesByType('comment')">清空</div>
         </div>
@@ -329,7 +369,7 @@
     <!-- 转发消息全屏页 -->
     <div id="messagesSharePage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeMessagesFullscreenPage('messagesShare')">＜</div>
+            <div class="back-btn" onclick="closeMessagesFullscreenPage('messagesShare')">←</div>
             <div class="fullscreen-title">转发消息</div>
             <div class="fullscreen-action" onclick="clearMessagesByType('share')">清空</div>
         </div>
@@ -339,7 +379,7 @@
     <!-- 私信列表全屏页 -->
     <div id="privateMessagesPage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closePrivateMessageList()">＜</div>
+            <div class="back-btn" onclick="closePrivateMessageList()">←</div>
             <div class="fullscreen-title">陌生人私信</div>
             <div class="fullscreen-action" onclick="clearAllPrivateMessages()">清空</div>
         </div>
@@ -349,7 +389,7 @@
     <!-- 私信聊天全屏页 -->
     <div id="privateChatPage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closePrivateChat()">＜</div>
+            <div class="back-btn" onclick="closePrivateChat()">←</div>
             <div class="fullscreen-title" id="privateChatTitle">聊天</div>
             <div class="fullscreen-action" style="opacity:0;">占位</div>
         </div>
@@ -359,7 +399,7 @@
     <!-- ✅ 新增：系统消息全屏页 -->
     <div id="systemMessagesPage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeSystemMessagesList()">＜</div>
+            <div class="back-btn" onclick="closeSystemMessagesList()">←</div>
             <div class="fullscreen-title">系统消息</div>
             <div class="fullscreen-action" style="opacity:0;">占位</div>
         </div>
@@ -369,7 +409,7 @@
     <!-- ✅ 新增：关注列表全屏页 -->
     <div id="followingPage" class="fullscreen-page">
         <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeFullscreenPage('following')">＜</div>
+            <div class="back-btn" onclick="closeFullscreenPage('following')">←</div>
             <div class="fullscreen-title">关注列表</div>
             <div class="fullscreen-action" style="opacity:0;">占位</div>
         </div>
@@ -417,7 +457,11 @@
 <script src="game_core_part2.js"></script>
 <script src="game_core_part3.js"></script>
 <script src="game_hot_value.js"></script>
+<!-- ✅ 新增：热度值全屏界面模块 -->
+<script src="game_hot_value_fullscreen.js"></script>
 <script src="game_ui_core.js"></script>
+<!-- ✅ 新增：成就系统模块（从原文件分离） -->
+<script src="game_achievements.js"></script>
 <script src="game_warning_system.js"></script>
 <script src="game_appeal_ai.js"></script>
 <script src="game_fans.js"></script>
@@ -448,8 +492,8 @@
 <!-- ✅ 新增：版本信息模块 -->
 <script src="game_version_info.js"></script>
 
-<!-- ✅ 新增：独立错误检测系统（必须放在最后，确保游戏先加载） -->
-<script src="game_error_detector.js"></script>
+<!-- ✅ 新增：Mod 分享导入模块（必须放在 game_mod_system.js 之后） -->
+<script src="game_share_import.js"></script>
 
 <script>
 // 游戏完全加载后启动所有实时更新
@@ -484,6 +528,13 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => {
             initHotValueSystem();
         }, 500);
+    }
+    
+    // ✅ 初始化热度值全屏界面系统
+    if (typeof window.HotValueFullscreen !== 'undefined') {
+        setTimeout(() => {
+            window.HotValueFullscreen.init();
+        }, 600);
     }
     
     // ✅ 初始化Mod系统

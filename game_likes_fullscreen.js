@@ -49,9 +49,6 @@ function renderLikesPage() {
             <div id="likesTotalCount" style="font-size: 42px; font-weight: bold; color: #fff; margin-bottom: 5px; letter-spacing: 1px;">
                 ${gameState.likes.toLocaleString()}
             </div>
-            <div style="font-size: 12px; color: rgba(255, 255, 255, 0.8);">
-                更新时间：${formatVirtualDate(true)}
-            </div>
         </div>
         
         <div style="padding: 20px;">
@@ -88,14 +85,14 @@ function drawLikesDetailChart() {
     const virtualDays = Math.floor(getVirtualDaysPassed());
     const currentIndex = gameState.chartData.currentIndex || 0;
     
-    // 生成正确对齐的标签和数据
+    // 生成正确对齐的标签和数据（基于虚拟起始日期）
     const labels = [];
     const displayData = [];
     
     for (let i = 0; i < 60; i++) {
         // 计算数据索引：从旧到新排列
         const dataIndex = (currentIndex - 59 + i + 60) % 60;
-        // 计算天数标签
+        // 计算天数偏移（从虚拟起始日期开始）
         const dayNumber = virtualDays - (59 - i);
         
         // 如果是未来的天数（dayNumber < 0），标签为空，数据设为null
@@ -103,8 +100,8 @@ function drawLikesDetailChart() {
             labels.push('');
             displayData.push(null); // 未来天数设为null，不画线
         } else {
-            // 将天数转换为月日格式
-            labels.push(convertDaysToMD(dayNumber));
+            // 将天数转换为月日格式（基于虚拟起始日期）
+            labels.push(convertLikesDaysToMD(dayNumber));
             
             // 如果数据为0，也设为null，避免画直线
             const value = gameState.chartData.likes[dataIndex] || 0;
@@ -203,6 +200,39 @@ function drawLikesDetailChart() {
     window.charts.likesDetail = chart;
 }
 
+// ==================== 关键修改：基于虚拟起始日期的天数转换函数 ====================
+// 将天数转换为月日格式（基于虚拟起始日期）
+function convertLikesDaysToMD(dayNumber) {
+    if (dayNumber < 0) return '';
+    
+    // 获取虚拟起始日期（如果不存在则使用默认值兼容旧存档）
+    const startDate = gameState.virtualStartDate || { year: 2025, month: 1, day: 1 };
+    
+    // 从虚拟起始日期开始计算
+    let currentYear = startDate.year;
+    let currentMonth = startDate.month;
+    let currentDay = startDate.day + dayNumber; // 加上经过的天数
+    
+    // 处理日期进位（考虑闰年和不同月份天数）
+    while (true) {
+        const isLeapYear = (currentYear % 4 === 0 && currentYear % 100 !== 0) || (currentYear % 400 === 0);
+        const daysInCurrentMonth = [31, isLeapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][currentMonth - 1];
+        
+        if (currentDay > daysInCurrentMonth) {
+            currentDay -= daysInCurrentMonth;
+            currentMonth++;
+            if (currentMonth > 12) {
+                currentMonth = 1;
+                currentYear++;
+            }
+        } else {
+            break;
+        }
+    }
+    
+    return `${currentMonth}.${currentDay}`;
+}
+
 // ==================== 实时更新点赞图表（包含顶部总数字） ====================
 function startLikesDetailChartRealtimeUpdate() {
     // 停止之前的更新定时器
@@ -214,7 +244,7 @@ function startLikesDetailChartRealtimeUpdate() {
     window.likesDetailChartInterval = setInterval(() => {
         const likesPage = document.getElementById('likesPage');
         if (likesPage && likesPage.classList.contains('active')) {
-            // ✅ 新增：更新顶部总点赞数大数字
+            // 新增：更新顶部总点赞数大数字
             const totalCount = document.getElementById('likesTotalCount');
             if (totalCount) {
                 totalCount.textContent = gameState.likes.toLocaleString();
@@ -243,7 +273,7 @@ function stopLikesDetailChartRealtimeUpdate() {
 }
 
 // ==================== 模块初始化 ====================
-console.log('点赞全屏界面模块已加载');
+console.log('点赞全屏界面模块（图表跟随虚拟时间）已加载');
 
 // ==================== 全局函数绑定 ====================
 window.showLikesFullscreen = showLikesFullscreen;
@@ -252,3 +282,4 @@ window.renderLikesPage = renderLikesPage;
 window.drawLikesDetailChart = drawLikesDetailChart;
 window.startLikesDetailChartRealtimeUpdate = startLikesDetailChartRealtimeUpdate;
 window.stopLikesDetailChartRealtimeUpdate = stopLikesDetailChartRealtimeUpdate;
+window.convertLikesDaysToMD = convertLikesDaysToMD;

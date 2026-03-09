@@ -318,7 +318,7 @@ window.changeViewsActiveWorksPage = function(page) {
         
         container.innerHTML = renderActiveStatusWorks(pageWorks);
         
-        // 更新分页控件
+        // 更新分页控件（如果存在）
         const paginationContainer = container.parentElement.querySelector('div[style*="justify-content: center"]');
         if (paginationContainer) {
             paginationContainer.outerHTML = renderViewsActiveWorksPagination(totalPages, allActiveWorks.length);
@@ -429,19 +429,21 @@ function drawViewsChart() {
     const currentIndex = gameState.chartData.currentIndex || 0;
     const currentDay = gameState.chartData.currentDay || 0;
     
-    // 生成标签和数据
+    // 生成标签和数据（基于虚拟起始日期）
     const labels = [];
     const displayData = [];
     
     for (let i = 0; i < 60; i++) {
         const dataIndex = (currentIndex - 59 + i + 60) % 60;
+        // 计算天数偏移（从虚拟起始日期开始的天数）
         const dayNumber = currentDay - (59 - i);
         
         if (dayNumber < 0) {
             labels.push('');
             displayData.push(null);
         } else {
-            labels.push(convertDaysToMD(dayNumber));
+            // 使用基于虚拟起始日期的转换函数
+            labels.push(convertViewsDaysToMD(dayNumber));
             const value = gameState.chartData.views[dataIndex] || 0;
             displayData.push(value > 0 ? value : null);
         }
@@ -541,6 +543,39 @@ function drawViewsChart() {
     window.viewsCharts.viewsChart = chart;
 }
 
+// ==================== 关键修改：基于虚拟起始日期的天数转换函数 ====================
+// 将天数转换为月日格式的函数（基于虚拟起始日期）
+function convertViewsDaysToMD(dayNumber) {
+    if (dayNumber < 0) return '';
+    
+    // 获取虚拟起始日期（如果不存在则使用默认值兼容旧存档）
+    const startDate = gameState.virtualStartDate || { year: 2025, month: 1, day: 1 };
+    
+    // 从虚拟起始日期开始计算
+    let currentYear = startDate.year;
+    let currentMonth = startDate.month;
+    let currentDay = startDate.day + dayNumber; // 加上经过的天数
+    
+    // 处理日期进位（考虑闰年和不同月份天数）
+    while (true) {
+        const isLeapYear = (currentYear % 4 === 0 && currentYear % 100 !== 0) || (currentYear % 400 === 0);
+        const daysInCurrentMonth = [31, isLeapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][currentMonth - 1];
+        
+        if (currentDay > daysInCurrentMonth) {
+            currentDay -= daysInCurrentMonth;
+            currentMonth++;
+            if (currentMonth > 12) {
+                currentMonth = 1;
+                currentYear++;
+            }
+        } else {
+            break;
+        }
+    }
+    
+    return `${currentMonth}.${currentDay}`;
+}
+
 // 实时更新播放量图表
 function updateViewsChartRealtime() {
     if (!window.viewsCharts) return;
@@ -567,7 +602,7 @@ if (typeof window !== 'undefined') {
     window.addEventListener('beforeunload', cleanupViewsCache);
 }
 
-console.log('播放量全屏界面模块已加载');
+console.log('播放量全屏界面模块（图表跟随虚拟时间）已加载');
 
 // ==================== 全局函数绑定 ====================
 window.showViewsFullscreen = window.showViewsFullscreen;
@@ -584,3 +619,4 @@ window.getActiveStatusWorks = window.getActiveStatusWorks;
 window.renderActiveStatusWorks = window.renderActiveStatusWorks;
 window.changeViewsActiveWorksPage = window.changeViewsActiveWorksPage;
 window.renderViewsActiveWorksPagination = window.renderViewsActiveWorksPagination;
+window.convertViewsDaysToMD = convertViewsDaysToMD;

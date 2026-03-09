@@ -197,7 +197,10 @@ function switchTab(tab) {
         case 'messages':
             document.querySelectorAll('.main-content-section').forEach(el => el.style.display = 'none');
             document.getElementById('messagesContent').style.display = 'block';
+            // ✅ 使用新的消息中心函数
             if (typeof showMessagesFullscreen === 'function') showMessagesFullscreen();
+            // 启动实时更新
+            if (typeof startMessagesRealtimeUpdate === 'function') startMessagesRealtimeUpdate();
             break;
         case 'achievements':
             document.querySelectorAll('.main-content-section').forEach(el => el.style.display = 'none');
@@ -516,3 +519,5 @@ window.switchTab = switchTab;
 window.closeFullscreenPage = closeFullscreenPage;
 window.animateNumberUpdate = animateNumberUpdate;
 window.updateNavMessageBadge = updateNavMessageBadge;
+
+console.log('UI核心系统已加载');

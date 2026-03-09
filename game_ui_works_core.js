@@ -141,12 +141,12 @@ function startWorkUpdates() {
             
             if (viewsEl) {
                 const icon = work.type === 'post' ? '👁️' : '▶️';
-                viewsEl.textContent = `${icon} ${work.views.toLocaleString()}`;
+                viewsEl.textContent = `${icon} ${formatNumber(work.views)}`;
                 animateNumberUpdate(viewsEl);
             }
-            if (likesEl) { likesEl.textContent = work.likes.toLocaleString(); animateNumberUpdate(likesEl); }
-            if (commentsEl) { commentsEl.textContent = work.comments.toLocaleString(); animateNumberUpdate(commentsEl); }
-            if (sharesEl) { sharesEl.textContent = work.shares.toLocaleString(); animateNumberUpdate(sharesEl); }
+            if (likesEl) { likesEl.textContent = formatNumber(work.likes); animateNumberUpdate(likesEl); }
+            if (commentsEl) { commentsEl.textContent = formatNumber(work.comments); animateNumberUpdate(commentsEl); }
+            if (sharesEl) { sharesEl.textContent = formatNumber(work.shares); animateNumberUpdate(sharesEl); }
         });
         
         if (gameState.messages.length > 200) {
@@ -296,6 +296,25 @@ function showWorkDetail(work) {
         const commentsHtml = renderPaginatedComments(work, window.commentsPerPage);
         const paginationHtml = renderCommentsPagination(work, window.commentsPerPage);
         
+        // ==================== 修复：改进封禁锁定判断逻辑 ====================
+        // 当 preBanPublicWorks 为空数组时（封号前无公开作品），默认锁定所有私密作品
+        const hasPreBanList = gameState.preBanPublicWorks && gameState.preBanPublicWorks.length > 0;
+        const isInPreBanList = hasPreBanList && gameState.preBanPublicWorks.includes(work.id);
+        // 如果 preBanPublicWorks 存在且有内容，按列表判断；否则（封号前无公开作品），锁定所有私密作品
+        const isLockedByBan = gameState.isBanned && work.isPrivate && (isInPreBanList || !hasPreBanList);
+        // ==================================================================
+        
+        // ✅ 私密按钮状态
+        const privacyBtnHtml = isLockedByBan ? `
+            <button class="btn" disabled style="flex: 1; background: #333; color: #999; cursor: not-allowed; opacity: 0.6;">
+                🔒 封禁锁定（无法操作）
+            </button>
+        ` : `
+            <button class="btn" onclick="togglePrivate(${work.id})" style="${work.isPrivate ? '#667eea' : '#333'}; flex: 1;">
+                ${work.isPrivate ? '🔓 取消私密' : '🔒 设为私密'}
+            </button>
+        `;
+        
         const content = document.getElementById('workDetailPageContent');
         content.innerHTML = '';
         
@@ -312,6 +331,13 @@ function showWorkDetail(work) {
                 
                 ${work.isAd ? '<div style="background:#ff0050;color:white;padding:5px 10px;border-radius:5px;font-size:12px;display:inline-block;margin-bottom:10px;">🎯 商单合作</div>' : ''}
                 ${work.isPrivate ? '<div style="background:#999;color:white;padding:5px 10px;border-radius:5px;font-size:12px;display:inline-block;margin-bottom:10px;">🔒 私密作品</div>' : ''}
+                
+                <!-- ✅ 新增：封禁锁定提示 -->
+                ${isLockedByBan ? `
+                    <div style="background: #ff0050; color: #fff; padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center; font-size: 12px; font-weight: bold;">
+                        🚫 封禁期间，此作品被锁定为私密状态，无法取消私密
+                    </div>
+                ` : ''}
                 
                 <!-- ✅ 新增：抽奖和热搜的详细信息 -->
                 ${work.isRaffle && work.raffleStatus === 'active' ? `
@@ -333,25 +359,23 @@ function showWorkDetail(work) {
                 
                 <div style="display:flex;justify-content:space-around;padding:15px;background:#161823;border-radius:10px;margin-bottom:20px">
                     <div style="text-align:center">
-                        <div style="font-size:18px;font-weight:bold">${work.views.toLocaleString()}</div>
+                        <div style="font-size:18px;font-weight:bold">${formatNumber(work.views)}</div>
                         <div style="font-size:12px;color:#999">${work.type === 'post' ? '👁️ 查阅' : work.type === 'live' ? '📱 观看' : '▶️ 播放'}</div>
                     </div>
-                    <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${work.likes.toLocaleString()}</div><div style="font-size:12px;color:#999">点赞</div></div>
-                    <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${work.comments.toLocaleString()}</div><div style="font-size:12px;color:#999">评论</div></div>
-                    <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${work.shares.toLocaleString()}</div><div style="font-size:12px;color:#999">转发</div></div>
+                    <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${formatNumber(work.likes)}</div><div style="font-size:12px;color:#999">点赞</div></div>
+                    <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${formatNumber(work.comments)}</div><div style="font-size:12px;color:#999">评论</div></div>
+                    <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${formatNumber(work.shares)}</div><div style="font-size:12px;color:#999">转发</div></div>
                 </div>
                 
-                ${work.revenue ? `<div style="font-size:14px;color:#667eea;margin-bottom:15px">💰 收益：${work.revenue}元</div>` : ''}
+                ${work.revenue ? `<div style="font-size:14px;color:#667aea;margin-bottom:15px">💰 收益：${work.revenue}元</div>` : ''}
                 ${sortControls}
                 <div style="font-size:12px;color:#999;margin-bottom:10px;text-align:right;">
-                    共${totalComments}条评论，${totalPages}页
+                    共${formatNumber(totalComments)}条评论，${totalPages}页
                 </div>
                 <div id="commentsList">${commentsHtml}</div>
                 ${paginationHtml}
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button class="btn" onclick="togglePrivate(${work.id})" style="${work.isPrivate ? '#667eea' : '#333'}; flex: 1;">
-                        ${work.isPrivate ? '🔓 取消私密' : '🔒 设为私密'}
-                    </button>
+                    ${privacyBtnHtml}
                     <button class="btn btn-danger" onclick="deleteWork(${work.id})" style="flex: 1; background: #ff0050;">
                         🗑️ 删除作品
                     </button>
@@ -420,7 +444,8 @@ function deleteWork(workId) {
             const interactionCount = work.comments + work.likes + work.shares;
             gameState.totalInteractions = Math.max(0, gameState.totalInteractions - interactionCount);
             
-            gameState.works = gameState.worksList.filter(w => !w.isPrivate).length;
+            // ✅ 作品数改为总作品数（私密作品也计入）
+            gameState.works = gameState.worksList.length;
             
             currentDetailWork = null;
             
@@ -441,19 +466,35 @@ function deleteWork(workId) {
     });
 }
 
-// 切换私密状态
+// 切换私密状态（关键修复：封禁期间被私密的作品无法取消私密）
 function togglePrivate(workId) {
     const work = gameState.worksList.find(w => w.id === workId);
     if (!work) return;
     
+    // ==================== 修复：改进封禁锁定判断逻辑 ====================
+    // 当 preBanPublicWorks 为空数组时（封号前无公开作品），默认锁定所有私密作品
+    const hasPreBanList = gameState.preBanPublicWorks && gameState.preBanPublicWorks.length > 0;
+    const isInPreBanList = hasPreBanList && gameState.preBanPublicWorks.includes(workId);
+    const isLockedByBan = gameState.isBanned && work.isPrivate && (isInPreBanList || !hasPreBanList);
+    // ==================================================================
+    
+    // ✅ 关键修复：检查是否被封号且作品是因为封禁而被私密的
+    if (isLockedByBan) {
+        showAlert('封禁期间，被私密的作品无法取消私密', '账号封禁中');
+        return;
+    }
+    
     work.isPrivate = !work.isPrivate;
     
-    const publicWorks = gameState.worksList.filter(w => !w.isPrivate);
-    gameState.works = publicWorks.length;
-    gameState.views = publicWorks.filter(w => w.type === 'video' || w.type === 'live').reduce((sum, w) => sum + w.views, 0);
-    gameState.likes = publicWorks.reduce((sum, w) => sum + w.likes, 0);
+    // ✅ 作品数改为总作品数（私密作品也计入）
+    gameState.works = gameState.worksList.length;
     
-    gameState.totalInteractions = publicWorks.reduce((sum, w) => {
+    // ✅ 播放量、点赞数、总互动数改为基于所有作品（不按公开过滤）
+    gameState.views = gameState.worksList
+        .filter(w => w.type === 'video' || w.type === 'live')
+        .reduce((sum, w) => sum + w.views, 0);
+    gameState.likes = gameState.worksList.reduce((sum, w) => sum + w.likes, 0);
+    gameState.totalInteractions = gameState.worksList.reduce((sum, w) => {
         return sum + w.comments + w.likes + w.shares;
     }, 0);
     
@@ -530,7 +571,7 @@ function showWorksFullscreen() {
     const totalCountEl = document.getElementById('worksTotalCount');
     if (totalCountEl) {
         const totalWorks = gameState.worksList.length;
-        totalCountEl.textContent = `共${totalWorks}个作品`;
+        totalCountEl.textContent = `共${formatNumber(totalWorks)}个作品`;
     }
 }
 
@@ -571,21 +612,29 @@ function renderWorksPage() {
                 </span>
             `).join('');
             
+            // ==================== 修复：改进封禁锁定判断逻辑 ====================
+            const hasPreBanList = gameState.preBanPublicWorks && gameState.preBanPublicWorks.length > 0;
+            const isInPreBanList = hasPreBanList && gameState.preBanPublicWorks.includes(work.id);
+            const isLockedByBan = gameState.isBanned && work.isPrivate && (isInPreBanList || !hasPreBanList);
+            // ==================================================================
+            
+            const lockBadge = isLockedByBan ? '<span style="background:#ff0050;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">🔒封禁锁定</span>' : '';
+            
             const workDiv = document.createElement('div');
             workDiv.className = 'work-item';
             workDiv.onclick = () => showWorkDetail(work);
             workDiv.innerHTML = `
                 ${statusBar ? `<div style="margin-bottom:8px;">${statusBar}</div>` : ''}
                 <div class="work-header">
-                    <span class="work-type">${work.type === 'video' ? '🎬 视频' : work.type === 'live' ? '📱 直播' : '📝 动态'} ${work.isPrivate ? '<span style="background:#999;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">🔒私密</span>' : ''}</span>
+                    <span class="work-type">${work.type === 'video' ? '🎬 视频' : work.type === 'live' ? '📱 直播' : '📝 动态'} ${work.isPrivate ? '<span style="background:#999;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">🔒私密</span>' : ''}${lockBadge}</span>
                     <span class="work-time">${formatTime(work.time)} ${work.isAd ? '<span style="background:#ff0050;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">商单</span>' : ''}</span>
                 </div>
                 <div class="work-content" style="${work.isPrivate ? 'opacity: 0.7;' : ''}">${work.content}</div>
                 <div class="work-stats">
-                    <span>${work.type === 'post' ? '👁️' : '▶️'} ${work.views.toLocaleString()}</span>
-                    <span>❤️ ${work.likes.toLocaleString()}</span>
-                    <span>💬 ${(work.comments || 0).toLocaleString()}</span>
-                    <span>🔄 ${work.shares.toLocaleString()}</span>
+                    <span>${work.type === 'post' ? '👁️' : '▶️'} ${formatNumber(work.views)}</span>
+                    <span>❤️ ${formatNumber(work.likes)}</span>
+                    <span>💬 ${formatNumber(work.comments)}</span>
+                    <span>🔄 ${formatNumber(work.shares)}</span>
                 </div>
             `;
             fragment.appendChild(workDiv);
@@ -693,7 +742,7 @@ function renderWorksPagination(totalPages, totalWorks) {
         infoSpan.style.fontSize = '12px';
         infoSpan.style.color = '#999';
         infoSpan.style.whiteSpace = 'nowrap';
-        infoSpan.innerHTML = `${startItem}-${endItem} / ${totalWorks}`;
+        infoSpan.innerHTML = `${formatNumber(startItem)}-${formatNumber(endItem)} / ${formatNumber(totalWorks)}`;
         paginationEl.appendChild(infoSpan);
         
     } catch (error) {
@@ -775,21 +824,29 @@ function updateWorksList() {
             </span>
         `).join('');
         
+        // ==================== 修复：改进封禁锁定判断逻辑 ====================
+        const hasPreBanList = gameState.preBanPublicWorks && gameState.preBanPublicWorks.length > 0;
+        const isInPreBanList = hasPreBanList && gameState.preBanPublicWorks.includes(work.id);
+        const isLockedByBan = gameState.isBanned && work.isPrivate && (isInPreBanList || !hasPreBanList);
+        // ==================================================================
+        
+        const lockBadge = isLockedByBan ? '<span style="background:#ff0050;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">🔒封禁锁定</span>' : '';
+        
         const workDiv = document.createElement('div');
         workDiv.className = 'work-item';
         workDiv.onclick = () => showWorkDetail(work);
         workDiv.innerHTML = `
             ${statusBar ? `<div style="margin-bottom:8px;">${statusBar}</div>` : ''}
             <div class="work-header">
-                <span class="work-type">${work.type === 'video' ? '🎬 视频' : work.type === 'live' ? '📱 直播' : '📝 动态'} ${work.isPrivate ? '<span style="background:#999;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">🔒私密</span>' : ''}</span>
+                <span class="work-type">${work.type === 'video' ? '🎬 视频' : work.type === 'live' ? '📱 直播' : '📝 动态'} ${work.isPrivate ? '<span style="background:#999;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">🔒私密</span>' : ''}${lockBadge}</span>
                 <span class="work-time">${formatTime(work.time)} ${work.isAd ? '<span style="background:#ff0050;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">商单</span>' : ''}</span>
             </div>
             <div class="work-content" style="${work.isPrivate ? 'opacity: 0.7;' : ''}">${work.content}</div>
             <div class="work-stats">
-                <span>${work.type === 'post' ? '👁️' : '▶️'} ${work.views.toLocaleString()}</span>
-                <span>❤️ ${work.likes.toLocaleString()}</span>
-                <span>💬 ${(work.comments || 0).toLocaleString()}</span>
-                <span>🔄 ${work.shares.toLocaleString()}</span>
+                <span>${work.type === 'post' ? '👁️' : '▶️'} ${formatNumber(work.views)}</span>
+                <span>❤️ ${formatNumber(work.likes)}</span>
+                <span>💬 ${formatNumber(work.comments)}</span>
+                <span>🔄 ${formatNumber(work.shares)}</span>
             </div>
         `;
         fragment.appendChild(workDiv);

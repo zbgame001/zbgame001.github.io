@@ -121,9 +121,11 @@ function generateHotSearchInvite() {
     
     showNotification('系统消息', `你收到了一个热搜话题邀请：${topic}（剩余${Math.ceil((deadlineTime - gameTimer) / VIRTUAL_HOUR_MS)}小时）`);
     
-    if (window.isSystemMessageListOpen) {
-        if (typeof updateSystemMessagesUI === 'function') {
-            updateSystemMessagesUI();
+    // 触发更新消息中心预览
+    if (typeof showMessagesFullscreen === 'function') {
+        const content = document.getElementById('messagesListTab');
+        if (content && document.getElementById('messagesContent').style.display !== 'none') {
+            showMessagesFullscreen();
         }
     }
     
@@ -197,9 +199,11 @@ function generateMonthlySummary() {
     
     showNotification('系统消息', '你的月度收入总结已生成');
     
-    if (window.isSystemMessageListOpen) {
-        if (typeof updateSystemMessagesUI === 'function') {
-            updateSystemMessagesUI();
+    // 触发更新消息中心预览
+    if (typeof showMessagesFullscreen === 'function') {
+        const content = document.getElementById('messagesListTab');
+        if (content && document.getElementById('messagesContent').style.display !== 'none') {
+            showMessagesFullscreen();
         }
     }
     
@@ -274,20 +278,14 @@ function acceptHotSearchInvite(messageId, contentType) {
         revenue: 0,
         // 移除定时器引用
         fanGrowthInterval: null,
-        hotSearchInterval: null
+        hotSearchInterval: null,
+        // ✅ 新增：热度值相关定时器
+        hotValueBoostInterval: null,
+        hotValueDropInterval: null
     };
     
     gameState.worksList.push(hotWork);
     gameState.works++;
-    
-    // ✅ 新增：热搜开始时增加热度值 (+3000~+5000)
-    if (window.HotValueSystem) {
-        const hotValueIncrease = Math.floor(Math.random() * 2001) + 3000; // 3000-5000
-        window.HotValueSystem.currentHotValue += hotValueIncrease;
-        window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue);
-        gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-        console.log(`[热度值] 接受热搜邀请，热度值增加 ${hotValueIncrease}，当前热度值: ${window.HotValueSystem.currentHotValue}`);
-    }
     
     // 添加到活跃热搜作品列表
     if (!gameState.systemMessages.hotSearchActiveWorks) {
@@ -306,6 +304,14 @@ function acceptHotSearchInvite(messageId, contentType) {
     }
     if (typeof updateNavMessageBadge === 'function') {
         updateNavMessageBadge();
+    }
+    
+    // 触发更新消息中心预览
+    if (typeof showMessagesFullscreen === 'function') {
+        const content = document.getElementById('messagesListTab');
+        if (content && document.getElementById('messagesContent').style.display !== 'none') {
+            showMessagesFullscreen();
+        }
     }
     
     saveGame();
@@ -376,6 +382,28 @@ function startHotSearchWorkEffect(workId) {
         }
     }, 3000);
     
+    // ✅ 新增：每秒增加1-80热度值
+    if (work.hotValueBoostInterval) {
+        clearInterval(work.hotValueBoostInterval);
+    }
+    
+    work.hotValueBoostInterval = setInterval(() => {
+        if (window.HotValueSystem) {
+            // 确保热搜还未结束
+            if (gameTimer >= work.hotSearchData.endTime) {
+                clearInterval(work.hotValueBoostInterval);
+                work.hotValueBoostInterval = null;
+                return;
+            }
+            
+            const increase = Math.floor(Math.random() * 80) + 1; // 1-80随机整数
+            window.HotValueSystem.currentHotValue += increase;
+            // 确保不超过最大值（10万）
+            window.HotValueSystem.currentHotValue = Math.min(100000, window.HotValueSystem.currentHotValue);
+            gameState.currentHotValue = window.HotValueSystem.currentHotValue;
+        }
+    }, 1000);
+    
     showEventPopup('🔥 热搜启动', `${work.hotSearchData.topic} 开始获得爆炸式增长！`);
 }
 
@@ -387,13 +415,21 @@ function endHotSearchWorkEffect(workId) {
         return;
     }
     
+    // 停止原有的数据增长定时器
     if (work.hotSearchInterval) {
         clearInterval(work.hotSearchInterval);
         work.hotSearchInterval = null;
     }
     
+    // 停止热度值增长定时器
+    if (work.hotValueBoostInterval) {
+        clearInterval(work.hotValueBoostInterval);
+        work.hotValueBoostInterval = null;
+    }
+    
     work.isHotSearchWork = false;
     
+    // 从活跃列表移除
     if (gameState.systemMessages.hotSearchActiveWorks) {
         const index = gameState.systemMessages.hotSearchActiveWorks.indexOf(workId);
         if (index > -1) {
@@ -401,6 +437,7 @@ function endHotSearchWorkEffect(workId) {
         }
     }
     
+    // 标记邀请状态为过期
     const inviteMessage = gameState.systemMessages.messages.find(msg => 
         msg.type === 'hotSearchInvite' && msg.data?.topic === work.hotSearchData.topic
     );
@@ -408,16 +445,43 @@ function endHotSearchWorkEffect(workId) {
         inviteMessage.data.expired = true;
     }
     
-    // ✅ 新增：热搜结束时减少热度值 (-1500~-2500)
-    if (window.HotValueSystem) {
-        const hotValueDecrease = Math.floor(Math.random() * 1001) + 1500; // 1500-2500
-        window.HotValueSystem.currentHotValue -= hotValueDecrease;
-        window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue);
-        gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-        console.log(`[热度值] 热搜结束，热度值减少 ${hotValueDecrease}，当前热度值: ${window.HotValueSystem.currentHotValue}`);
-    }
+    // ✅ 新增：热搜毕业后开始每秒掉1-70热度值，持续duration天
+    const duration = work.hotSearchData ? work.hotSearchData.duration : 2;
+    // VIRTUAL_DAY_MS = 60秒，所以duration虚拟天 = duration * 60秒（真实时间）
+    const totalDropSeconds = duration * 60;
+    let elapsedSeconds = 0;
     
-    showEventPopup('热搜结束', `话题 ${work.hotSearchData.topic} 的热度已下降`);
+    console.log(`[热度值] 热搜结束，开始下降热度值，持续${duration}虚拟天（${totalDropSeconds}秒）`);
+    
+    work.hotValueDropInterval = setInterval(() => {
+        elapsedSeconds++;
+        
+        if (window.HotValueSystem && elapsedSeconds <= totalDropSeconds) {
+            const decrease = Math.floor(Math.random() * 70) + 1; // 1-70随机整数
+            window.HotValueSystem.currentHotValue -= decrease;
+            window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue);
+            gameState.currentHotValue = window.HotValueSystem.currentHotValue;
+            
+            // 更新显示
+            if (window.HotValueSystem.updateDisplay) {
+                window.HotValueSystem.updateDisplay();
+            }
+            if (typeof updateDisplay === 'function') {
+                updateDisplay();
+            }
+        } else {
+            // 结束或系统不可用
+            if (work.hotValueDropInterval) {
+                clearInterval(work.hotValueDropInterval);
+                work.hotValueDropInterval = null;
+            }
+            if (elapsedSeconds > totalDropSeconds) {
+                console.log(`[热度值] 热搜作品 ${workId} 的热度值下降结束（共${totalDropSeconds}秒）`);
+            }
+        }
+    }, 1000);
+    
+    showEventPopup('热搜结束', `话题 ${work.hotSearchData.topic} 的热度已下降，开始回落`);
 }
 
 // ==================== 检查并清理过期的热搜 ====================
@@ -607,9 +671,17 @@ function readSystemMessage(messageId) {
     if (typeof updateSystemMessagesUI === 'function') {
         updateSystemMessagesUI();
     }
+    
+    // 触发更新消息中心预览
+    if (typeof showMessagesFullscreen === 'function') {
+        const content = document.getElementById('messagesListTab');
+        if (content && document.getElementById('messagesContent').style.display !== 'none') {
+            showMessagesFullscreen();
+        }
+    }
 }
 
-// ==================== 关闭系统消息列表 ====================
+// ==================== 关闭系统消息列表（修复版：保持消息导航选中） ====================
 function closeSystemMessagesList() {
     window.isSystemMessageListOpen = false;
     stopSystemMessagesRealtimeUpdate();
@@ -625,7 +697,11 @@ function closeSystemMessagesList() {
     const activeFullscreenPages = document.querySelectorAll('.fullscreen-page.active');
     if (activeFullscreenPages.length === 0) {
         document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-        document.querySelector('.nav-item').classList.add('active');
+        // 选中"消息"导航项（第3个，索引为2）
+        const messageNavItem = document.querySelectorAll('.nav-item')[2];
+        if (messageNavItem) {
+            messageNavItem.classList.add('active');
+        }
     }
     
     updateDisplay();

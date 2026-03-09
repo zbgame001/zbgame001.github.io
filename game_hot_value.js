@@ -6,11 +6,17 @@ window.HotValueSystem = {
     updateInterval: null,
     displayElement: null,
     
+    // ✅ 新增：不更新惩罚检测定时器
+    inactivityCheckInterval: null,
+    
     // 配置项
     config: {
         // 热度值随机变化范围（每3秒）
-        minChange: -500,
-        maxChange: 500,
+        minChange: -50,
+        maxChange: 50,
+        
+        // 热度值上限（10万）
+        maxHotValue: 100000,
         
         // 热度值对粉丝增长的影响系数
         fanGrowthFactor: 0.05,  // 热度值 * 此系数 = 粉丝增长基数
@@ -25,7 +31,14 @@ window.HotValueSystem = {
         minMultiplier: 0.1,
         
         // 最大倍数（无上限，但热度值越高倍数越高）
-        maxMultiplier: 5.0
+        maxMultiplier: 5.0,
+        
+        // ✅ 新增：不更新惩罚配置
+        inactivityThresholdDays: 3,  // 3天开始惩罚
+        inactivityBaseMinDrop: 1,    // 基础最小扣除
+        inactivityBaseMaxDrop: 100,  // 基础最大扣除
+        inactivityRangeIncrement: 10, // 每天增加的范围
+        inactivityMaxDrop: 200       // 扣除上限
     },
     
     // 初始化系统
@@ -43,17 +56,65 @@ window.HotValueSystem = {
         
         // 从存档恢复热度值（如果有）
         if (gameState.currentHotValue !== undefined) {
-            this.currentHotValue = gameState.currentHotValue;
+            // 限制不超过上限（防止旧存档超过上限）
+            this.currentHotValue = Math.min(this.config.maxHotValue, gameState.currentHotValue);
         } else {
             // 初始热度值基于当前粉丝数
             this.currentHotValue = Math.max(1000, gameState.fans * 0.1);
+            // 限制不超过上限
+            this.currentHotValue = Math.min(this.config.maxHotValue, this.currentHotValue);
             gameState.currentHotValue = this.currentHotValue;
+        }
+        
+        // 初始化历史记录数组（如果不存在）
+        if (!gameState.hotValueHistory) {
+            gameState.hotValueHistory = [];
         }
         
         // 开始自动更新
         this.startAutoUpdate();
         
         console.log('✅ 热度值系统已初始化，初始值：' + this.formatHotValue(this.currentHotValue));
+    },
+    
+    // ✅ 新增：执行不更新惩罚检测
+    performInactivityCheck: function() {
+        if (!gameState || !gameState.lastWorkTime) return;
+        
+        // 计算距离上次更新的天数
+        const daysSinceLastWork = (gameTimer - gameState.lastWorkTime) / VIRTUAL_DAY_MS;
+        
+        // 如果超过3天未更新
+        if (daysSinceLastWork >= this.config.inactivityThresholdDays) {
+            // 计算额外天数（超过3天的部分）
+            const extraDays = Math.floor(daysSinceLastWork - this.config.inactivityThresholdDays);
+            
+            // 计算扣除范围：基础1-100，每多一天范围+10
+            let minDrop = this.config.inactivityBaseMinDrop + (extraDays * this.config.inactivityRangeIncrement);
+            let maxDrop = this.config.inactivityBaseMaxDrop + (extraDays * this.config.inactivityRangeIncrement);
+            
+            // 确保上限为200
+            if (maxDrop > this.config.inactivityMaxDrop) {
+                maxDrop = this.config.inactivityMaxDrop;
+            }
+            
+            // 确保最小值不超过最大值
+            if (minDrop > maxDrop) {
+                minDrop = maxDrop;
+            }
+            
+            // 随机生成扣除值
+            const dropAmount = Math.floor(Math.random() * (maxDrop - minDrop + 1)) + minDrop;
+            
+            // 扣除热度值（不低于0）
+            this.currentHotValue = Math.max(0, this.currentHotValue - dropAmount);
+            gameState.currentHotValue = this.currentHotValue;
+            
+            // 更新显示
+            this.updateDisplay();
+            
+            console.log(`[热度值惩罚] -${dropAmount} (已${Math.floor(daysSinceLastWork)}天未更新，范围${minDrop}-${maxDrop})`);
+        }
     },
     
     // 获取热度值影响倍数（核心方法：供其他模块调用）
@@ -94,15 +155,28 @@ window.HotValueSystem = {
     
     // 随机更新热度值
     updateHotValue: function() {
+        const oldValue = this.currentHotValue;
+        
         // 随机增减热度值
         const change = Math.floor(
             Math.random() * (this.config.maxChange - this.config.minChange + 1)
         ) + this.config.minChange;
         
-        this.currentHotValue = Math.max(0, this.currentHotValue + change);
+        // 更新热度值并限制范围（0 到 maxHotValue）
+        this.currentHotValue = Math.min(
+            this.config.maxHotValue, 
+            Math.max(0, this.currentHotValue + change)
+        );
         
         // 保存到游戏状态
         gameState.currentHotValue = this.currentHotValue;
+        
+        // ==================== 记录热度值变化（无论大小） ====================
+        const actualChange = this.currentHotValue - oldValue;
+        if (actualChange !== 0) {
+            this.recordHotValueChange(actualChange);
+        }
+        // ==================================================================
         
         // 根据热度值计算粉丝变化
         const fanChange = this.calculateFanGrowth();
@@ -127,15 +201,65 @@ window.HotValueSystem = {
         this.updateDisplay();
     },
     
+    // ✅ 新增：记录热度值变化到历史（统一由核心模块管理）
+    recordHotValueChange: function(changeAmount) {
+        if (!gameState.hotValueHistory) {
+            gameState.hotValueHistory = [];
+        }
+        
+        // 构建原因
+        let reason = '系统波动';
+        if (changeAmount > 0) {
+            reason = '热度上涨';
+        } else {
+            reason = '热度下降';
+        }
+        
+        const record = {
+            time: gameTimer,
+            value: this.currentHotValue,
+            change: changeAmount,
+            reason: reason,
+            formattedTime: formatVirtualDate(true)
+        };
+        
+        // 添加到开头
+        gameState.hotValueHistory.unshift(record);
+        
+        // 只保留8条
+        if (gameState.hotValueHistory.length > 8) {
+            gameState.hotValueHistory = gameState.hotValueHistory.slice(0, 8);
+        }
+        
+        saveGame();
+        
+        // 如果全屏界面已打开，通知它刷新
+        if (window.HotValueFullscreen && typeof window.HotValueFullscreen.renderHistoryList === 'function') {
+            const page = document.getElementById('hotValuePage');
+            if (page && page.classList.contains('active')) {
+                window.HotValueFullscreen.renderHistoryList();
+            }
+        }
+    },
+    
     // 开始自动更新
     startAutoUpdate: function() {
         if (this.updateInterval) {
             clearInterval(this.updateInterval);
         }
         
+        // 原有热度值随机更新（每3秒）
         this.updateInterval = setInterval(() => {
             this.updateHotValue();
         }, this.config.updateFrequency);
+        
+        // ✅ 新增：启动不更新惩罚检测（每秒）
+        if (this.inactivityCheckInterval) {
+            clearInterval(this.inactivityCheckInterval);
+        }
+        this.inactivityCheckInterval = setInterval(() => {
+            this.performInactivityCheck();
+        }, 1000);
     },
     
     // 停止自动更新
@@ -143,6 +267,12 @@ window.HotValueSystem = {
         if (this.updateInterval) {
             clearInterval(this.updateInterval);
             this.updateInterval = null;
+        }
+        
+        // ✅ 新增：清理不更新惩罚检测
+        if (this.inactivityCheckInterval) {
+            clearInterval(this.inactivityCheckInterval);
+            this.inactivityCheckInterval = null;
         }
     },
     
@@ -233,6 +363,13 @@ window.getHotValueMultiplier = function() {
     return 1.0; // 默认返回1.0倍（无影响）
 };
 
+// ✅ 新增：手动触发不更新惩罚检查（供调试使用）
+window.checkInactivityHotValueDrop = function() {
+    if (window.HotValueSystem) {
+        window.HotValueSystem.performInactivityCheck();
+    }
+};
+
 // 清理热度值系统
 window.cleanupHotValueSystem = function() {
     if (window.HotValueSystem) {
@@ -257,4 +394,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 100);
 });
 
-console.log('🔥 热度值系统脚本已加载');
+console.log('🔥 热度值系统脚本已加载（已添加3天不更新惩罚机制 + 全局记录）');

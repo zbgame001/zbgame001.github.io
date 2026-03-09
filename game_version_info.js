@@ -44,14 +44,13 @@ function closeVersionInfo() {
 // ==================== 显示更新内容模态框 ====================
 function showUpdateContentModal() {
     const versionData = {
-        version: "V6.4",
-        updateDate: "2026-01-25",
+        version: "V6.4-7",
+        updateDate: "2026-03-09",
         author: "用户8044",
         updateContent: [
-            "1.个人主页翻新",
-            "2.游戏设置新增下载mod选项",
-            "3.私信界面新增清空功能",
-            "4.修复了粉丝互动两个问题，目前还不够全面"
+            "1. 新增成就系统独立模块，成就列表独立管理。",
+            "2. 新增百万粉丝、亿万粉丝、50/1000作品等成就。",
+            "3. 成就系统增加等级显示，每解锁10个成就提升1级。"
         ]
     };
     
@@ -99,14 +98,13 @@ function renderVersionPage() {
     
     // 版本信息数据
     const versionData = {
-        version: "V6.4",
-        updateDate: "2026-01-25",
+        version: "V6.4-7",
+        updateDate: "2026-03-09",
         author: "用户8044",
         updateContent: [
-            "1.个人主页翻新",
-            "2.游戏设置新增下载mod选项",
-            "3.私信界面新增清空功能",
-            "4.修复了粉丝互动两个问题，目前还不够全面"
+            "1. 新增成就系统独立模块，成就列表独立管理。",
+            "2. 新增百万粉丝、亿万粉丝、50/1000作品等成就。",
+            "3. 成就系统增加等级显示，每解锁10个成就提升1级。"
         ]
     };
     
@@ -224,7 +222,7 @@ function renderVersionPage() {
                     ${versionData.author}
                 </div>
                 <div style="font-size: 11px; color: #667aea; margin-top: 8px;">
-                    KIMI-K2创作
+                    KIMI创作 (DeepSeek协助)
                 </div>
                 <div style="font-size: 12px; color: #667aea; margin-top: 15px; padding-top: 15px; border-top: 1px solid #222;">
                     💡 感谢您的支持！如有问题请加入QQ群反馈

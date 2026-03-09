@@ -1,42 +1,42 @@
 // ==================== 随机事件数据 ====================
 const randomEvents = [
-    // ========== 新增：热搜邀请类事件（新功能） ==========
-    { type: 'neutral', title: '热搜邀请', desc: '平台向你发出热搜话题邀请', effect: { hotSearchInvite: true }, weight: 3 }, 
+    // ========== 新增：热搜邀请类事件（新功能）==========
+    { type: 'neutral', title: '热搜邀请', desc: '平台向你发出热搜话题邀请', effect: { hotSearchInvite: true }, weight: 1 }, 
     
-    // ========== 新增：视频推荐类事件（新功能） ==========
+    // ========== 新增：视频推荐类事件（新功能）==========
     { type: 'good', title: '视频爆了！', desc: '你的视频被推荐到首页，播放量暴涨', effect: { recommendVideo: true, duration: 1 } }, 
     { type: 'good', title: '病毒传播', desc: '你的视频成为病毒式传播', effect: { recommendVideo: true, duration: 1 } }, 
     
-    // ========== 新增：动态热搜类事件（新功能） ==========
+    // ========== 新增：动态热搜类事件（新功能）==========
     { type: 'good', title: '动态热门', desc: '你的动态获得大量曝光', effect: { hotPost: true, duration: 1 } }, 
     
-    // ========== 新增：品牌合作事件（新功能） ==========
+    // ========== 新增：品牌合作事件（新功能）==========
     { type: 'good', title: '品牌合作', desc: '有品牌找你合作推广', effect: { brandDeal: true } }, 
     
-    // ========== 恢复：原始热搜事件（重要！恢复概率） ==========
+    // ========== 恢复：原始热搜事件（重要！恢复概率）==========
     { type: 'good', title: '登上热搜', desc: '你的内容登上平台热搜榜，获得海量曝光', effect: { hotSearch: true } }, 
     { type: 'good', title: '话题引爆', desc: '你制造的话题引发全网讨论', effect: { hotSearch: true } }, 
     { type: 'good', title: '热搜第一', desc: '你的内容登上热搜榜第一名！', effect: { hotSearch: true } },
     
-    // ========== 新增：争议类事件（新功能） ==========
+    // ========== 新增：争议类事件（新功能）==========
     // 警告事件权重设为 0.05（极难触发）
     { type: 'bad', title: '内容争议', desc: '你的内容引发争议，有人举报', effect: { controversial: true, duration: 1, addWarning: true }, weight: 0.05 }, 
     { type: 'bad', title: '网络暴力', desc: '你被网暴了，心情低落', effect: { controversial: true, duration: 2, addWarning: false } }, 
     
-    // ========== 新增：删除视频类事件（新功能） ==========
+    // ========== 新增：删除视频类事件（新功能）==========
     // 警告事件权重设为 0.05（极难触发）
     { type: 'bad', title: '系统误判', desc: '系统误判你的内容违规', effect: { removeVideo: true, addWarning: true }, weight: 0.05 }, 
     { type: 'bad', title: '版权争议', desc: '你的视频涉及版权问题', effect: { removeVideo: true, addWarning: true }, weight: 0.05 }, 
     
-    // ========== 保持不变的原有事件 ==========
-    { type: 'good', title: '大V转发', desc: '知名博主转发了你的作品', effect: { views: 30000, fans: 3000, likes: 2000 } }, 
-    { type: 'good', title: '粉丝福利', desc: '粉丝们给你刷了礼物', effect: { money: 1000, likes: 500 } }, 
-    { type: 'bad', title: '黑粉攻击', desc: '有人组织黑粉攻击你的账号', effect: { fans: -1000, likes: -500 } }, 
-    { type: 'bad', title: '竞争对手', desc: '同类型主播抢走了你的流量', effect: { views: -10000, fans: -800 } }, 
-    { type: 'neutral', title: '粉丝互动', desc: '和粉丝们聊得很开心', effect: { likes: 100 } }, 
+    // ========== 保持不变的原有事件（duration字段用于热度值增减持续时间）==========
+    { type: 'good', title: '大V转发', desc: '知名博主转发了你的作品', effect: { views: 30000, fans: 3000, likes: 2000, duration: 1 } }, 
+    { type: 'good', title: '粉丝福利', desc: '粉丝们给你刷了礼物', effect: { money: 1000, likes: 500, duration: 0.5 } }, 
+    { type: 'bad', title: '黑粉攻击', desc: '有人组织黑粉攻击你的账号', effect: { fans: -1000, likes: -500, duration: 1 } }, 
+    { type: 'bad', title: '竞争对手', desc: '同类型主播抢走了你的流量', effect: { views: -10000, fans: -800, duration: 1 } }, 
+    { type: 'neutral', title: '粉丝互动', desc: '和粉丝们聊得很开心', effect: { likes: 100, duration: 0.3 } }, 
     { type: 'bad', title: '恶意投诉', desc: '有人恶意投诉你的直播', effect: { warnings: 1 }, weight: 0.05 }, 
-    { type: 'good', title: '平台推荐', desc: '平台给你提供了推荐位', effect: { views: 40000, fans: 4000 } }, 
-    { type: 'bad', title: '算法调整', desc: '平台算法调整，流量下降', effect: { views: -15000 } }, 
+    { type: 'good', title: '平台推荐', desc: '平台给你提供了推荐位', effect: { views: 40000, fans: 4000, duration: 1 } }, 
+    { type: 'bad', title: '算法调整', desc: '平台算法调整，流量下降', effect: { views: -15000, duration: 1 } }, 
     { type: 'bad', title: '负面新闻', desc: '关于你的负面新闻在网上传播', effect: { publicOpinion: true } },
     
     // 警告事件权重设为 0.05（极难触发）
@@ -47,7 +47,7 @@ const randomEvents = [
     
     // ========== 新增：私信相关事件 ==========
     { type: 'neutral', title: '私信轰炸', desc: '有大量的粉丝给你发来私信', effect: { generatePrivateMessages: 3 } },
-    { type: 'bad', title: '黑粉骚扰', desc: '有黑粉在私信里辱骂你', effect: { generatePrivateMessages: 2, negative: true } }
+    { type: 'bad', title: '黑粉骚扰', desc: '有黑粉在私信里辱骂你', effect: { generatePrivateMessages: 2, negative: true, duration: 0.5 } }
 ];
 
 // ==================== 随机事件处理函数 ====================
@@ -63,7 +63,7 @@ function handleRandomEvent(event) {
     // 每次触发事件都增加计数器
     gameState.eventCount++;
     
-    // ========== 处理热搜邀请事件（新功能） ==========
+    // ========== 处理热搜邀请事件（新功能）==========
     if (event.effect.hotSearchInvite) {
         // 直接调用系统消息模块的函数
         if (typeof generateHotSearchInvite === 'function') {
@@ -76,93 +76,107 @@ function handleRandomEvent(event) {
         return; // 热搜邀请由系统消息模块处理，这里不再处理
     }
     
-    // ========== 处理视频推荐事件（新功能） ==========
+    // ========== 处理视频推荐事件（新功能）==========
     else if (event.effect.recommendVideo) {
         const videos = gameState.worksList.filter(w => w.type === 'video' && !w.isPrivate);
-        if (videos.length > 0) {
-            targetWork = videos[Math.floor(Math.random() * videos.length)];
-            targetWork.isRecommended = true;
-            targetWork.recommendEndTime = gameTimer + (event.effect.duration * VIRTUAL_DAY_MS);
-            message = `视频《${targetWork.title || targetWork.content.substring(0, 20)}...》${event.desc}`;
+        if (videos.length === 0) return; // 没有视频则静默忽略
+        
+        targetWork = videos[Math.floor(Math.random() * videos.length)];
+        targetWork.isRecommended = true;
+        targetWork.recommendEndTime = gameTimer + (event.effect.duration * VIRTUAL_DAY_MS);
+        message = `视频《${targetWork.title || targetWork.content.substring(0, 20)}...》${event.desc}`;
+        
+        // ✅ 修改：启动热度值持续增加（持续duration天）
+        if (event.effect.duration && typeof window.startHotValueBoost === 'function') {
+            window.startHotValueBoost(event.effect.duration);
+            console.log(`[热度值] 视频推荐事件：启动持续增加 ${event.effect.duration} 天`);
             
-            // ✅ 新增：视频推荐增加热度值 (+1000~+2000)
-            if (window.HotValueSystem) {
-                const hotValueIncrease = Math.floor(Math.random() * 1001) + 1000;
-                window.HotValueSystem.currentHotValue += hotValueIncrease;
-                gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-                console.log(`[热度值] 视频推荐事件：+${hotValueIncrease}，当前：${window.HotValueSystem.currentHotValue}`);
-            }
-            
-            // ✅ 修改：只显示小弹窗通知
-            showEventPopup(event.title, message);
-            
-            // ✅ 检查幸运儿成就
-            const luckyAchievement = achievements.find(a => a.id === 15);
-            if (luckyAchievement && !luckyAchievement.unlocked) {
-                if (gameState.eventCount >= 50) {
-                    luckyAchievement.unlocked = true;
-                    gameState.achievements.push(15);
-                    showAchievementPopup(luckyAchievement);
-                    showEventPopup('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
-                    checkAchievements();
+            // 设置定时器在推荐结束后开始热度值下降
+            setTimeout(() => {
+                if (typeof window.startHotValueDrop === 'function') {
+                    window.startHotValueDrop(event.effect.duration);
+                    console.log(`[热度值] 视频推荐结束：启动持续减少 ${event.effect.duration} 天`);
                 }
-            }
-            
-            startRecommendEffect(targetWork.id, event.effect.duration);
-        } else {
-            showAlert(event.title, '你还没有可推荐的视频作品');
+            }, event.effect.duration * VIRTUAL_DAY_MS);
         }
+        
+        // ✅ 修改：只显示小弹窗通知
+        showEventPopup(event.title, message);
+        
+        // ✅ 检查幸运儿成就
+        const luckyAchievement = achievements.find(a => a.id === 15);
+        if (luckyAchievement && !luckyAchievement.unlocked) {
+            if (gameState.eventCount >= 50) {
+                luckyAchievement.unlocked = true;
+                gameState.achievements.push(15);
+                showAchievementPopup(luckyAchievement);
+                showEventPopup('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
+                checkAchievements();
+            }
+        }
+        
+        startRecommendEffect(targetWork.id, event.effect.duration);
     }
     
-    // ========== 处理动态热搜事件（新功能） ==========
+    // ========== 处理动态热搜事件（新功能）==========
     else if (event.effect.hotPost) {
         const posts = gameState.worksList.filter(w => w.type === 'post' && !w.isPrivate);
-        if (posts.length > 0) {
-            targetWork = posts[Math.floor(Math.random() * posts.length)];
-            targetWork.isHot = true;
-            targetWork.hotEndTime = gameTimer + (event.effect.duration * VIRTUAL_DAY_MS);
-            message = `动态《${targetWork.content.substring(0, 20)}...》登上热搜！`;
+        if (posts.length === 0) return; // 没有动态则静默忽略
+        
+        targetWork = posts[Math.floor(Math.random() * posts.length)];
+        targetWork.isHot = true;
+        targetWork.hotEndTime = gameTimer + (event.effect.duration * VIRTUAL_DAY_MS);
+        message = `动态《${targetWork.content.substring(0, 20)}...》登上热搜！`;
+        
+        // ✅ 修改：启动热度值持续增加（持续duration天）
+        if (event.effect.duration && typeof window.startHotValueBoost === 'function') {
+            window.startHotValueBoost(event.effect.duration);
+            console.log(`[热度值] 动态热搜事件：启动持续增加 ${event.effect.duration} 天`);
             
-            // ✅ 新增：动态热搜增加热度值 (+800~+1500)
-            if (window.HotValueSystem) {
-                const hotValueIncrease = Math.floor(Math.random() * 701) + 800;
-                window.HotValueSystem.currentHotValue += hotValueIncrease;
-                gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-                console.log(`[热度值] 动态热搜事件：+${hotValueIncrease}，当前：${window.HotValueSystem.currentHotValue}`);
-            }
-            
-            // ✅ 修改：只显示小弹窗通知
-            showEventPopup(event.title, message);
-            
-            // ✅ 检查幸运儿成就
-            const luckyAchievement = achievements.find(a => a.id === 15);
-            if (luckyAchievement && !luckyAchievement.unlocked) {
-                if (gameState.eventCount >= 50) {
-                    luckyAchievement.unlocked = true;
-                    gameState.achievements.push(15);
-                    showAchievementPopup(luckyAchievement);
-                    showEventPopup('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
-                    checkAchievements();
+            // 设置定时器在热搜结束后开始热度值下降
+            setTimeout(() => {
+                if (typeof window.startHotValueDrop === 'function') {
+                    window.startHotValueDrop(event.effect.duration);
+                    console.log(`[热度值] 动态热搜结束：启动持续减少 ${event.effect.duration} 天`);
                 }
-            }
-            
-            startPostHotEffect(targetWork.id, event.effect.duration);
-        } else {
-            showAlert(event.title, '你还没有可上热搜的动态');
+            }, event.effect.duration * VIRTUAL_DAY_MS);
         }
+        
+        // ✅ 修改：只显示小弹窗通知
+        showEventPopup(event.title, message);
+        
+        // ✅ 检查幸运儿成就
+        const luckyAchievement = achievements.find(a => a.id === 15);
+        if (luckyAchievement && !luckyAchievement.unlocked) {
+            if (gameState.eventCount >= 50) {
+                luckyAchievement.unlocked = true;
+                gameState.achievements.push(15);
+                showAchievementPopup(luckyAchievement);
+                showEventPopup('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
+                checkAchievements();
+            }
+        }
+        
+        startPostHotEffect(targetWork.id, event.effect.duration);
     }
     
-    // ========== 处理品牌合作事件（新功能） ==========
+    // ========== 处理品牌合作事件（新功能）==========
     else if (event.effect.brandDeal) {
         generateBrandDeal();
         message = '有新的品牌合作机会，请在商单中心查看！';
         
-        // ✅ 新增：品牌合作增加热度值 (+500~+1000)
-        if (window.HotValueSystem) {
-            const hotValueIncrease = Math.floor(Math.random() * 501) + 500;
-            window.HotValueSystem.currentHotValue += hotValueIncrease;
-            gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-            console.log(`[热度值] 品牌合作事件：+${hotValueIncrease}，当前：${window.HotValueSystem.currentHotValue}`);
+        // ✅ 修改：品牌合作增加热度值改为持续模式（持续0.5天，结束后降0.5天）
+        if (typeof window.startHotValueBoost === 'function') {
+            const duration = 0.5;
+            window.startHotValueBoost(duration);
+            console.log(`[热度值] 品牌合作事件：启动持续增加 ${duration} 天`);
+            
+            setTimeout(() => {
+                if (typeof window.startHotValueDrop === 'function') {
+                    window.startHotValueDrop(duration);
+                    console.log(`[热度值] 品牌合作结束：启动持续减少 ${duration} 天`);
+                }
+            }, duration * VIRTUAL_DAY_MS);
         }
         
         // ✅ 修改：只显示小弹窗通知
@@ -181,7 +195,7 @@ function handleRandomEvent(event) {
         }
     }
     
-    // ========== 恢复：处理原始热搜事件（重要！） ==========
+    // ========== 恢复：处理原始热搜事件（重要！）==========
     else if (event.effect.hotSearch) {
         const title = event.title || '🔥 话题热议中';
         startHotSearch(title);
@@ -202,7 +216,7 @@ function handleRandomEvent(event) {
         }
     }
     
-    // ========== 处理争议事件（新功能） ==========
+    // ========== 处理争议事件（新功能 - 修改为负面热度机制）==========
     else if (event.effect.controversial) {
         const videos = gameState.worksList.filter(w => w.type === 'video' && !w.isPrivate && !w.isControversial);
         if (videos.length > 0) {
@@ -211,12 +225,10 @@ function handleRandomEvent(event) {
             targetWork.controversyEndTime = gameTimer + (event.effect.duration * VIRTUAL_DAY_MS);
             message = `视频《${targetWork.title || targetWork.content.substring(0, 20)}...》${event.desc}`;
             
-            // ✅ 新增：内容争议减少热度值 (-800~-1500)
-            if (window.HotValueSystem) {
-                const hotValueDecrease = Math.floor(Math.random() * 701) + 800;
-                window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - hotValueDecrease);
-                gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-                console.log(`[热度值] 内容争议事件：-${hotValueDecrease}，当前：${window.HotValueSystem.currentHotValue}`);
+            // ✅ 修改为负面热度机制：启动7天增长期
+            if (typeof window.startNegativeHotValueBoost === 'function') {
+                window.startNegativeHotValueBoost(7);
+                console.log(`[负面热度] 内容争议事件：启动7天增长期`);
             }
             
             // ✅ 修改：只显示小弹窗通知
@@ -248,11 +260,12 @@ function handleRandomEvent(event) {
                 showWarning(`内容违规，警告${gameState.warnings}/20次`);
             }
         } else {
-            showAlert(event.title, '没有合适的视频可触发争议');
+            // 没有合适的视频，静默忽略（原有弹窗已移除）
+            return;
         }
     }
     
-    // ========== 处理删除视频事件（新功能） ==========
+    // ========== 处理删除视频事件（新功能 - 修改为负面热度机制）==========
     else if (event.effect.removeVideo) {
         const videos = gameState.worksList.filter(w => w.type === 'video' && !w.isPrivate);
         if (videos.length > 0) {
@@ -273,12 +286,10 @@ function handleRandomEvent(event) {
             
             message = `视频《${targetWork.title || targetWork.content.substring(0, 20)}...》因${event.desc}被删除`;
             
-            // ✅ 新增：视频被删除减少热度值 (-500~-1000)
-            if (window.HotValueSystem) {
-                const hotValueDecrease = Math.floor(Math.random() * 501) + 500;
-                window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - hotValueDecrease);
-                gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-                console.log(`[热度值] 视频删除事件：-${hotValueDecrease}，当前：${window.HotValueSystem.currentHotValue}`);
+            // ✅ 修改为负面热度机制：启动7天增长期
+            if (typeof window.startNegativeHotValueBoost === 'function') {
+                window.startNegativeHotValueBoost(7);
+                console.log(`[负面热度] 视频删除事件：启动7天增长期`);
             }
             
             // ✅ 修改：只显示小弹窗通知
@@ -323,11 +334,12 @@ function handleRandomEvent(event) {
                 showWarning(`内容违规，警告${gameState.warnings}/20次`);
             }
         } else {
-            showAlert(event.title, '没有可删除的视频');
+            // 没有可删除的视频，静默忽略
+            return;
         }
     }
     
-    // ========== 处理举报事件 ==========
+    // ========== 处理举报事件（修改为负面热度机制）==========
     else if (event.effect.reportAd) {
         const fakeAdWorks = gameState.worksList.filter(work => 
             work.isAd && work.adOrder && !work.adOrder.real && !work.adOrder.isExposed && !work.isPrivate
@@ -342,12 +354,10 @@ function handleRandomEvent(event) {
             gameState.money = Math.max(0, gameState.money - fine);
             gameState.warnings = Math.min(20, gameState.warnings + 3);
             
-            // ✅ 新增：虚假商单被举报减少热度值 (-1000~-2000)
-            if (window.HotValueSystem) {
-                const hotValueDecrease = Math.floor(Math.random() * 1001) + 1000;
-                window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - hotValueDecrease);
-                gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-                console.log(`[热度值] 虚假商单举报事件：-${hotValueDecrease}，当前：${window.HotValueSystem.currentHotValue}`);
+            // ✅ 修改为负面热度机制：启动7天增长期
+            if (typeof window.startNegativeHotValueBoost === 'function') {
+                window.startNegativeHotValueBoost(7);
+                console.log(`[负面热度] 虚假商单举报事件：启动7天增长期`);
             }
             
             // ✅ 强制结束直播
@@ -430,7 +440,7 @@ function handleRandomEvent(event) {
         }
     }
     
-    // ========== 处理私信生成事件 ==========
+    // ========== 处理私信生成事件（修改为负面热度机制）==========
     else if (event.effect.generatePrivateMessages) {
         const count = event.effect.generatePrivateMessages || 1;
         const isNegative = event.effect.negative || false;
@@ -451,12 +461,10 @@ function handleRandomEvent(event) {
             }, i * 1000);
         }
         
-        // ✅ 新增：黑粉骚扰减少热度值 (-200~-500)
-        if (isNegative && window.HotValueSystem) {
-            const hotValueDecrease = Math.floor(Math.random() * 301) + 200;
-            window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - hotValueDecrease);
-            gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-            console.log(`[热度值] 黑粉骚扰事件：-${hotValueDecrease}，当前：${window.HotValueSystem.currentHotValue}`);
+        // ✅ 修改为负面热度机制：黑粉骚扰启动7天增长期
+        if (isNegative && typeof window.startNegativeHotValueBoost === 'function') {
+            window.startNegativeHotValueBoost(7);
+            console.log(`[负面热度] 黑粉骚扰事件：启动7天增长期`);
         }
         
         // ✅ 修改：只显示小弹窗通知
@@ -475,11 +483,24 @@ function handleRandomEvent(event) {
         }
     }
     
-    // ========== 处理原有直接效果事件 ==========
+    // ========== 处理原有直接效果事件（修改为负面热度机制 + 掉粉加成）==========
     else {
-        // ✅ 修改：处理直接粉丝变化效果，并正确记录到今日统计
+        // ✅ 修改：处理直接粉丝变化效果，并正确记录到今日统计，添加负面热度掉粉加成
         if (event.effect.fans) {
-            const change = event.effect.fans;
+            let change = event.effect.fans;
+            
+            // ✅ 如果是掉粉且是负面事件，应用负面热度加成
+            if (change < 0 && event.type === 'bad') {
+                if (typeof window.getNegativeHotValueRatio === 'function') {
+                    const negativeRatio = window.getNegativeHotValueRatio();
+                    if (negativeRatio > 0) {
+                        const bonusLoss = Math.floor(Math.abs(change) * negativeRatio * 0.5); // 最多额外50%掉粉
+                        change -= bonusLoss; // change已经是负数，再减就是更多负数
+                        console.log(`[随机事件掉粉] 基础掉粉:${Math.abs(event.effect.fans)}, 负面热度加成:${bonusLoss}, 总掉粉:${Math.abs(change)}`);
+                    }
+                }
+            }
+            
             gameState.fans = Math.max(0, gameState.fans + change);
             
             // ✅ 记录到今日统计
@@ -500,84 +521,30 @@ function handleRandomEvent(event) {
         if (event.effect.warnings) gameState.warnings = Math.min(20, gameState.warnings + event.effect.warnings);
         if (event.effect.publicOpinion) startPublicOpinionCrisis(event.title);
         
-        // ✅ 新增：大V转发增加热度值 (+1500~+2500)
-        if (event.title === '大V转发' && window.HotValueSystem) {
-            const hotValueIncrease = Math.floor(Math.random() * 1001) + 1500;
-            window.HotValueSystem.currentHotValue += hotValueIncrease;
-            gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-            console.log(`[热度值] 大V转发事件：+${hotValueIncrease}，当前：${window.HotValueSystem.currentHotValue}`);
-        }
-        
-        // ✅ 新增：平台推荐增加热度值 (+2000~+3000)
-        if (event.title === '平台推荐' && window.HotValueSystem) {
-            const hotValueIncrease = Math.floor(Math.random() * 1001) + 2000;
-            window.HotValueSystem.currentHotValue += hotValueIncrease;
-            gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-            console.log(`[热度值] 平台推荐事件：+${hotValueIncrease}，当前：${window.HotValueSystem.currentHotValue}`);
-        }
-        
-        // ✅ 新增：黑粉攻击减少热度值 (-300~-800)
-        if (event.title === '黑粉攻击' && window.HotValueSystem) {
-            const hotValueDecrease = Math.floor(Math.random() * 501) + 300;
-            window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - hotValueDecrease);
-            gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-            console.log(`[热度值] 黑粉攻击事件：-${hotValueDecrease}，当前：${window.HotValueSystem.currentHotValue}`);
-        }
-        
-        // ✅ 新增：竞争对手减少热度值 (-500~-1000)
-        if (event.title === '竞争对手' && window.HotValueSystem) {
-            const hotValueDecrease = Math.floor(Math.random() * 501) + 500;
-            window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - hotValueDecrease);
-            gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-            console.log(`[热度值] 竞争对手事件：-${hotValueDecrease}，当前：${window.HotValueSystem.currentHotValue}`);
-        }
-        
-        // ✅ 新增：负面新闻减少热度值 (-1000~-2000)
-        if (event.title === '负面新闻' && window.HotValueSystem) {
-            const hotValueDecrease = Math.floor(Math.random() * 1001) + 1000;
-            window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - hotValueDecrease);
-            gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-            console.log(`[热度值] 负面新闻事件：-${hotValueDecrease}，当前：${window.HotValueSystem.currentHotValue}`);
-        }
-        
-        // ✅ 新增：算法调整减少热度值 (-800~-1500)
-        if (event.title === '算法调整' && window.HotValueSystem) {
-            const hotValueDecrease = Math.floor(Math.random() * 701) + 800;
-            window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - hotValueDecrease);
-            gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-            console.log(`[热度值] 算法调整事件：-${hotValueDecrease}，当前：${window.HotValueSystem.currentHotValue}`);
-        }
-        
-        // ✅ 新增：恶意投诉减少热度值 (-200~-500)
-        if (event.title === '恶意投诉' && window.HotValueSystem) {
-            const hotValueDecrease = Math.floor(Math.random() * 301) + 200;
-            window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - hotValueDecrease);
-            gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-            console.log(`[热度值] 恶意投诉事件：-${hotValueDecrease}，当前：${window.HotValueSystem.currentHotValue}`);
-        }
-        
-        // ✅ 新增：争议言论减少热度值 (-1000~-2000)
-        if (event.title === '争议言论' && window.HotValueSystem) {
-            const hotValueDecrease = Math.floor(Math.random() * 1001) + 1000;
-            window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - hotValueDecrease);
-            gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-            console.log(`[热度值] 争议言论事件：-${hotValueDecrease}，当前：${window.HotValueSystem.currentHotValue}`);
-        }
-        
-        // ✅ 新增：粉丝福利增加热度值 (+300~+800)
-        if (event.title === '粉丝福利' && window.HotValueSystem) {
-            const hotValueIncrease = Math.floor(Math.random() * 501) + 300;
-            window.HotValueSystem.currentHotValue += hotValueIncrease;
-            gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-            console.log(`[热度值] 粉丝福利事件：+${hotValueIncrease}，当前：${window.HotValueSystem.currentHotValue}`);
-        }
-        
-        // ✅ 新增：粉丝互动增加热度值 (+100~+300)
-        if (event.title === '粉丝互动' && window.HotValueSystem) {
-            const hotValueIncrease = Math.floor(Math.random() * 201) + 100;
-            window.HotValueSystem.currentHotValue += hotValueIncrease;
-            gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-            console.log(`[热度值] 粉丝互动事件：+${hotValueIncrease}，当前：${window.HotValueSystem.currentHotValue}`);
+        // ✅ 修改：处理带duration字段的普通事件（负面事件改为负面热度机制）
+        if (event.effect.duration) {
+            const isBadEvent = event.type === 'bad';
+            
+            if (isBadEvent) {
+                // ✅ 负面事件：启动负面热度7天增长期
+                if (typeof window.startNegativeHotValueBoost === 'function') {
+                    window.startNegativeHotValueBoost(7);
+                    console.log(`[负面热度] ${event.title}：启动7天增长期`);
+                }
+            } else {
+                // 正面或中性事件：先升热度值，结束后降热度值（保持原有逻辑）
+                if (typeof window.startHotValueBoost === 'function') {
+                    window.startHotValueBoost(event.effect.duration);
+                    console.log(`[热度值] ${event.title}：启动持续增加 ${event.effect.duration} 天`);
+                    
+                    setTimeout(() => {
+                        if (typeof window.startHotValueDrop === 'function') {
+                            window.startHotValueDrop(event.effect.duration);
+                            console.log(`[热度值] ${event.title}结束：启动持续减少 ${event.effect.duration} 天`);
+                        }
+                    }, event.effect.duration * VIRTUAL_DAY_MS);
+                }
+            }
         }
         
         // ✅ 检查幸运儿成就
@@ -659,13 +626,7 @@ function endRecommendEffect(workId) {
     work.recommendEndTime = null;
     work.recommendInterval = null;
     
-    // ✅ 新增：推荐结束减少热度值 (-500~-1000)
-    if (window.HotValueSystem) {
-        const hotValueDecrease = Math.floor(Math.random() * 501) + 500;
-        window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - hotValueDecrease);
-        gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-        console.log(`[热度值] 视频推荐结束：-${hotValueDecrease}，当前：${window.HotValueSystem.currentHotValue}`);
-    }
+    // ✅ 修改：推荐结束不再单独处理热度值（由主事件循环处理）
     
     // ✅ 修改：使用小弹窗通知
     showEventPopup('推荐结束', `视频《${work.title || work.content.substring(0, 20)}...》的热度推荐已结束`);
@@ -731,13 +692,7 @@ function endPostHotEffect(workId) {
     work.hotEndTime = null;
     work.hotInterval = null;
     
-    // ✅ 新增：动态热搜结束减少热度值 (-300~-800)
-    if (window.HotValueSystem) {
-        const hotValueDecrease = Math.floor(Math.random() * 501) + 300;
-        window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - hotValueDecrease);
-        gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-        console.log(`[热度值] 动态热搜结束：-${hotValueDecrease}，当前：${window.HotValueSystem.currentHotValue}`);
-    }
+    // ✅ 修改：动态热搜结束不再单独处理热度值（由主事件循环处理）
     
     // ✅ 修改：使用小弹窗通知
     showEventPopup('热搜结束', `动态《${work.content.substring(0, 20)}...》的热搜已结束`);
@@ -745,7 +700,7 @@ function endPostHotEffect(workId) {
     updateWorksList();
 }
 
-// ==================== 新增：争议效果（支持恢复模式）==========
+// ==================== 新增：争议效果（支持恢复模式 - 添加负面热度掉粉加成）==========
 function startControversyEffect(workId, durationDays, isResume = false) {
     const work = gameState.worksList.find(w => w.id === workId);
     if (!work || !work.isControversial) return;
@@ -758,7 +713,17 @@ function startControversyEffect(workId, durationDays, isResume = false) {
             return;
         }
         
-        const fanLoss = Math.floor(Math.random() * 30) + 20;
+        let fanLoss = Math.floor(Math.random() * 30) + 20;
+        
+        // ✅ 应用负面热度掉粉加成
+        if (typeof window.getNegativeHotValueRatio === 'function') {
+            const negativeRatio = window.getNegativeHotValueRatio();
+            if (negativeRatio > 0) {
+                const bonusLoss = Math.floor(fanLoss * negativeRatio * 0.5); // 最多额外50%掉粉
+                fanLoss += bonusLoss;
+            }
+        }
+        
         gameState.fans = Math.max(0, gameState.fans - fanLoss);
         
         // ✅ 修复：记录到今日取关数
@@ -775,14 +740,8 @@ function startControversyEffect(workId, durationDays, isResume = false) {
             gameState.likes = Math.max(0, gameState.likes - likesLoss);
         }
         
-        // 降低通知频率，避免恢复时刷屏
-        if (Math.random() < 0.05) {
-            // ✅ 修改：使用小弹窗通知
-            showEventPopup('争议持续', `视频争议中，粉丝持续流失：-${fanLoss}`);
-        }
+        // 视频争议粉丝持续流失的弹窗通知已删除
         
-        updateDisplay();
-        updateWorksList();
     }, 1000);
     
     if (!isResume) {
@@ -800,13 +759,7 @@ function endControversyEffect(workId) {
     work.controversyEndTime = null;
     work.controversyInterval = null;
     
-    // ✅ 新增：争议平息恢复热度值 (+300~+800)
-    if (window.HotValueSystem) {
-        const hotValueIncrease = Math.floor(Math.random() * 501) + 300;
-        window.HotValueSystem.currentHotValue += hotValueIncrease;
-        gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-        console.log(`[热度值] 争议平息：+${hotValueIncrease}，当前：${window.HotValueSystem.currentHotValue}`);
-    }
+    // ✅ 修改：争议平息不再单独处理热度值（由主事件循环处理）
     
     // ✅ 修改：使用小弹窗通知
     showEventPopup('争议平息', `视频《${work.title || work.content.substring(0, 20)}...》的争议已平息`);

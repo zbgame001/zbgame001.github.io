@@ -313,6 +313,18 @@ window.selectAdOrder = function(index) {
 // ==================== 选择发布方式（通用）===================
 window.selectMethod = function(m) { 
     window.selectedMethod = m; 
+    
+    // 清除所有按钮的选中样式
+    const buttons = document.querySelectorAll('#adOrdersPageContent .action-btn');
+    buttons.forEach(btn => {
+        btn.style.border = '1px solid #333';
+    });
+    
+    // 给当前选中的按钮添加青色边框
+    if (event && event.currentTarget) {
+        event.currentTarget.style.border = '2px solid #00f2ea';
+    }
+    
     const form = document.getElementById('publishForm');
     if (form) form.style.display = 'block'; 
 };
@@ -396,6 +408,51 @@ window.selectBrandMethod = function(method) {
     }
 };
 
+// ==================== 新增：商单数据库统计导出（供开发者监控）====================
+window.getAdDatabaseStats = function() {
+    const db = window.adOrdersDB || [];
+    
+    const stats = {
+        total: db.length,
+        realCount: db.filter(ad => ad.real).length,
+        fakeCount: db.filter(ad => !ad.real).length,
+        lowRisk: db.filter(ad => ad.actualRisk <= 0.1).length,
+        mediumRisk: db.filter(ad => ad.actualRisk > 0.1 && ad.actualRisk <= 0.5).length,
+        highRisk: db.filter(ad => ad.actualRisk > 0.5).length,
+        avgReward: db.reduce((sum, ad) => sum + ad.baseReward, 0) / (db.length || 1),
+        maxReward: Math.max(...db.map(ad => ad.baseReward), 0),
+        minReward: Math.min(...db.map(ad => ad.baseReward), 0)
+    };
+    
+    return stats;
+};
+
+// ==================== 新增：当前可选商单状态导出（供开发者监控）====================
+window.getCurrentAdOrdersStatus = function() {
+    if (!window.gameState || !window.gameState.currentAdOrders) {
+        return {
+            hasOrders: false,
+            count: 0,
+            realCount: 0,
+            fakeCount: 0,
+            totalPotentialReward: 0,
+            avgRisk: 0
+        };
+    }
+    
+    const orders = window.gameState.currentAdOrders;
+    
+    return {
+        hasOrders: orders.length > 0,
+        count: orders.length,
+        realCount: orders.filter(ad => ad.real).length,
+        fakeCount: orders.filter(ad => !ad.real).length,
+        totalPotentialReward: orders.reduce((sum, ad) => sum + ad.actualReward, 0),
+        avgRisk: orders.reduce((sum, ad) => sum + ad.actualRisk, 0) / (orders.length || 1),
+        highRiskOrders: orders.filter(ad => ad.actualRisk > 0.6).length
+    };
+};
+
 // ==================== 全局函数绑定 ====================
 window.showBottomPopup = showBottomPopup;
 window.adOrdersDB = window.adOrdersDB;
@@ -406,3 +463,5 @@ window.selectMethod = window.selectMethod;
 window.acceptBrandDeal = window.acceptBrandDeal;
 window.rejectBrandDeal = window.rejectBrandDeal;
 window.selectBrandMethod = window.selectBrandMethod;
+window.getAdDatabaseStats = window.getAdDatabaseStats;
+window.getCurrentAdOrdersStatus = window.getCurrentAdOrdersStatus;

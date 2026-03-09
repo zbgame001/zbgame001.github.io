@@ -1,36 +1,5 @@
-// ==================== 成就列表 ====================
-const achievements = [
-    { id: 1, name: '初入江湖', desc: '获得第一个粉丝', icon: '🌱', unlocked: false },
-    { id: 2, name: '小有名气', desc: '粉丝达到1000', icon: '🌟', unlocked: false },
-    { id: 3, name: '网红达人', desc: '粉丝达到10万', icon: '⭐', unlocked: false },
-    { id: 4, name: '顶级流量', desc: '粉丝达到1000万', icon: '⭐', unlocked: false },
-    { id: 5, name: '爆款制造机', desc: '单条视频播放量破百万', icon: '🔥', unlocked: false },
-    { id: 6, name: '点赞狂魔', desc: '累计获得10万个赞', icon: '👍', unlocked: false },
-    { id: 7, name: '高产创作者', desc: '发布100个作品', icon: '📹', unlocked: false },
-    { id: 8, name: '直播新星', desc: '首次直播获得1000观看', icon: '📱', unlocked: false },
-    { id: 9, name: '收益第一桶金', desc: '获得首次收益', icon: '💰', unlocked: false },
-    { id: 10, name: '百万富翁', desc: '累计收益达到100万', icon: '💎', unlocked: false },
-    { id: 11, name: '话题之王', desc: '单条动态获得1万转发', icon: '🔁', unlocked: false },
-    { id: 12, name: '评论互动达人', desc: '单条作品获得5000评论', icon: '💬', unlocked: false },
-    // ✅ 已移除: { id: 13, name: '全勤主播', desc: '连续30天更新', icon: '📅', unlocked: false },
-    { id: 14, name: '逆风翻盘', desc: '从封号中申诉成功', icon: '🔄', unlocked: false },
-    { id: 15, name: '幸运儿', desc: '触发50次随机事件', icon: '🍀', unlocked: false },
-    { id: 16, name: '社交达人', desc: '关注1000个用户', icon: '👥', unlocked: false },
-    // ✅ 已移除: { id: 17, name: '夜猫子', desc: '凌晨3点还在直播', icon: '🦉', unlocked: false },
-    // ✅ 已移除: { id: 18, name: '早起鸟儿', desc: '早上6点开始直播', icon: '🐦', unlocked: false },
-    { id: 19, name: '宠粉狂魔', desc: '回复1000条评论', icon: '💖', unlocked: false },
-    { id: 20, name: '传奇主播', desc: '解锁所有成就', icon: '👑', unlocked: false },
-    
-    // ✅ 添加负面成就到主成就列表
-    { id: 21, name: '商单新人', desc: '完成首个商单', icon: '💼', unlocked: false },
-    { id: 22, name: '广告达人', desc: '完成10个商单', icon: '📢', unlocked: false },
-    { id: 23, name: '百万单王', desc: '单次商单收入超50万', icon: '💵', unlocked: false },
-    // ✅ 已移除: { id: 24, name: '火眼金睛', desc: '识别并拒绝5个违规商单', icon: '👀', unlocked: false },
-    { id: 25, name: '商单大师', desc: '完成50个商单且未违规', icon: '🏆', unlocked: false },
-    { id: 26, name: '赌徒', desc: '完成10个虚假商单', icon: '🎰', unlocked: false },
-    { id: 27, name: '身败名裂', desc: '因虚假商单被封号3次', icon: '💀', unlocked: false },
-    { id: 28, name: '诚信经营', desc: '连续3个月无虚假商单', icon: '✅', unlocked: false }
-];
+// ==================== 成就列表（已移出到 game_achievements.js） ====================
+// 原 achievements 数组已删除，请确保 game_achievements.js 已加载
 
 // ==================== 违规关键词 ====================
 const violationKeywords = ['暴力', '色情', '政治', '谣言', '诈骗', '盗版', '侵权', '辱骂', '歧视', '毒品'];
@@ -81,25 +50,39 @@ function formatTime(timestamp) {
 
 // ==================== 辅助函数：根据虚拟天数计算日期 ====================
 function getDateFromVirtualDays(virtualDays) {
-    const currentYear = GAME_START_VIRTUAL_DATE.year + Math.floor(virtualDays / 365);
-    const dayOfYear = virtualDays % 365;
+    // 确保有起始日期
+    if (!gameState.virtualStartDate) {
+        gameState.virtualStartDate = generateRandomVirtualStartDate();
+    }
     
-    const monthDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-    let remainingDays = dayOfYear;
-    let month = 0;
+    const startDate = gameState.virtualStartDate;
     
-    for (let i = 0; i < monthDays.length; i++) {
-        if (remainingDays < monthDays[i]) {
-            month = i;
+    // 从起始日期开始计算
+    let currentYear = startDate.year;
+    let currentMonth = startDate.month;
+    let currentDay = startDate.day + virtualDays;
+    
+    // 处理日期进位
+    while (true) {
+        const isLeapYear = (currentYear % 4 === 0 && currentYear % 100 !== 0) || (currentYear % 400 === 0);
+        const dayInCurrentMonth = [31, isLeapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][currentMonth - 1];
+        
+        if (currentDay > dayInCurrentMonth) {
+            currentDay -= dayInCurrentMonth;
+            currentMonth++;
+            if (currentMonth > 12) {
+                currentMonth = 1;
+                currentYear++;
+            }
+        } else {
             break;
         }
-        remainingDays -= monthDays[i];
     }
     
     return {
         year: currentYear,
-        month: month + 1,
-        day: remainingDays + 1
+        month: currentMonth,
+        day: currentDay
     };
 }
 
@@ -116,12 +99,33 @@ function saveGame() {
 
 // ==================== 游戏初始化 ====================
 function initGame() {
+    // ✅ 修复：确保虚拟起始日期存在（新游戏或旧存档兼容）
+    if (!gameState.virtualStartDate) {
+        gameState.virtualStartDate = generateRandomVirtualStartDate();
+        console.log('生成随机虚拟起始日期:', gameState.virtualStartDate);
+    }
+    
     // ✅ 修复：确保所有舆论风波属性存在（防止undefined导致toggle异常）
     if (gameState.isPublicOpinionCrisis === undefined) gameState.isPublicOpinionCrisis = false;
     if (gameState.publicOpinionDaysCount === undefined) gameState.publicOpinionDaysCount = 0;
     if (gameState.publicOpinionStartTime === undefined) gameState.publicOpinionStartTime = null;
     if (gameState.publicOpinionInterval === undefined) gameState.publicOpinionInterval = null;
     if (gameState.publicOpinionTitle === undefined) gameState.publicOpinionTitle = '';
+    
+    // ✅ 新增：确保封号类型相关属性存在
+    if (gameState.banType === undefined) gameState.banType = 0;
+    if (gameState.originalUsername === undefined) gameState.originalUsername = '';
+    if (gameState.originalAvatar === undefined) gameState.originalAvatar = '';
+    if (gameState.originalAvatarImage === undefined) gameState.originalAvatarImage = '';
+    
+    // ==================== 关键修复：确保 preBanPublicWorks 存在且不为 undefined ====================
+    if (gameState.preBanPublicWorks === undefined) gameState.preBanPublicWorks = [];
+    // 确保它是一个数组（防止存档损坏变成其他类型）
+    if (!Array.isArray(gameState.preBanPublicWorks)) {
+        console.warn('[封禁恢复] preBanPublicWorks 不是数组，重置为空数组');
+        gameState.preBanPublicWorks = [];
+    }
+    // ===================================================================================
     
     // 初始化头像图片状态
     if (gameState.avatarImage === undefined) gameState.avatarImage = '';
@@ -221,6 +225,12 @@ function initGame() {
         try {
             gameState = JSON.parse(saved);
             
+            // ✅ 关键新增：如果是新存档或旧存档没有虚拟起始日期，生成一个
+            if (!gameState.virtualStartDate) {
+                gameState.virtualStartDate = generateRandomVirtualStartDate();
+                console.log('为旧存档生成随机虚拟起始日期:', gameState.virtualStartDate);
+            }
+            
             if (!gameState.username || typeof gameState.username !== 'string' || gameState.username.trim() === '') {
                 console.warn('存档无效：用户名缺失或格式错误');
                 localStorage.removeItem('streamerGameState');
@@ -264,6 +274,13 @@ function initGame() {
                 }
             }
             
+            // ==================== 关键修复：再次确保 preBanPublicWorks 从存档中正确恢复 ====================
+            if (!gameState.preBanPublicWorks || !Array.isArray(gameState.preBanPublicWorks)) {
+                console.warn('[封禁恢复] 存档中的 preBanPublicWorks 无效，重置为空数组');
+                gameState.preBanPublicWorks = [];
+            }
+            // ==========================================================================================
+            
             // ✅ 修复：确保自动清理缓存配置存在
             if (gameState.autoCleanCacheInterval === undefined) gameState.autoCleanCacheInterval = 5;
             if (gameState.autoCleanCacheTimer === undefined) gameState.autoCleanCacheTimer = null;
@@ -277,8 +294,8 @@ function initGame() {
             if (gameState.todayStatsResetDay === undefined) gameState.todayStatsResetDay = 0;
 
             // ✅ ✅ ✅ 新增：确保全局作品粉丝增长系统存在（读取存档时）
-            if (gameState.privateMessageSystem === undefined) {
-                gameState.privateMessageSystem = {
+            if (gameState.workFanGrowthSystem === undefined) {
+                gameState.workFanGrowthSystem = {
                     activeWorks: [],
                     globalInterval: null,
                     totalFanChange: 0,
@@ -305,6 +322,13 @@ function initGame() {
             
             // ✅ 新增：确保消息免打扰状态存在
             if (gameState.doNotDisturb === undefined) gameState.doNotDisturb = false;
+            
+            // ✅ 新增：确保封号类型相关属性存在（读取存档时）
+            if (gameState.banType === undefined) gameState.banType = 0;
+            if (gameState.originalUsername === undefined) gameState.originalUsername = '';
+            if (gameState.originalAvatar === undefined) gameState.originalAvatar = '';
+            if (gameState.originalAvatarImage === undefined) gameState.originalAvatarImage = '';
+            if (gameState.preBanPublicWorks === undefined) gameState.preBanPublicWorks = [];
             
             realStartTime = Date.now();
             gameState.liveInterval = null; 
@@ -388,10 +412,11 @@ function initGame() {
             
             window.charts = { fans: null, likes: null, views: null, interactions: null };
             
-            if (gameState.achievements && gameState.achievements.length > 0) {
+            // ✅ 成就恢复逻辑：通过全局 achievements 对象
+            if (window.achievements && gameState.achievements && gameState.achievements.length > 0) {
                 console.log(`恢复${gameState.achievements.length}个已解锁成就`);
                 gameState.achievements.forEach(achievementId => {
-                    const achievement = achievements.find(a => a.id === achievementId);
+                    const achievement = window.achievements.find(a => a.id === achievementId);
                     if (achievement) {
                         achievement.unlocked = true;
                     }
@@ -400,10 +425,101 @@ function initGame() {
                 console.log('无成就需要恢复');
             }
             
+            // ✅ 关键新增：如果处于封禁状态，根据封号类型恢复显示
             if (gameState.isBanned && gameState.banStartTime !== null) {
                 const banStartTimer = gameState.banStartTime;
                 const timePassed = gameTimer - banStartTimer;
                 const daysPassed = timePassed / VIRTUAL_DAY_MS;
+                
+                // 根据封号类型恢复显示状态
+                switch(gameState.banType) {
+                    case 0:
+                        // 类型0：普通封号，无需特殊处理
+                        console.log('恢复封号类型0：普通封号');
+                        break;
+                        
+                    case 1:
+                        // 类型1：作品私密+头像空白+名字UID
+                        console.log('恢复封号类型1：作品私密+头像空白+名字UID');
+                        
+                        // ==================== 关键修复：确保 preBanPublicWorks 有效 ====================
+                        // 如果 preBanPublicWorks 为空（可能是旧存档或数据损坏），需要重新生成
+                        if (!gameState.preBanPublicWorks || gameState.preBanPublicWorks.length === 0) {
+                            // 在封禁状态下，所有作品都被设为私密，我们需要锁定所有当前私密的作品
+                            // 保守策略：将所有当前非私密的作品ID加入列表，然后将所有作品设为私密
+                            const currentPublicWorks = gameState.worksList.filter(w => !w.isPrivate);
+                            if (currentPublicWorks.length > 0) {
+                                gameState.preBanPublicWorks = currentPublicWorks.map(w => w.id);
+                                console.log(`[封禁恢复] preBanPublicWorks 为空，已将 ${currentPublicWorks.length} 个当前公开作品加入锁定列表`);
+                            } else {
+                                // 如果当前所有作品都已经是私密的，我们无法确定哪些是封禁前的公开作品
+                                // 安全起见，将所有私密作品也加入列表，确保它们都被锁定
+                                gameState.preBanPublicWorks = gameState.worksList.map(w => w.id);
+                                console.log(`[封禁恢复] 所有作品已私密，已将所有 ${gameState.preBanPublicWorks.length} 个作品加入锁定列表作为安全策略`);
+                            }
+                        }
+                        // =============================================================================
+                        
+                        // 确保所有作品都是私密的
+                        gameState.worksList.forEach(work => {
+                            work.isPrivate = true;
+                        });
+                        // ✅ 作品数改为总作品数（私密作品也计入）
+                        gameState.works = gameState.worksList.length;
+                        // 确保头像和名字是封禁状态
+                        gameState.avatar = '';
+                        gameState.avatarImage = '';
+                        gameState.username = gameState.userId;
+                        break;
+                        
+                    case 2:
+                        // 类型2：名字UID+头像空白
+                        console.log('恢复封号类型2：名字UID+头像空白');
+                        gameState.avatar = '';
+                        gameState.avatarImage = '';
+                        gameState.username = gameState.userId;
+                        break;
+                        
+                    case 3:
+                        // 类型3：所有作品私密
+                        console.log('恢复封号类型3：所有作品私密');
+                        
+                        // ==================== 关键修复：确保 preBanPublicWorks 有效（同 case 1）====================
+                        // 如果 preBanPublicWorks 为空，需要重新生成
+                        if (!gameState.preBanPublicWorks || gameState.preBanPublicWorks.length === 0) {
+                            const currentPublicWorks = gameState.worksList.filter(w => !w.isPrivate);
+                            if (currentPublicWorks.length > 0) {
+                                gameState.preBanPublicWorks = currentPublicWorks.map(w => w.id);
+                                console.log(`[封禁恢复] 类型3 preBanPublicWorks 为空，已将 ${currentPublicWorks.length} 个当前公开作品加入锁定列表`);
+                            } else {
+                                // 安全策略：将所有作品加入列表
+                                gameState.preBanPublicWorks = gameState.worksList.map(w => w.id);
+                                console.log(`[封禁恢复] 类型3 所有作品已私密，已将所有 ${gameState.preBanPublicWorks.length} 个作品加入锁定列表`);
+                            }
+                        } else {
+                            // 如果 preBanPublicWorks 不为空，但要确保它包含的是封禁前的公开作品
+                            // 此时不应该覆盖它，因为存档中的值才是正确的
+                            console.log(`[封禁恢复] 类型3 使用存档中的 preBanPublicWorks，包含 ${gameState.preBanPublicWorks.length} 个作品`);
+                        }
+                        // =================================================================================
+                        
+                        // 将所有作品设为私密
+                        gameState.worksList.forEach(work => {
+                            work.isPrivate = true;
+                        });
+                        // ✅ 作品数改为总作品数
+                        gameState.works = gameState.worksList.length;
+                        break;
+                }
+                
+                // ✅ 修改：重新统计总播放量、总点赞、总互动（基于所有作品，不按公开过滤）
+                gameState.views = gameState.worksList
+                    .filter(w => w.type === 'video' || w.type === 'live')
+                    .reduce((sum, w) => sum + w.views, 0);
+                gameState.likes = gameState.worksList.reduce((sum, w) => sum + w.likes, 0);
+                gameState.totalInteractions = gameState.worksList.reduce((sum, w) => {
+                    return sum + w.comments + w.likes + w.shares;
+                }, 0);
                 
                 if (typeof showBanNotice === 'function') {
                     const originalGetVirtualDaysPassed = getVirtualDaysPassed;
@@ -696,6 +812,13 @@ function initGame() {
         // ✅ 新增：确保消息免打扰状态存在
         if (gameState.doNotDisturb === undefined) gameState.doNotDisturb = false;
         
+        // ✅ 新增：确保封号类型相关属性存在
+        if (gameState.banType === undefined) gameState.banType = 0;
+        if (gameState.originalUsername === undefined) gameState.originalUsername = '';
+        if (gameState.originalAvatar === undefined) gameState.originalAvatar = '';
+        if (gameState.originalAvatarImage === undefined) gameState.originalAvatarImage = '';
+        if (gameState.preBanPublicWorks === undefined) gameState.preBanPublicWorks = [];
+        
         for (let i = 0; i < 60; i++) {
             gameState.chartData.fans.push(0);
             gameState.chartData.likes.push(0);
@@ -706,13 +829,11 @@ function initGame() {
         gameState.chartData.currentDay = 0;
         gameState.chartData.lastInteractionTotal = 0;
         
-        achievements.forEach(a => a.unlocked = false);
+        // ✅ 成就初始化：通过全局 achievements 对象重置解锁状态
+        if (window.achievements) {
+            window.achievements.forEach(a => a.unlocked = false);
+        }
         window.charts = { fans: null, likes: null, views: null, interactions: null };
-    }
-    
-    // ✅ 修改：UID生成改为纯数字（9位随机数）
-    if (!gameState.userId) {
-        gameState.userId = Math.floor(Math.random() * 900000000 + 100000000).toString();
     }
     
     // ✅ 新增：启动每日数据重置检查
@@ -757,6 +878,10 @@ function initGame() {
     
     // 关键修复：确保 window.gameState 与局部变量同步
     window.gameState = gameState;
+    
+    // ✅ 关键新增：存档加载/游戏启动后重新设置封号涨粉拦截器
+    setupBanInterceptor();
+    console.log('[封号拦截] 游戏初始化完成，涨粉拦截器已激活');
 }
 
 // ✅ 新增：每日数据重置检查函数

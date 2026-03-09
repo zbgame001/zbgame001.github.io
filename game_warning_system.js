@@ -307,31 +307,56 @@ function showWarningDetail(warningId) {
 
 // 获取指定时间点的虚拟日期
 function getVirtualDateAtTime(timestamp) {
-    const totalDays = Math.floor(timestamp / VIRTUAL_DAY_MS);
-    const currentYear = GAME_START_VIRTUAL_DATE.year + Math.floor(totalDays / 365);
-    const dayOfYear = totalDays % 365;
-    
-    const monthDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-    let remainingDays = dayOfYear;
-    let month = 0;
-    
-    for (let i = 0; i < monthDays.length; i++) {
-        if (remainingDays < monthDays[i]) {
-            month = i;
-            break;
-        }
-        remainingDays -= monthDays[i];
+    // 确保有起始日期
+    if (!gameState.virtualStartDate) {
+        gameState.virtualStartDate = generateRandomVirtualStartDate();
     }
     
-    const timeInDay = timestamp % VIRTUAL_DAY_MS;
+    const startDate = gameState.virtualStartDate;
+    
+    // 将起始时间转换为毫秒偏移量
+    const startOffset = startDate.hours * VIRTUAL_HOUR_MS + 
+                        startDate.minutes * VIRTUAL_MINUTE_MS + 
+                        startDate.seconds * VIRTUAL_SECOND_MS;
+    
+    // 总游戏时间 = 实际游戏时间 + 起始时间偏移
+    const totalGameTime = timestamp + startOffset;
+    
+    // 计算从起始日期开始的总天数和当天的时间
+    const totalDays = Math.floor(totalGameTime / VIRTUAL_DAY_MS);
+    const timeInDay = totalGameTime % VIRTUAL_DAY_MS;
+    
+    // 计算当前日期（起始日 + 经过的天数）
+    let currentYear = startDate.year;
+    let currentMonth = startDate.month;
+    let currentDay = startDate.day + totalDays;
+    
+    // 处理日期进位（考虑闰年和不同月份天数）
+    while (true) {
+        const isLeapYear = (currentYear % 4 === 0 && currentYear % 100 !== 0) || (currentYear % 400 === 0);
+        const daysInCurrentMonth = [31, isLeapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][currentMonth - 1];
+        
+        if (currentDay > daysInCurrentMonth) {
+            currentDay -= daysInCurrentMonth;
+            currentMonth++;
+            if (currentMonth > 12) {
+                currentMonth = 1;
+                currentYear++;
+            }
+        } else {
+            break;
+        }
+    }
+    
+    // 从当天时间偏移计算时分秒
     const hours = Math.floor(timeInDay / VIRTUAL_HOUR_MS);
     const minutes = Math.floor((timeInDay % VIRTUAL_HOUR_MS) / VIRTUAL_MINUTE_MS);
     const seconds = Math.floor((timeInDay % VIRTUAL_MINUTE_MS) / VIRTUAL_SECOND_MS);
     
     return {
         year: currentYear,
-        month: month + 1,
-        day: remainingDays + 1,
+        month: currentMonth,
+        day: currentDay,
         totalDays: totalDays,
         totalMonths: Math.floor(totalDays / 30),
         totalYears: Math.floor(totalDays / 365),

@@ -65,6 +65,13 @@ function startGame() {
     // ✅ 新增：确保消息免打扰状态存在
     if (gameState.doNotDisturb === undefined) gameState.doNotDisturb = false;
     
+    // ✅ 新增：确保封号类型相关属性存在
+    if (gameState.banType === undefined) gameState.banType = 0;
+    if (gameState.originalUsername === undefined) gameState.originalUsername = '';
+    if (gameState.originalAvatar === undefined) gameState.originalAvatar = '';
+    if (gameState.originalAvatarImage === undefined) gameState.originalAvatarImage = '';
+    if (gameState.preBanPublicWorks === undefined) gameState.preBanPublicWorks = [];
+    
     for (let i = 0; i < 60; i++) {
         gameState.chartData.fans.push(0);
         gameState.chartData.likes.push(0);
@@ -80,6 +87,13 @@ function startGame() {
     
     // ✅ 修改：UID生成改为纯数字（9位随机数）
     gameState.userId = Math.floor(Math.random() * 900000000 + 100000000).toString();
+    
+    // ✅ 关键新增：为新游戏生成完全随机的虚拟起始日期
+    gameState.virtualStartDate = generateRandomVirtualStartDate();
+    console.log('新游戏生成随机虚拟起始日期:', gameState.virtualStartDate);
+    
+    // ✅ 新增：设置封号涨粉拦截器
+    setupBanInterceptor();
     
     initGame();
 }
@@ -140,14 +154,16 @@ function resetGame() {
         if (work.controversyInterval) clearInterval(work.controversyInterval);
         if (work.hotInterval) clearInterval(work.hotInterval);
         if (work.hotSearchInterval) clearInterval(work.hotSearchInterval);
-        // ✅ 新增：清理作品粉丝增长定时器（旧系统遗留）
+        // ✅ 修复：清理作品粉丝增长定时器（旧系统遗留）
         if (work.fanGrowthInterval) clearInterval(work.fanGrowthInterval);
-        // ✅ 新增：清理抽奖相关定时器
-        if (work.fanGrowthInterval) clearInterval(work.fanGrowthInterval);
+        // ✅ 修复：清理抽奖相关定时器
         if (work.dataGrowthInterval) clearInterval(work.dataGrowthInterval);
         if (work.fanLossInterval) clearInterval(work.fanLossInterval);
         if (work.manualDrawWarningInterval) clearInterval(work.manualDrawWarningInterval);
         if (work.crazyFanLossInterval) clearInterval(work.crazyFanLossInterval);
+        // ✅ ✅ ✅ 新增：清理热搜相关的热度值定时器
+        if (work.hotValueBoostInterval) clearInterval(work.hotValueBoostInterval);
+        if (work.hotValueDropInterval) clearInterval(work.hotValueDropInterval);
     });
     
     // 5. 清理私信生成定时器
@@ -214,6 +230,9 @@ function resetGame() {
     if (typeof window.cleanupRaffleTimers === 'function') {
         window.cleanupRaffleTimers();
     }
+    
+    // ✅ 新增：清理热搜相关的热度值持续增长/下降定时器
+    // （已经在上面的作品级定时器清理中处理，这里保持兼容）
     // ==================== 修复结束 ====================
     
     gameState = {
@@ -231,6 +250,17 @@ function resetGame() {
         banReason: '', 
         banDaysCount: 0, 
         banStartTime: null,
+        
+        // ✅ 新增：重置虚拟起始日期为 null（下次启动时生成新的随机日期）
+        virtualStartDate: null,
+        
+        // ✅ 新增：封号类型相关状态
+        banType: 0,
+        originalUsername: '',
+        originalAvatar: '',
+        originalAvatarImage: '',
+        preBanPublicWorks: [],
+        
         isHotSearch: false, 
         hotSearchDaysCount: 0, 
         hotSearchStartTime: null,
@@ -334,7 +364,16 @@ function resetGame() {
         doNotDisturb: false,
         
         // ✅ 新增：重置热度值
-        currentHotValue: 1000
+        currentHotValue: 1000,
+        
+        // ✅ 新增：热度值定时器状态
+        hotValueBoostInterval: null,
+        hotValueDropInterval: null,
+        hotValueBoostActive: false,
+        hotValueDropActive: false,
+        hotValueBoostEndTime: null,
+        hotValueDropEndTime: null,
+        hotValueOriginalDuration: 0
     };
     
     gameTimer = 0;
@@ -353,6 +392,9 @@ function resetGame() {
     
     achievements.forEach(a => a.unlocked = false);
     window.charts = { fans: null, likes: null, views: null, interactions: null };
+    
+    // ✅ 新增：重置后重新设置涨粉拦截器
+    setupBanInterceptor();
     
     return true;
 }
@@ -426,6 +468,14 @@ window.addEventListener('beforeunload', function() {
     // ✅ 新增：停止热度值系统
     if (window.HotValueSystem) {
         window.HotValueSystem.stopAutoUpdate();
+    }
+    
+    // ✅ 新增：清理热度值持续增长/下降定时器
+    if (gameState.hotValueBoostInterval) {
+        clearInterval(gameState.hotValueBoostInterval);
+    }
+    if (gameState.hotValueDropInterval) {
+        clearInterval(gameState.hotValueDropInterval);
     }
     
     // ✅ 新增：清理抽奖系统定时器

@@ -188,6 +188,18 @@ function processGlobalFanGrowth() {
         // 更新今日统计
         if (totalFanChange > 0) {
             gameState.todayNewFans += totalFanChange;
+            
+            // ✅ 新增：作品涨粉时增加热度值（1-10随机值）
+            if (typeof window.HotValueSystem !== 'undefined' && window.HotValueSystem) {
+                const hotValueIncrease = Math.floor(Math.random() * 10) + 1; // 1-10随机值
+                window.HotValueSystem.currentHotValue = Math.min(
+                    window.HotValueSystem.config.maxHotValue,
+                    window.HotValueSystem.currentHotValue + hotValueIncrease
+                );
+                gameState.currentHotValue = window.HotValueSystem.currentHotValue;
+                
+                console.log(`[全局系统] 作品涨粉${totalFanChange}人，热度值+${hotValueIncrease}`);
+            }
         } else {
             gameState.todayLostFans += Math.abs(totalFanChange);
         }

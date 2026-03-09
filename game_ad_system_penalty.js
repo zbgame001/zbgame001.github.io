@@ -5,15 +5,13 @@
 // 依赖: game_ad_system_core.js (selectedAdOrder)
 // 依赖: game_global_fan_growth.js (addWorkToGlobalFanGrowth)
 
-// ==================== 虚假商单持续掉粉惩罚（终极修复版 - 支持惩罚叠加）=======================
+// ==================== 虚假商单持续掉粉惩罚（终极修复版 - 支持惩罚叠加+负面热度机制）=======================
 window.startFakeAdFanLoss = function(exposedWorks, isFromMonthlyCheck = false) {
     if (!exposedWorks || exposedWorks.length === 0) return;
     
-    // ✅ 减少热度值（虚假商单惩罚）
-    if (window.HotValueSystem) {
-        const hotValueDecrease = Math.floor(Math.random() * 1501) + 1500; // 1500-3000
-        window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - hotValueDecrease);
-        gameState.currentHotValue = window.HotValueSystem.currentHotValue;
+    // ✅ 启动负面热度7天增长期（虚假商单属于负面事件）
+    if (typeof window.startNegativeHotValueBoost === 'function') {
+        window.startNegativeHotValueBoost(7);
     }
     
     // 计算新的惩罚天数（30-180天）
@@ -43,11 +41,8 @@ window.startFakeAdFanLoss = function(exposedWorks, isFromMonthlyCheck = false) {
         const newIds = exposedWorks.map(w => w.id);
         window.gameState.fakeAdPenalty.exposedWorkIds = [...new Set([...existingIds, ...newIds])];
         
-        // ✅ 修改：使用小弹窗通知
-        if (typeof showEventPopup === 'function') {
-            const daysLeft = Math.ceil(totalDays);
-            showEventPopup('⚠️ 惩罚加重', `虚假商单丑闻恶化，惩罚延长至${daysLeft}天！`);
-        }
+        // ✅ 修改：移除惩罚加重弹窗，仅保留控制台日志
+        console.log(`[惩罚加重] 虚假商单丑闻恶化，惩罚延长至${Math.ceil(totalDays)}天`);
         
         return; // 不启动新的定时器，让现有的继续运行
     }
@@ -86,17 +81,34 @@ window.startFakeAdFanLoss = function(exposedWorks, isFromMonthlyCheck = false) {
             clearInterval(window.gameState.fakeAdPenaltyInterval);
             window.gameState.fakeAdPenaltyInterval = null;
             
-            // ✅ 修改：使用小弹窗通知
-            if (typeof window.showEventPopup === 'function') {
-                showEventPopup('✅ 虚假商单影响结束', '粉丝的愤怒逐渐平息');
+            // ✅ 惩罚结束，启动负面热度7天下降期
+            if (typeof window.endNegativeHotValueBoostAndStartDrop === 'function') {
+                window.endNegativeHotValueBoostAndStartDrop(7);
             }
+            
+            // ✅ 修改：移除惩罚结束弹窗，仅保留控制台日志
+            console.log('[惩罚结束] 虚假商单影响结束');
             return;
         }
         
         // ✅ 修复：每秒从1-500之间随机掉粉
         const lossAmount = Math.floor(Math.random() * 500) + 1; // 1-500之间的随机数
         
-        window.gameState.fans = Math.max(0, window.gameState.fans - lossAmount);
+        // ✅ 应用负面热度掉粉加成
+        let finalLossAmount = lossAmount;
+        if (typeof window.getNegativeHotValueRatio === 'function') {
+            const negativeRatio = window.getNegativeHotValueRatio();
+            if (negativeRatio > 0) {
+                const bonusLoss = Math.floor(lossAmount * negativeRatio * 0.5); // 最多额外增加50%掉粉
+                finalLossAmount += bonusLoss;
+                console.log(`[虚假商单掉粉] 基础掉粉:${lossAmount}, 负面热度加成:${bonusLoss}, 总掉粉:${finalLossAmount}`);
+            }
+        }
+        
+        window.gameState.fans = Math.max(0, window.gameState.fans - finalLossAmount);
+        
+        // ✅ 关键修复：将掉粉记录到每日取关统计中
+        window.gameState.todayLostFans += finalLossAmount;
         
         // ✅ 修改为每秒显示一次通知（使用涨掉粉通知系统）
         const now = Date.now();
@@ -106,7 +118,9 @@ window.startFakeAdFanLoss = function(exposedWorks, isFromMonthlyCheck = false) {
             const daysLeft = Math.ceil((window.gameState.fakeAdPenalty.endTime - window.gameTimer) / VIRTUAL_DAY_MS);
             
             // ✅ 修改：使用涨掉粉通知系统
-            addFanChangeNotification('⬇️', `虚假商单丑闻持续发酵，粉丝流失-${lossAmount}（剩余${daysLeft}天）`, '虚假商单惩罚', 'loss', lossAmount);
+            if (typeof window.addFanChangeNotification === 'function') {
+                window.addFanChangeNotification('⬇️', `虚假商单丑闻持续发酵，粉丝流失-${finalLossAmount}（剩余${daysLeft}天）`, '虚假商单惩罚', 'loss', finalLossAmount);
+            }
         }
         
         if (typeof window.updateDisplay === 'function') {
@@ -158,17 +172,33 @@ window.resumeFakeAdPenalty = function() {
             clearInterval(window.gameState.fakeAdPenaltyInterval);
             window.gameState.fakeAdPenaltyInterval = null;
             
-            // ✅ 修改：使用小弹窗通知
-            if (typeof window.showEventPopup === 'function') {
-                showEventPopup('✅ 虚假商单影响结束', '粉丝的愤怒逐渐平息');
+            // ✅ 惩罚结束，启动负面热度7天下降期
+            if (typeof window.endNegativeHotValueBoostAndStartDrop === 'function') {
+                window.endNegativeHotValueBoostAndStartDrop(7);
             }
+            
+            // ✅ 修改：移除惩罚结束弹窗，仅保留控制台日志
+            console.log('[惩罚结束] 虚假商单影响结束');
             return;
         }
         
         // ✅ 修复：每秒从1-500之间随机掉粉
         const lossAmount = Math.floor(Math.random() * 500) + 1; // 1-500之间的随机数
         
-        window.gameState.fans = Math.max(0, window.gameState.fans - lossAmount);
+        // ✅ 应用负面热度掉粉加成
+        let finalLossAmount = lossAmount;
+        if (typeof window.getNegativeHotValueRatio === 'function') {
+            const negativeRatio = window.getNegativeHotValueRatio();
+            if (negativeRatio > 0) {
+                const bonusLoss = Math.floor(lossAmount * negativeRatio * 0.5);
+                finalLossAmount += bonusLoss;
+            }
+        }
+        
+        window.gameState.fans = Math.max(0, window.gameState.fans - finalLossAmount);
+        
+        // ✅ 关键修复：将掉粉记录到每日取关统计中
+        window.gameState.todayLostFans += finalLossAmount;
         
         // ✅ 修改为每秒显示一次通知（使用涨掉粉通知系统）
         const now = Date.now();
@@ -178,7 +208,9 @@ window.resumeFakeAdPenalty = function() {
             const daysLeft = Math.ceil((window.gameState.fakeAdPenalty.endTime - window.gameTimer) / VIRTUAL_DAY_MS);
             
             // ✅ 修改：使用涨掉粉通知系统
-            addFanChangeNotification('⬇️', `虚假商单丑闻持续发酵，粉丝流失-${lossAmount}（剩余${daysLeft}天）`, '虚假商单惩罚', 'loss', lossAmount);
+            if (typeof window.addFanChangeNotification === 'function') {
+                window.addFanChangeNotification('⬇️', `虚假商单丑闻持续发酵，粉丝流失-${finalLossAmount}（剩余${daysLeft}天）`, '虚假商单惩罚', 'loss', finalLossAmount);
+            }
         }
         
         if (typeof window.updateDisplay === 'function') {
@@ -187,14 +219,12 @@ window.resumeFakeAdPenalty = function() {
     }, 1000);
     
     // 立即显示恢复提示
-    // ✅ 修改：使用小弹窗通知
-    if (typeof window.showEventPopup === 'function') {
-        const daysLeft = Math.ceil(timeLeft / VIRTUAL_DAY_MS);
-        showEventPopup('⚠️ 惩罚恢复', `检测到未完成的虚假商单惩罚，持续掉粉中（剩余${daysLeft}天）`);
-    }
+    // ✅ 修改：移除惩罚恢复弹窗，仅保留控制台日志
+    const daysLeft = Math.ceil(timeLeft / VIRTUAL_DAY_MS);
+    console.log(`[惩罚恢复] 检测到未完成的虚假商单惩罚，持续掉粉中（剩余${daysLeft}天）`);
 };
 
-// ==================== 举报曝光机制 ====================
+// ==================== 举报曝光机制（新增负面热度机制）====================
 window.checkAdOrderExposure = function() {
     if (!window.gameState || window.gameState.isBanned) return;
     
@@ -213,11 +243,9 @@ window.checkAdOrderExposure = function() {
             work.adOrder.isExposed = true;
             work.hasNegativeComments = true;
             
-            // ✅ 减少热度值（虚假商单被举报曝光）
-            if (window.HotValueSystem) {
-                const hotValueDecrease = Math.floor(Math.random() * 1001) + 1000; // 1000-2000
-                window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - hotValueDecrease);
-                gameState.currentHotValue = window.HotValueSystem.currentHotValue;
+            // ✅ 启动负面热度7天增长期（虚假商单被曝光属于负面事件）
+            if (typeof window.startNegativeHotValueBoost === 'function') {
+                window.startNegativeHotValueBoost(7);
             }
             
             // ✅ 新增：删除被检测到的虚假商单视频
@@ -287,14 +315,8 @@ window.checkAdOrderExposure = function() {
             window.gameState.money = Math.max(0, window.gameState.money - fine);
             window.gameState.warnings = Math.min(20, window.gameState.warnings + 3);
             
-            // ✅ 不中断直播（修复：移除了强制结束直播的代码）
-            // ✅ 修改：虚假商单被曝光不再强制结束直播
-            
-            // ✅ 不停止所有推广（修复：移除了停止所有推广的代码）
-            // ✅ 修改：虚假商单被曝光不再停止所有流量推广
-            
             // 开始掉粉惩罚（修复版：不会重置已有惩罚）
-            startFakeAdFanLoss([work]);
+            window.startFakeAdFanLoss([work]);
             
             // 舆论风波
             if (typeof window.startPublicOpinionCrisis === 'function') {
@@ -404,7 +426,7 @@ window.generateCommentsWithNegative = function(work, count, workTime) {
     return comments;
 };
 
-// ==================== 高商单数惩罚机制 ====================
+// ==================== 高商单数惩罚机制（新增负面热度机制）====================
 window.checkHighAdCountPenalty = function() {
     if (!window.gameState || window.gameState.isBanned) return;
     
@@ -412,11 +434,9 @@ window.checkHighAdCountPenalty = function() {
     if (window.gameState.adOrdersCount >= 30 && !window.gameState.adOrdersPenaltyActive) {
         console.log(`商单数达到${window.gameState.adOrdersCount}，触发粉丝疲劳惩罚`);
         
-        // ✅ 减少热度值（高商单数惩罚）
-        if (window.HotValueSystem) {
-            const hotValueDecrease = Math.floor(Math.random() * 701) + 800; // 800-1500
-            window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - hotValueDecrease);
-            gameState.currentHotValue = window.HotValueSystem.currentHotValue;
+        // ✅ 启动负面热度7天增长期（高商单数属于负面事件）
+        if (typeof window.startNegativeHotValueBoost === 'function') {
+            window.startNegativeHotValueBoost(7);
         }
         
         // 1. 记录惩罚强度
@@ -450,6 +470,11 @@ window.checkHighAdCountPenalty = function() {
                 window.gameState.adOrdersPenaltyActive = false;
                 window.gameState.adOrdersPenaltyIntensity = 0;
                 
+                // ✅ 惩罚结束，启动负面热度7天下降期
+                if (typeof window.endNegativeHotValueBoostAndStartDrop === 'function') {
+                    window.endNegativeHotValueBoostAndStartDrop(7);
+                }
+                
                 // ✅ 修改：使用小弹窗通知
                 if (typeof window.showEventPopup === 'function') {
                     showEventPopup('✅ 粉丝疲劳缓解', '经过休息，粉丝对你的印象有所好转');
@@ -469,14 +494,28 @@ window.checkHighAdCountPenalty = function() {
             if (Math.random() < dropProbability) {
                 const baseDrop = Math.floor(Math.random() * 11) + 5;
                 const intensityDrop = Math.floor(window.gameState.adOrdersPenaltyIntensity / 5) * 2;
-                const dropAmount = baseDrop + intensityDrop;
+                let dropAmount = baseDrop + intensityDrop;
+                
+                // ✅ 应用负面热度掉粉加成
+                if (typeof window.getNegativeHotValueRatio === 'function') {
+                    const negativeRatio = window.getNegativeHotValueRatio();
+                    if (negativeRatio > 0) {
+                        const bonusLoss = Math.floor(dropAmount * negativeRatio * 0.5);
+                        dropAmount += bonusLoss;
+                    }
+                }
                 
                 window.gameState.fans = Math.max(0, window.gameState.fans - dropAmount);
+                
+                // ✅ 关键修复：将掉粉记录到每日取关统计中
+                window.gameState.todayLostFans += dropAmount;
                 
                 // 20%概率显示通知
                 if (Math.random() < 0.20) {
                     // ✅ 修改：使用涨掉粉通知系统
-                    addFanChangeNotification('⬇️', '因长期接商单失去粉丝', '粉丝疲劳', 'loss', dropAmount);
+                    if (typeof window.addFanChangeNotification === 'function') {
+                        window.addFanChangeNotification('⬇️', '因长期接商单失去粉丝', '粉丝疲劳', 'loss', dropAmount);
+                    }
                 }
                 
                 if (typeof window.updateDisplay === 'function') {
@@ -522,7 +561,7 @@ function checkAdAchievements() {
     });
 }
 
-// ==================== 初始化商单相关状态（已修复：恢复惩罚定时器） ====================
+// ==================== 初始化商单相关状态（已修复：恢复惩罚定时器+负面热度系统）====================
 function initAdSystem() {
     // 确保商单相关状态存在
     if (window.gameState) {
@@ -544,6 +583,16 @@ function initAdSystem() {
         if (window.gameState.fakeAdBans === undefined) window.gameState.fakeAdBans = 0;
         if (window.gameState.monthsWithoutFakeAd === undefined) window.gameState.monthsWithoutFakeAd = 0;
         if (window.gameState.lastCheckMonth === undefined) window.gameState.lastCheckMonth = -1;
+        
+        // ✅ 新增：确保负面热度系统状态存在
+        if (window.gameState.negativeHotValue === undefined) window.gameState.negativeHotValue = 0;
+        if (window.gameState.totalHotValueGained === undefined) window.gameState.totalHotValueGained = 0;
+        if (window.gameState.currentNegativeBoostEndTime === undefined) window.gameState.currentNegativeBoostEndTime = 0;
+        if (window.gameState.currentNegativeDropEndTime === undefined) window.gameState.currentNegativeDropEndTime = 0;
+        if (window.gameState.isNegativeBoostActive === undefined) window.gameState.isNegativeBoostActive = false;
+        if (window.gameState.isNegativeDropActive === undefined) window.gameState.isNegativeDropActive = false;
+        if (window.gameState.negativeBoostInterval === undefined) window.gameState.negativeBoostInterval = null;
+        if (window.gameState.negativeDropInterval === undefined) window.gameState.negativeDropInterval = null;
         
         // ✅ 关键修复：游戏加载时恢复未完成的惩罚
         // 延迟恢复，确保gameTimer已同步
@@ -597,6 +646,98 @@ window.startExposureCheck = function() {
     }, VIRTUAL_DAY_MS);
 };
 
+// ==================== 新增：状态导出函数（供开发者监控使用）====================
+
+// 获取虚假商单惩罚状态详情
+window.getFakeAdPenaltyStatus = function() {
+    if (!window.gameState || !window.gameState.fakeAdPenalty || !window.gameState.fakeAdPenalty.isActive) {
+        return {
+            active: false,
+            daysLeft: 0,
+            lossRate: 0,
+            exposedCount: 0
+        };
+    }
+    
+    const penalty = window.gameState.fakeAdPenalty;
+    const now = window.gameTimer;
+    const daysLeft = Math.max(0, (penalty.endTime - now) / VIRTUAL_DAY_MS);
+    
+    return {
+        active: true,
+        daysLeft: Math.ceil(daysLeft),
+        lossRate: penalty.dailyFanLoss || 1,
+        exposedCount: (penalty.exposedWorkIds || []).length
+    };
+};
+
+// 获取商单系统统计信息
+window.getAdSystemStats = function() {
+    if (!window.gameState) {
+        return {
+            totalAds: 0,
+            fakeAds: 0,
+            exposedFakeAds: 0,
+            pendingBrandDeal: false,
+            monthlyCount: 0,
+            penaltyActive: false
+        };
+    }
+    
+    const works = window.gameState.worksList || [];
+    const totalAds = works.filter(w => w.isAd && !w.isPrivate).length;
+    const fakeAds = works.filter(w => w.isAd && w.adOrder && !w.adOrder.real && !w.isPrivate).length;
+    const exposedFakeAds = works.filter(w => w.isAd && w.adOrder && !w.adOrder.real && w.adOrder.isExposed && !w.isPrivate).length;
+    
+    return {
+        totalAds: totalAds,
+        fakeAds: fakeAds,
+        exposedFakeAds: exposedFakeAds,
+        pendingBrandDeal: !!(window.gameState.pendingBrandDeal && window.gameState.pendingBrandDeal.status === 'pending'),
+        monthlyCount: window.gameState.adOrdersCount || 0,
+        penaltyActive: window.gameState.adOrdersPenaltyActive || false,
+        fakeAdPenaltyActive: window.gameState.fakeAdPenalty && window.gameState.fakeAdPenalty.isActive
+    };
+};
+
+// 获取负面热度状态
+window.getNegativeHotStatus = function() {
+    if (!window.gameState) {
+        return {
+            boostActive: false,
+            dropActive: false,
+            ratio: 0,
+            boostDaysLeft: 0,
+            dropDaysLeft: 0
+        };
+    }
+    
+    const now = window.gameTimer;
+    let boostDaysLeft = 0;
+    let dropDaysLeft = 0;
+    
+    if (window.gameState.isNegativeBoostActive && window.gameState.currentNegativeBoostEndTime) {
+        boostDaysLeft = Math.max(0, (window.gameState.currentNegativeBoostEndTime - now) / VIRTUAL_DAY_MS);
+    }
+    
+    if (window.gameState.isNegativeDropActive && window.gameState.currentNegativeDropEndTime) {
+        dropDaysLeft = Math.max(0, (window.gameState.currentNegativeDropEndTime - now) / VIRTUAL_DAY_MS);
+    }
+    
+    let ratio = 0;
+    if (typeof window.getNegativeHotValueRatio === 'function') {
+        ratio = window.getNegativeHotValueRatio();
+    }
+    
+    return {
+        boostActive: window.gameState.isNegativeBoostActive || false,
+        dropActive: window.gameState.isNegativeDropActive || false,
+        ratio: ratio,
+        boostDaysLeft: boostDaysLeft,
+        dropDaysLeft: dropDaysLeft
+    };
+};
+
 // 绑定全局函数
 window.startFakeAdFanLoss = window.startFakeAdFanLoss;
 window.resumeFakeAdPenalty = window.resumeFakeAdPenalty;
@@ -608,3 +749,6 @@ window.checkAdAchievements = checkAdAchievements;
 window.initAdSystem = initAdSystem;
 window.startMonthlyCheck = window.startMonthlyCheck;
 window.startExposureCheck = window.startExposureCheck;
+window.getFakeAdPenaltyStatus = window.getFakeAdPenaltyStatus;
+window.getAdSystemStats = window.getAdSystemStats;
+window.getNegativeHotStatus = window.getNegativeHotStatus;

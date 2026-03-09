@@ -32,7 +32,8 @@ window.raffleFormData = {
     type: 'video',
     content: '',
     days: 7,
-    drawMethod: 'auto' // 'auto' 或 'manual'
+    drawMethod: 'auto', // 'auto' 或 'manual'
+    prizeCount: 1 // 新增：奖品数量（即中奖人数）
 };
 
 // ==================== 显示抽奖创建页面 ====================
@@ -72,12 +73,30 @@ window.showRafflePage = function() {
                     <div class="prize-option" data-prize-id="${prize.id}" onclick="selectRafflePrize('${prize.id}')">
                         <div style="font-size: 24px; margin-bottom: 5px;">${prize.icon}</div>
                         <div style="font-size: 12px; font-weight: bold;">${prize.name}</div>
-                        <div class="prize-price">${formatNumber(prize.price)}元</div>
+                        <div class="prize-price">${formatNumber(prize.price)}元/个</div>
                     </div>
                 `).join('')}
             </div>
             <div style="font-size: 12px; color: #999; margin-top: 10px; text-align: center;">
                 💰 当前零钱：${formatNumber(Math.floor(gameState.money))}元
+            </div>
+        </div>
+
+        <div class="raffle-form-section" id="prizeCountSection" style="display: none;">
+            <div class="section-title">🔢 奖品数量设置</div>
+            <div style="background: #222; border-radius: 10px; padding: 15px; margin: 10px 0;">
+                <div style="font-size: 12px; color: #999; margin-bottom: 10px;">购买数量（即中奖人数）</div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin: 15px 0;">
+                    <button onclick="window.changePrizeCount(-1)" style="background: linear-gradient(135deg, #667aea 0%, #764ba2 100%); border: none; color: #fff; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer; transition: all 0.3s;">-</button>
+                    <div id="prizeCountDisplay" style="font-size: 24px; font-weight: bold; min-width: 80px; text-align: center; color: #00f2ea;">1</div>
+                    <button onclick="window.changePrizeCount(1)" style="background: linear-gradient(135deg, #667aea 0%, #764ba2 100%); border: none; color: #fff; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer; transition: all 0.3s;">+</button>
+                </div>
+                <div style="font-size: 12px; color: #999; text-align: center; margin-top: 10px;">
+                    单价：<span id="prizeSinglePrice" style="color: #fff;">0</span>元/个
+                </div>
+                <div style="font-size: 14px; color: #667aea; text-align: center; margin-top: 5px; font-weight: bold;">
+                    奖品总计：<span id="prizeTotalPrice">0</span>元（${window.raffleFormData.prizeCount}个中奖名额）
+                </div>
             </div>
         </div>
 
@@ -112,11 +131,16 @@ window.showRafflePage = function() {
             <div class="section-title">⏱️ 活动设置</div>
             <div class="input-group">
                 <div class="input-label">活动天数</div>
-                <div class="raffle-days-selector" id="daysSelector">
-                    ${Array.from({length: 30}, (_, i) => i + 1).map(day => `
-                        <div class="raffle-day-option ${day === 7 ? 'selected' : ''}" 
-                             onclick="selectRaffleDays(${day})">${day}天</div>
-                    `).join('')}
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin: 10px 0;">
+                    <button onclick="changeRaffleDays(-1)" style="background: linear-gradient(135deg, #667aea 0%, #764ba2 100%); border: none; color: #fff; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer;">-</button>
+                    <input type="number" id="raffleDaysInput" min="1" max="30" value="7" style="width: 80px; text-align: center; background: #222; border: 1px solid #333; color: #fff; border-radius: 8px; padding: 10px; font-size: 16px; font-weight: bold;" onchange="updateRaffleDaysFromInput()">
+                    <button onclick="changeRaffleDays(1)" style="background: linear-gradient(135deg, #667aea 0%, #764ba2 100%); border: none; color: #fff; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer;">+</button>
+                </div>
+                <div style="font-size: 12px; color: #999; text-align: center;">
+                    活动费用：<span id="costDaysDetail">70000</span>元（1天=10000元）
+                </div>
+                <div style="font-size: 11px; color: #ff6b00; text-align: center; margin-top: 3px;">
+                    (可输入1-30天)
                 </div>
             </div>
             <div class="input-group">
@@ -136,8 +160,23 @@ window.showRafflePage = function() {
             </div>
         </div>
 
-        <div style="font-size: 12px; color: #999; margin: 20px 0; line-height: 1.5;">
-            💡 提示：抽奖活动期间将疯狂涨粉和增加播放量，但活动结束后会掉粉！
+        <div class="raffle-form-section" id="totalCostSection" style="display: none;">
+            <div class="section-title">💰 费用明细</div>
+            <div style="background: linear-gradient(135deg, #222 0%, #161823 100%); border-radius: 10px; padding: 15px; margin: 10px 0; border: 1px solid #333;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+                    <span style="color: #999;">奖品费用：</span>
+                    <span id="costPrizeDetail" style="color: #fff;">0元</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+                    <span style="color: #999;">活动费用：</span>
+                    <span id="costDaysDetailStatic" style="color: #fff;">0元</span>
+                </div>
+                <div style="border-top: 1px solid #333; margin: 10px 0;"></div>
+                <div style="display: flex; justify-content: space-between; font-size: 15px; font-weight: bold;">
+                    <span style="color: #667aea;">总计：</span>
+                    <span id="costTotalDetail" style="color: #00f2ea;">0元</span>
+                </div>
+            </div>
         </div>
 
         <button class="btn" id="createRaffleBtn" onclick="createRaffle()" disabled>
@@ -151,13 +190,83 @@ window.showRafflePage = function() {
         type: document.getElementById('raffleType').value,
         content: document.getElementById('raffleContent').value,
         days: 7,
-        drawMethod: 'auto'
+        drawMethod: 'auto',
+        prizeCount: 1
     };
 
     document.getElementById('rafflePage').classList.add('active');
     document.getElementById('mainContent').style.display = 'none';
     document.querySelector('.bottom-nav').style.display = 'none';
 };
+
+// ✅ 新增：修改奖品数量
+window.changePrizeCount = function(delta) {
+    const newCount = (window.raffleFormData.prizeCount || 1) + delta;
+    if (newCount >= 1 && newCount <= 1000) { // 上限1000防止过多
+        window.raffleFormData.prizeCount = newCount;
+        
+        // 更新显示
+        const displayEl = document.getElementById('prizeCountDisplay');
+        if (displayEl) displayEl.textContent = newCount;
+        
+        // 更新价格显示
+        if (window.selectedPrize) {
+            const totalPrizePrice = window.selectedPrize.price * newCount;
+            const priceEl = document.getElementById('prizeTotalPrice');
+            if (priceEl) {
+                priceEl.textContent = `${formatNumber(totalPrizePrice)}元（${newCount}个中奖名额）`;
+            }
+            
+            // 更新费用明细
+            updateCostDetails();
+        }
+        
+        checkRaffleCreationAvailability();
+    }
+};
+
+// ✅ 新增：修改抽奖天数
+function changeRaffleDays(delta) {
+    const input = document.getElementById('raffleDaysInput');
+    if (!input) return;
+    let newVal = parseInt(input.value) + delta;
+    if (isNaN(newVal)) newVal = 7;
+    newVal = Math.min(30, Math.max(1, newVal));
+    input.value = newVal;
+    window.raffleFormData.days = newVal;
+    updateCostDetails();
+    checkRaffleCreationAvailability();
+}
+
+// ✅ 新增：手动输入天数时同步
+function updateRaffleDaysFromInput() {
+    const input = document.getElementById('raffleDaysInput');
+    if (!input) return;
+    let val = parseInt(input.value);
+    if (isNaN(val) || val < 1) val = 1;
+    if (val > 30) val = 30;
+    input.value = val;
+    window.raffleFormData.days = val;
+    updateCostDetails();
+    checkRaffleCreationAvailability();
+}
+
+// ==================== 新增：更新费用明细显示 ====================
+function updateCostDetails() {
+    if (!window.selectedPrize) return;
+    
+    const prizeCost = window.selectedPrize.price * window.raffleFormData.prizeCount;
+    const daysCost = window.raffleFormData.days * 10000;
+    const totalCost = prizeCost + daysCost;
+    
+    const prizeDetailEl = document.getElementById('costPrizeDetail');
+    const daysDetailEl = document.getElementById('costDaysDetailStatic');
+    const totalDetailEl = document.getElementById('costTotalDetail');
+    
+    if (prizeDetailEl) prizeDetailEl.textContent = `${formatNumber(prizeCost)}元 (${window.raffleFormData.prizeCount}个×${formatNumber(window.selectedPrize.price)}元)`;
+    if (daysDetailEl) daysDetailEl.textContent = `${formatNumber(daysCost)}元 (${window.raffleFormData.days}天)`;
+    if (totalDetailEl) totalDetailEl.textContent = `${formatNumber(totalCost)}元`;
+}
 
 // ==================== 选择奖品 ====================
 window.selectRafflePrize = function(prizeId) {
@@ -174,31 +283,31 @@ window.selectRafflePrize = function(prizeId) {
     window.selectedPrize = RAFFLE_PRIZES.find(p => p.id === prizeId);
     
     // 更新奖品信息显示
-    document.getElementById('rafflePrizeInfo').value = `${window.selectedPrize.icon} ${window.selectedPrize.name}`;
+    document.getElementById('rafflePrizeInfo').value = `${window.selectedPrize.icon} ${window.selectedPrize.name} - ${formatNumber(window.selectedPrize.price)}元/个`;
     document.getElementById('rafflePrizeInfo').style.color = '#fff';
+    
+    // 显示数量选择区域
+    const countSection = document.getElementById('prizeCountSection');
+    if (countSection) countSection.style.display = 'block';
+    
+    // 显示费用明细区域
+    const costSection = document.getElementById('totalCostSection');
+    if (costSection) costSection.style.display = 'block';
+    
+    // 更新单价显示
+    const singlePriceEl = document.getElementById('prizeSinglePrice');
+    if (singlePriceEl) singlePriceEl.textContent = formatNumber(window.selectedPrize.price);
+    
+    // 更新总价和明细
+    updateCostDetails();
     
     // 检查是否可以创建抽奖
     checkRaffleCreationAvailability();
 };
 
-// ==================== 选择活动天数 ====================
+// ==================== 选择活动天数（此函数已废弃，保留兼容） ====================
 window.selectRaffleDays = function(days) {
-    // 取消所有选中状态
-    document.querySelectorAll('.raffle-day-option').forEach(option => {
-        option.classList.remove('selected');
-    });
-    
-    // 选中当前天数
-    const selectedElement = Array.from(document.querySelectorAll('.raffle-day-option')).find(
-        option => option.textContent === `${days}天`
-    );
-    selectedElement.classList.add('selected');
-    
-    // 更新表单数据
-    window.raffleFormData.days = days;
-    
-    // 更新费用显示
-    checkRaffleCreationAvailability();
+    console.warn('selectRaffleDays 已废弃，请使用天数输入控件');
 };
 
 // ==================== 选择抽奖方式 ====================
@@ -245,8 +354,10 @@ function checkRaffleCreationAvailability() {
         return;
     }
     
+    // 计算费用：奖品单价 × 数量 + 天数费用
+    const prizeTotalCost = window.selectedPrize.price * window.raffleFormData.prizeCount;
     const daysCost = window.raffleFormData.days * 10000;
-    const totalCost = window.selectedPrize.price + daysCost;
+    const totalCost = prizeTotalCost + daysCost;
     
     if (gameState.money < totalCost) {
         createBtn.disabled = true;
@@ -255,10 +366,10 @@ function checkRaffleCreationAvailability() {
     }
     
     createBtn.disabled = false;
-    createBtn.textContent = '确定发布抽奖';
+    createBtn.textContent = `确定发布抽奖（${window.raffleFormData.prizeCount}个中奖名额）`;
 };
 
-// ==================== 创建抽奖活动 ====================
+// ==================== 创建抽奖活动（修改版：根据购买数量决定中奖人数） ====================
 window.createRaffle = function() {
     // ✅ 双重保险：再次检查账号状态
     if (gameState.isBanned) { 
@@ -271,15 +382,17 @@ window.createRaffle = function() {
         return;
     }
     
+    // 计算总费用：奖品单价 × 数量 + 天数费用
+    const prizeTotalCost = window.selectedPrize.price * window.raffleFormData.prizeCount;
     const daysCost = window.raffleFormData.days * 10000;
-    const totalCost = window.selectedPrize.price + daysCost;
+    const totalCost = prizeTotalCost + daysCost;
     
     if (gameState.money < totalCost) {
         showAlert(`零钱不足！需要${formatNumber(totalCost)}元`, '提示');
         return;
     }
     
-    // 扣除奖品费用 + 天数费用
+    // 扣除费用
     gameState.money -= totalCost;
     
     // 创建抽奖作品
@@ -289,6 +402,7 @@ window.createRaffle = function() {
         title: window.raffleFormData.title,
         content: window.raffleFormData.content,
         prize: window.selectedPrize,
+        prizeCount: window.raffleFormData.prizeCount, // 保存奖品数量（即中奖人数）
         views: 0,
         likes: 0,
         comments: 0,
@@ -310,7 +424,13 @@ window.createRaffle = function() {
         fanGrowthInterval: null,
         fanLossInterval: null,
         crazyFanLossInterval: null,
-        fanLossEndTime: null
+        fanLossEndTime: null,
+        // ✅ 新增：热度值相关状态
+        hotValueInterval: null,
+        hotValueDropInterval: null,
+        hotValueDropEndTime: null,
+        // ✅ 新增：手动抽奖警告定时器
+        manualDrawWarningInterval: null
     };
     
     // 添加到作品列表
@@ -326,20 +446,14 @@ window.createRaffle = function() {
     // 启动抽奖数据增长
     startRaffleDataGrowth(raffleWork.id);
     
-    // ✅ 新增：创建抽奖活动时增加热度值 (+1000~+2000)
-    if (window.HotValueSystem) {
-        const hotValueIncrease = Math.floor(Math.random() * 1001) + 1000; // 1000-2000
-        window.HotValueSystem.currentHotValue += hotValueIncrease;
-        window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue);
-        gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-        console.log(`[热度值] 创建抽奖活动，热度值增加 ${hotValueIncrease}，当前热度值: ${window.HotValueSystem.currentHotValue}`);
-    }
+    // ✅ 新增：启动热度值增长（每秒+1-90）
+    startRaffleHotValueGrowth(raffleWork.id);
     
     // 关闭页面
     closeFullscreenPage('raffle');
     
     // 显示成功通知
-    showEventPopup('🎉 抽奖发布成功', `奖品：${window.selectedPrize.name} | 活动时长：${window.raffleFormData.days}天`);
+    showEventPopup('🎉 抽奖发布成功', `奖品：${window.selectedPrize.name} × ${window.raffleFormData.prizeCount} | 中奖名额：${window.raffleFormData.prizeCount}个 | 活动时长：${window.raffleFormData.days}天`);
     
     // 重置表单
     window.selectedPrize = null;
@@ -348,12 +462,42 @@ window.createRaffle = function() {
         type: 'video',
         content: '',
         days: 7,
-        drawMethod: 'auto'
+        drawMethod: 'auto',
+        prizeCount: 1
     };
     
     // 更新显示
     updateDisplay();
 };
+
+// ✅ 新增：抽奖热度值增长（每秒+1-90）
+function startRaffleHotValueGrowth(workId) {
+    const work = gameState.worksList.find(w => w.id === workId);
+    if (!work || !work.isRaffle || work.raffleStatus !== 'active') return;
+    
+    // 停止之前的定时器
+    if (work.hotValueInterval) {
+        clearInterval(work.hotValueInterval);
+    }
+    
+    work.hotValueInterval = setInterval(() => {
+        // 检查是否还在活动期内
+        if (gameTimer >= work.activityEndTime) {
+            return; // 结束时会由 endRaffleActivity 处理
+        }
+        
+        if (window.HotValueSystem && window.HotValueSystem.currentHotValue !== undefined) {
+            const increase = Math.floor(Math.random() * 90) + 1; // 1-90
+            // ✅ 修复：添加对 config.maxHotValue 的安全访问
+            const maxLimit = (window.HotValueSystem.config && window.HotValueSystem.config.maxHotValue) || 999999;
+            window.HotValueSystem.currentHotValue = Math.min(
+                maxLimit,
+                window.HotValueSystem.currentHotValue + increase
+            );
+            gameState.currentHotValue = window.HotValueSystem.currentHotValue;
+        }
+    }, 1000);
+}
 
 // ==================== 生成初始抽奖消息 ====================
 function generateInitialRaffleMessages(raffleWork) {
@@ -366,7 +510,7 @@ function generateInitialRaffleMessages(raffleWork) {
             type: 'like',
             user: generateRandomUsername(),
             workId: raffleWork.id,
-            workContent: `🎁 抽奖：${raffleWork.prize.name}`,
+            workContent: `🎁 抽奖：${raffleWork.prize.name} × ${raffleWork.prizeCount}`,
             time: gameTimer,
             read: false
         });
@@ -379,7 +523,7 @@ function generateInitialRaffleMessages(raffleWork) {
             type: 'share',
             user: generateRandomUsername(),
             workId: raffleWork.id,
-            workContent: `🎁 抽奖：${raffleWork.prize.name}`,
+            workContent: `🎁 抽奖：${raffleWork.prize.name} × ${raffleWork.prizeCount}`,
             time: gameTimer,
             read: false
         });
@@ -480,14 +624,15 @@ function startRaffleDataGrowth(workId) {
         const revenueGrowth = newRevenue - oldRevenue;
         if (revenueGrowth > 0) {
             work.revenue = newRevenue;
-            gameState.money += revenueBoost;
+            // ✅ 修复：将 revenueBoost 改为 revenueGrowth（变量名错误修复）
+            gameState.money += revenueGrowth;
         }
         
         updateDisplay();
     }, 1000);
 }
 
-// ==================== 结束抽奖活动 ====================
+// ==================== 结束抽奖活动（修改版：停止热度值增长，开始3天下降） ====================
 function endRaffleActivity(workId) {
     const work = gameState.worksList.find(w => w.id === workId);
     if (!work || !work.isRaffle || work.raffleStatus !== 'active') return;
@@ -509,6 +654,15 @@ function endRaffleActivity(workId) {
         work.dataGrowthInterval = null;
     }
     
+    // ✅ 停止热度值增长
+    if (work.hotValueInterval) {
+        clearInterval(work.hotValueInterval);
+        work.hotValueInterval = null;
+    }
+    
+    // ✅ 开始3天热度值下降（每秒掉1-80）
+    startRaffleHotValueDrop(workId);
+    
     // 开始活动结束后的自然掉粉
     startRafflePostEndFanLoss(work.id);
     
@@ -520,10 +674,42 @@ function endRaffleActivity(workId) {
         startManualDrawWarning(work.id);
     }
     
-    // 发送通知
-    showEventPopup('📢 抽奖活动结束', `您的抽奖活动"${work.title}"已结束${work.drawMethod === 'auto' ? '，自动抽奖中' : '，请在3天内手动抽奖'}（掉粉持续${fanLossDuration}天）`);
+    // 发送通知（移除掉粉和热度值回落描述）
+    showEventPopup('📢 抽奖活动结束', `您的抽奖活动"${work.title}"已结束${work.drawMethod === 'auto' ? '，自动抽奖中' : '，请在3天内手动抽奖'}（${work.prizeCount}个中奖名额）`);
     
     updateDisplay();
+}
+
+// ✅ 新增：抽奖热度值下降（3天，每秒掉1-80）
+function startRaffleHotValueDrop(workId) {
+    const work = gameState.worksList.find(w => w.id === workId);
+    if (!work) return;
+    
+    // 停止之前的下降定时器
+    if (work.hotValueDropInterval) {
+        clearInterval(work.hotValueDropInterval);
+    }
+    
+    // 设置3天后的结束时间
+    work.hotValueDropEndTime = gameTimer + (3 * VIRTUAL_DAY_MS);
+    
+    work.hotValueDropInterval = setInterval(() => {
+        // 检查是否已到3天
+        if (gameTimer >= work.hotValueDropEndTime) {
+            clearInterval(work.hotValueDropInterval);
+            work.hotValueDropInterval = null;
+            work.hotValueDropEndTime = null;
+            console.log(`[抽奖热度值] 作品 ${workId} 热度值下降期结束（3天）`);
+            return;
+        }
+        
+        // 每秒掉1-80热度值
+        if (window.HotValueSystem && window.HotValueSystem.currentHotValue !== undefined) {
+            const decrease = Math.floor(Math.random() * 80) + 1; // 1-80
+            window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - decrease);
+            gameState.currentHotValue = window.HotValueSystem.currentHotValue;
+        }
+    }, 1000);
 }
 
 // ==================== 抽奖活动结束后的掉粉 ====================
@@ -545,8 +731,8 @@ function startRafflePostEndFanLoss(workId) {
             work.fanLossInterval = null;
             work.fanLossEndTime = null;
             
-            // ✅ 修改：使用小弹窗通知
-            showEventPopup('✅ 抽奖影响结束', '粉丝的抽奖热情逐渐平息，掉粉已停止');
+            // ✅ 修改：移除掉粉相关描述，改为中性提示
+            showEventPopup('✅ 抽奖影响结束', '粉丝的抽奖热情逐渐平息');
             return;
         }
         
@@ -595,7 +781,8 @@ function startManualDrawWarning(workId) {
         if (daysPassed > 0 && Math.floor(daysPassed) > (work.warningShown || 0)) {
             work.warningShown = Math.floor(daysPassed);
             const remainingDays = Math.ceil(3 - daysPassed);
-            showEventPopup('⚠️ 手动抽奖提醒', `您的抽奖活动"${work.title}"已结束${work.warningShown}天，还有${remainingDays}天进行手动抽奖，否则将疯狂掉粉！`);
+            // 移除“否则将疯狂掉粉”描述
+            showEventPopup('⚠️ 手动抽奖提醒', `您的抽奖活动"${work.title}"已结束${work.warningShown}天，还有${remainingDays}天进行手动抽奖`);
         }
     }, 1000);
 }
@@ -617,7 +804,8 @@ function endManualDrawDeadline(workId) {
     // 启动疯狂掉粉
     startCrazyFanLoss(workId);
     
-    showEventPopup('⚠️ 抽奖超时警告', `您的抽奖活动"${work.title}"已超过3天未抽奖，开始疯狂掉粉！请立即前往抽奖！`);
+    // 移除“开始疯狂掉粉”描述
+    showEventPopup('⚠️ 抽奖超时警告', `您的抽奖活动"${work.title}"已超过3天未抽奖，已无法再进行抽奖`);
 }
 
 // ==================== 疯狂掉粉（手动抽奖超时惩罚） ====================
@@ -642,16 +830,16 @@ function startCrazyFanLoss(workId) {
         gameState.fans = Math.max(0, gameState.fans - crazyLoss);
         gameState.todayLostFans += crazyLoss;
         
-        // 显示警告通知
+        // 显示警告通知（移除“疯狂”描述）
         if (typeof addFanChangeNotification === 'function') {
-            addFanChangeNotification('⬇️', `疯狂失去了${crazyLoss.toLocaleString()}个粉丝（抽奖超时）`, '抽奖超时惩罚', 'loss', crazyLoss);
+            addFanChangeNotification('⬇️', `失去了${crazyLoss.toLocaleString()}个粉丝（抽奖超时）`, '抽奖超时惩罚', 'loss', crazyLoss);
         }
         
         updateDisplay();
     }, 1000);
 }
 
-// ==================== 开始抽奖 ====================
+// ==================== 开始抽奖（修改版：使用设置的奖品数量作为中奖人数） ====================
 function startRaffleDraw(workId) {
     const work = gameState.worksList.find(w => w.id === workId);
     if (!work || !work.isRaffle || work.hasDrawn || work.manualDrawExpired) return;
@@ -665,11 +853,18 @@ function startRaffleDraw(workId) {
         clearInterval(work.crazyFanLossInterval);
         work.crazyFanLossInterval = null;
     }
+
+    // ✅ 停止手动抽奖提醒定时器（修复抽奖后仍出现提醒的问题）
+    if (work.manualDrawWarningInterval) {
+        clearInterval(work.manualDrawWarningInterval);
+        work.manualDrawWarningInterval = null;
+    }
     
     // ✅ 不要停止正常掉粉定时器 work.fanLossInterval（这是关键修改）
+    // ✅ 不要停止热度值下降定时器 work.hotValueDropInterval（继续掉热度值直到3天结束）
     
-    // 生成中奖用户
-    const winnerCount = Math.min(10, gameState.fans > 0 ? Math.floor(gameState.fans / 1000) + 1 : 1);
+    // ✅ 关键修改：使用设置的奖品数量作为中奖人数
+    const winnerCount = work.prizeCount || 1;
     const winners = [];
     
     for (let i = 0; i < winnerCount; i++) {
@@ -683,15 +878,6 @@ function startRaffleDraw(workId) {
     
     work.winners = winners;
     work.raffleStatus = 'completed';
-    
-    // ✅ 新增：抽奖开奖后减少热度值 (-500~-1000)
-    if (window.HotValueSystem) {
-        const hotValueDecrease = Math.floor(Math.random() * 501) + 500; // 500-1000
-        window.HotValueSystem.currentHotValue -= hotValueDecrease;
-        window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue);
-        gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-        console.log(`[热度值] 抽奖活动开奖，热度值减少 ${hotValueDecrease}，当前热度值: ${window.HotValueSystem.currentHotValue}`);
-    }
     
     // 发送中奖消息
     winners.forEach((winner, index) => {
@@ -714,8 +900,18 @@ function startRaffleDraw(workId) {
     updateDisplay();
 }
 
-// ==================== 显示抽奖结果 ====================
-function showRaffleResult(work) {
+// ==================== 显示抽奖结果（修改版：支持传入ID或对象，显示奖品数量） ====================
+function showRaffleResult(workOrId) {
+    // 支持传入work对象或workId
+    let work = workOrId;
+    if (typeof workOrId === 'number' || typeof workOrId === 'string') {
+        work = gameState.worksList.find(w => w.id === workOrId);
+    }
+    if (!work || !work.isRaffle) {
+        console.error('未找到抽奖作品');
+        return;
+    }
+    
     const winnersHtml = work.winners.map((winner, index) => `
         <div class="raffle-winner-item">
             <div style="display: flex; align-items: center; gap: 8px;">
@@ -739,9 +935,9 @@ function showRaffleResult(work) {
                 ${work.title}
             </div>
             <div style="font-size: 14px; color: #999; margin-bottom: 20px;">
-                ${work.prize.icon} ${work.prize.name} | 中奖人数：${work.winners.length}
+                ${work.prize.icon} ${work.prize.name} × ${work.prizeCount || 1} | 中奖人数：${work.winners.length}/${work.prizeCount || 1}
             </div>
-            <div class="raffle-winner-list">
+            <div class="raffle-winner-list" style="max-height: 400px; overflow-y: auto;">
                 ${winnersHtml}
             </div>
             <button class="btn" onclick="closeModalAndRaffleDetail()" style="margin-top: 15px;">确定</button>
@@ -766,7 +962,7 @@ window.showRaffleManagePage = function() {
     renderRaffleManagePage();
 };
 
-// ==================== 渲染抽奖管理页面 ====================
+// ==================== 渲染抽奖管理页面（修改版：显示奖品数量） ====================
 function renderRaffleManagePage() {
     const content = document.getElementById('raffleManagePageContent');
     const raffleWorks = gameState.worksList.filter(w => w.isRaffle);
@@ -805,9 +1001,11 @@ function renderRaffleManagePage() {
             actionButton = `<button class="btn" style="margin-top: 10px; padding: 8px;" onclick="showRaffleDetailPage(${work.id})">立即抽奖</button>`;
         } else if (work.raffleStatus === 'active') {
             const timeLeft = Math.max(0, (work.activityEndTime - gameTimer) / VIRTUAL_DAY_MS);
-            actionButton = `<div style="font-size: 12px; color: #667aea; margin-top: 10px;">剩余${timeLeft.toFixed(1)}天</div>`;
+            actionButton = `<div style="font-size: 12px; color: #667aea; margin-top: 10px;">剩余${timeLeft.toFixed(1)}天 | ${work.prizeCount || 1}个名额</div>`;
         } else if (work.raffleStatus === 'completed') {
-            actionButton = `<button class="btn btn-secondary" style="margin-top: 10px; padding: 8px;" onclick="showRaffleResult(${work.id})">查看结果</button>`;
+            actionButton = `
+                <button class="btn btn-secondary" style="margin-top: 10px; padding: 8px;" onclick="showRaffleResult(${work.id})">查看结果</button>
+            `;
         } else if (work.manualDrawExpired) {
             actionButton = `<div style="font-size: 12px; color: #ff0050; margin-top: 10px;">已过期</div>`;
         }
@@ -825,7 +1023,7 @@ function renderRaffleManagePage() {
                 </div>
                 
                 <div style="font-size: 14px; color: #ccc; margin-top: 5px;">
-                    ${work.prize.icon} ${work.prize.name} | 参与方式：${work.drawMethod === 'auto' ? '自动' : '手动'}抽奖
+                    ${work.prize.icon} ${work.prize.name} × ${work.prizeCount || 1} | ${work.prizeCount || 1}个中奖名额 | ${work.drawMethod === 'auto' ? '自动' : '手动'}抽奖
                 </div>
                 
                 <div class="work-stats">
@@ -861,7 +1059,7 @@ window.showRaffleDetailPage = function(workId) {
     renderRaffleDetailPage(work);
 };
 
-// ==================== 渲染抽奖详情页面 ====================
+// ==================== 渲染抽奖详情页面（修改版：显示奖品数量和中奖名额） ====================
 function renderRaffleDetailPage(work) {
     const content = document.getElementById('raffleDetailPageContent');
     document.getElementById('raffleDetailTitle').textContent = '抽奖详情';
@@ -889,7 +1087,7 @@ function renderRaffleDetailPage(work) {
         const timeLeft = Math.max(0, (work.activityEndTime - gameTimer) / VIRTUAL_DAY_MS);
         timeInfoHtml = `<div style="background: #161823; border-radius: 8px; padding: 10px; margin: 10px 0; border: 1px solid #333;">
             <div style="font-size: 14px; font-weight: bold; color: #667aea; margin-bottom: 5px;">⏱️ 活动倒计时</div>
-            <div style="font-size: 12px; color: #ccc;">剩余时间：<span style="color: #00f2ea; font-weight: bold;">${timeLeft.toFixed(1)}天</span></div>
+            <div style="font-size: 12px; color: #ccc;">剩余时间：<span style="color: #00f2ea; font-weight: bold;">${timeLeft.toFixed(1)}天</span> | 中奖名额：<span style="color: #00f2ea; font-weight: bold;">${work.prizeCount || 1}个</span></div>
         </div>`;
     } else if (work.raffleStatus === 'ended' && work.drawMethod === 'manual' && !work.hasDrawn && !work.manualDrawExpired) {
         const timePassed = gameTimer - work.activityEndTime;
@@ -899,16 +1097,16 @@ function renderRaffleDetailPage(work) {
         if (remainingDays > 0) {
             timeInfoHtml = `<div style="background: linear-gradient(135deg, #2a1a00 0%, #161823 100%); border-radius: 8px; padding: 10px; margin: 10px 0; border: 1px solid #ff6b00;">
                 <div style="font-size: 14px; font-weight: bold; color: #ff6b00; margin-bottom: 5px;">⚠️ 手动抽奖倒计时</div>
-                <div style="font-size: 12px; color: #ccc;">剩余时间：<span style="color: #ff6b00; font-weight: bold;">${remainingDays.toFixed(1)}天</span></div>
+                <div style="font-size: 12px; color: #ccc;">剩余时间：<span style="color: #ff6b00; font-weight: bold;">${remainingDays.toFixed(1)}天</span> | 待抽取：<span style="color: #ff6b00; font-weight: bold;">${work.prizeCount || 1}个名额</span></div>
             </div>`;
         } else {
             timeInfoHtml = `<div class="raffle-countdown-warning">
-                ⚠️ 已超过3天未抽奖，正在疯狂掉粉！请立即抽奖！
+                ⚠️ 已超过3天未抽奖，已无法再进行抽奖操作
             </div>`;
         }
     } else if (work.manualDrawExpired) {
         timeInfoHtml = `<div class="raffle-countdown-warning">
-            ❌ 抽奖已过期，无法再进行抽奖操作！
+            ❌ 抽奖已过期，无法再进行抽奖操作
         </div>`;
     }
     
@@ -917,10 +1115,10 @@ function renderRaffleDetailPage(work) {
     if (work.raffleStatus === 'ended' && work.drawMethod === 'manual' && !work.hasDrawn && !work.manualDrawExpired) {
         drawButtonHtml = `
             <button class="raffle-manual-draw-btn" onclick="startRaffleDraw(${work.id})">
-                🎯 立即开始抽奖
+                🎯 立即抽取 ${work.prizeCount || 1} 位中奖者
             </button>
             <div style="font-size: 11px; color: #999; text-align: center; margin-top: 10px;">
-                点击按钮开始抽取中奖用户
+                点击按钮开始抽取 ${work.prizeCount || 1} 位中奖用户
             </div>
         `;
     } else if (work.raffleStatus === 'drawing') {
@@ -928,13 +1126,13 @@ function renderRaffleDetailPage(work) {
             <div style="background: #161823; border-radius: 8px; padding: 15px; text-align: center; border: 1px solid #667aea;">
                 <div style="font-size: 16px; margin-bottom: 10px;">🎲</div>
                 <div style="font-size: 14px; font-weight: bold; color: #667aea;">抽奖进行中...</div>
-                <div style="font-size: 12px; color: #999; margin-top: 5px;">正在抽取中奖用户</div>
+                <div style="font-size: 12px; color: #999; margin-top: 5px;">正在抽取 ${work.prizeCount || 1} 位中奖用户</div>
             </div>
         `;
     } else if (work.raffleStatus === 'completed') {
         drawButtonHtml = `
             <button class="btn" onclick="showRaffleResult(${work.id})">
-                🏆 查看中奖结果
+                🏆 查看 ${work.winners.length} 位中奖结果
             </button>
         `;
     } else if (work.manualDrawExpired) {
@@ -943,29 +1141,6 @@ function renderRaffleDetailPage(work) {
                 <div style="font-size: 16px; margin-bottom: 10px;">❌</div>
                 <div style="font-size: 14px; font-weight: bold; color: #ff0050;">抽奖已过期</div>
                 <div style="font-size: 12px; color: #999; margin-top: 5px;">超过3天未抽奖，无法进行抽奖操作</div>
-            </div>
-        `;
-    }
-    
-    // 掉粉状态显示
-    let fanLossStatusHtml = '';
-    // ✅ 新增：显示掉粉剩余天数和掉粉统计
-    if (work.raffleStatus === 'ended' && work.fanLossInterval && work.fanLossEndTime) {
-        const timeLeft = Math.max(0, (work.fanLossEndTime - gameTimer) / VIRTUAL_DAY_MS);
-        const totalDuration = (work.fanLossEndTime - work.activityEndTime) / VIRTUAL_DAY_MS;
-        fanLossStatusHtml = `
-            <div style="background: linear-gradient(135deg, #2a000a 0%, #161823 100%); border-radius: 8px; padding: 10px; margin: 10px 0; border: 1px solid #ff0050;">
-                <div style="font-size: 14px; font-weight: bold; color: #ff0050; margin-bottom: 5px;">⬇️ 掉粉中</div>
-                <div style="font-size: 12px; color: #ccc;">持续时间：${totalDuration.toFixed(0)}天 | 剩余：<span style="color: #ff0050; font-weight: bold;">${timeLeft.toFixed(1)}天</span></div>
-                <div style="font-size: 11px; color: #999; margin-top: 5px;">每秒随机失去1-500个粉丝</div>
-            </div>
-        `;
-    } else if (work.totalFanLoss && work.totalFanLoss > 0) {
-        fanLossStatusHtml = `
-            <div style="background: #161823; border-radius: 8px; padding: 10px; margin: 10px 0; border: 1px solid #333;">
-                <div style="font-size: 14px; font-weight: bold; color: #999; margin-bottom: 5px;">📊 掉粉统计</div>
-                <div style="font-size: 12px; color: #ccc;">活动期间总涨粉：<span style="color: #00f2ea; font-weight: bold;">${formatNumber(work.totalFanGrowth || 0)}</span></div>
-                <div style="font-size: 12px; color: #ccc; margin-top: 3px;">活动结束后掉粉：<span style="color: #ff0050; font-weight: bold;">${formatNumber(work.totalFanLoss || 0)}</span></div>
             </div>
         `;
     }
@@ -986,8 +1161,9 @@ function renderRaffleDetailPage(work) {
                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                     <span style="font-size: 24px;">${work.prize.icon}</span>
                     <div>
-                        <div style="font-size: 14px; font-weight: bold;">${work.prize.name}</div>
-                        <div style="font-size: 12px; color: #667aea;">价值 ${formatNumber(work.prize.price)}元</div>
+                        <div style="font-size: 14px; font-weight: bold;">${work.prize.name} × ${work.prizeCount || 1}</div>
+                        <div style="font-size: 12px; color: #667aea;">单价 ${formatNumber(work.prize.price)}元 | 总计 ${formatNumber(work.prize.price * (work.prizeCount || 1))}元</div>
+                        <div style="font-size: 12px; color: #00f2ea; margin-top: 2px;">🎯 中奖名额：${work.prizeCount || 1}个</div>
                     </div>
                 </div>
             </div>
@@ -995,8 +1171,6 @@ function renderRaffleDetailPage(work) {
             <div style="font-size: 14px; line-height: 1.5; margin: 10px 0;">${work.content}</div>
             
             ${timeInfoHtml}
-            
-            ${fanLossStatusHtml}
             
             <div style="background: #161823; border-radius: 8px; padding: 10px; margin: 10px 0; border: 1px solid #333;">
                 <div style="font-size: 14px; font-weight: bold; color: #667aea; margin-bottom: 10px;">📊 活动数据</div>
@@ -1081,6 +1255,15 @@ window.resumeRaffleState = function(workId) {
         clearInterval(work.crazyFanLossInterval);
         work.crazyFanLossInterval = null;
     }
+    // ✅ 新增：清理热度值相关定时器
+    if (work.hotValueInterval) {
+        clearInterval(work.hotValueInterval);
+        work.hotValueInterval = null;
+    }
+    if (work.hotValueDropInterval) {
+        clearInterval(work.hotValueDropInterval);
+        work.hotValueDropInterval = null;
+    }
     
     // 根据状态恢复相应的定时器
     const timePassed = gameTimer - work.activityStartTime;
@@ -1096,6 +1279,7 @@ window.resumeRaffleState = function(workId) {
             console.log(`[恢复抽奖] 作品 ${workId} 恢复活动状态，剩余 ${work.activityDays - daysPassed} 天`);
             startRaffleFanGrowth(workId);
             startRaffleDataGrowth(workId);
+            startRaffleHotValueGrowth(workId); // ✅ 恢复热度值增长
             return;
         }
     }
@@ -1107,6 +1291,12 @@ window.resumeRaffleState = function(workId) {
             console.log(`[恢复抽奖] 作品 ${workId} 掉粉时间已过期，重新设置`);
             const fanLossDuration = Math.floor(Math.random() * 50) + 1;
             work.fanLossEndTime = gameTimer + (fanLossDuration * VIRTUAL_DAY_MS);
+        }
+        
+        // ✅ 恢复热度值下降
+        if (!work.hotValueDropEndTime || work.hotValueDropEndTime > gameTimer) {
+            // 如果还在3天热度值下降期内，恢复下降定时器
+            startRaffleHotValueDrop(workId);
         }
         
         if (work.drawMethod === 'auto' && !work.hasDrawn) {
@@ -1123,7 +1313,7 @@ window.resumeRaffleState = function(workId) {
                 startCrazyFanLoss(workId);
             } else {
                 console.log(`[恢复抽奖] 作品 ${workId} 等待手动抽奖，剩余 ${3 - manualDaysPassed} 天`);
-                startRafflePostEndFanLoss(workId); // ✅ 恢复掉粉
+                startRafflePostEndFanLoss(workId);
                 startManualDrawWarning(workId);
             }
         } else if (work.hasDrawn) {
@@ -1163,8 +1353,18 @@ function cleanupRaffleTimers() {
                 clearInterval(work.crazyFanLossInterval);
                 work.crazyFanLossInterval = null;
             }
+            // ✅ 新增：清理热度值相关定时器
+            if (work.hotValueInterval) {
+                clearInterval(work.hotValueInterval);
+                work.hotValueInterval = null;
+            }
+            if (work.hotValueDropInterval) {
+                clearInterval(work.hotValueDropInterval);
+                work.hotValueDropInterval = null;
+            }
             // 清理掉粉结束时间
             work.fanLossEndTime = null;
+            work.hotValueDropEndTime = null;
         }
     });
     
@@ -1190,7 +1390,11 @@ window.startRaffleDraw = window.startRaffleDraw;
 window.showRaffleResult = window.showRaffleResult;
 window.startRaffleStatusCheck = window.startRaffleStatusCheck;
 window.cleanupRaffleTimers = cleanupRaffleTimers;
-window.resumeRaffleState = window.resumeRaffleState; // ✅ 新增导出
+window.resumeRaffleState = window.resumeRaffleState;
+window.changePrizeCount = window.changePrizeCount; // 新增全局绑定
+// ✅ 新增导出天数控件函数
+window.changeRaffleDays = changeRaffleDays;
+window.updateRaffleDaysFromInput = updateRaffleDaysFromInput;
 
 // 添加清理函数到游戏重置逻辑
 const originalResetGame = window.resetGame;

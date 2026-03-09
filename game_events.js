@@ -1,19 +1,21 @@
+// game_events.js 完整代码
+
 // ==================== 热搜系统 ====================
 function startHotSearch(title) {
+    // ✅ 关键修复：如果账号已被封禁，无法上热搜
+    if (gameState.isBanned) {
+        console.log('账号被封禁，无法上热搜');
+        return;
+    }
+    
     if (gameState.isHotSearch) return;
     gameState.isHotSearch = true;
     gameState.hotSearchDaysCount = Math.floor(Math.random() * 3) + 1;
     gameState.hotSearchStartTime = gameTimer; // 使用游戏计时器
     gameState.hotSearchTitle = title || '🔥 话题热议中';
     
-    // ==================== 新增：热搜增加热度值 ====================
-    if (window.HotValueSystem) {
-        const hotValueIncrease = Math.floor(Math.random() * 2000) + 3000; // 增加3000-5000热度值
-        window.HotValueSystem.currentHotValue += hotValueIncrease;
-        gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-        console.log(`🔥 热搜上榜！热度值增加 ${hotValueIncrease}，当前热度值：${window.HotValueSystem.currentHotValue}`);
-    }
-    // ============================================================
+    // ✅ 正面热搜不产生负面热度
+    startHotValueBoost(gameState.hotSearchDaysCount, false);
     
     if (!gameState.hotSearchInterval) gameState.hotSearchInterval = setInterval(() => {
         if (gameState.isHotSearch) {
@@ -36,7 +38,7 @@ function startHotSearch(title) {
         }
     }, 1000);
     // ✅ 修改：只显示小弹窗通知
-    showEventPopup('🎉 热搜上榜', `恭喜！${title}，将持续${gameState.hotSearchDaysCount}虚拟天！`);
+    showEventPopup('🎉 热搜上榜', `恭喜！${title}，将持续${gameState.hotSearchDaysCount}天！`);
     updateDisplay();
 }
 
@@ -55,14 +57,10 @@ function showHotSearchNotice() {
 }
 
 function endHotSearch() {
-    // ==================== 新增：热搜结束减少热度值 ====================
-    if (window.HotValueSystem && gameState.isHotSearch) {
-        const hotValueDecrease = Math.floor(Math.random() * 1000) + 1500; // 减少1500-2500热度值
-        window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - hotValueDecrease);
-        gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-        console.log(`📉 热搜结束！热度值减少 ${hotValueDecrease}，当前热度值：${window.HotValueSystem.currentHotValue}`);
+    // ✅ 正面热搜结束后开始掉热度（非负面）
+    if (gameState.isHotSearch) {
+        endHotValueBoostAndStartDrop(gameState.hotSearchDaysCount, false);
     }
-    // ============================================================
     
     gameState.isHotSearch = false;
     gameState.hotSearchTitle = '';
@@ -75,22 +73,126 @@ function endHotSearch() {
     updateDisplay();
 }
 
-// ==================== 账号封禁 ====================
+// ==================== 负面热度值追踪系统（新增）====================
+function initNegativeHotValueSystem() {
+    // 确保负面热度追踪存在
+    if (!gameState.negativeHotValue) {
+        gameState.negativeHotValue = 0;
+    }
+    if (!gameState.totalHotValueGained) {
+        gameState.totalHotValueGained = 0;
+    }
+    if (!gameState.currentNegativeBoostEndTime) {
+        gameState.currentNegativeBoostEndTime = 0;
+    }
+    if (!gameState.currentNegativeDropEndTime) {
+        gameState.currentNegativeDropEndTime = 0;
+    }
+}
+
+// ✅ 获取负面热度比例（0-1之间）
+function getNegativeHotValueRatio() {
+    if (!gameState.totalHotValueGained || gameState.totalHotValueGained <= 0) return 0;
+    return (gameState.negativeHotValue || 0) / gameState.totalHotValueGained;
+}
+
+// ✅ 增加负面热度值记录
+function addNegativeHotValue(amount) {
+    initNegativeHotValueSystem();
+    gameState.negativeHotValue = (gameState.negativeHotValue || 0) + amount;
+    gameState.totalHotValueGained = (gameState.totalHotValueGained || 0) + amount;
+    console.log(`[负面热度] 增加${amount}，当前负面热度：${gameState.negativeHotValue}，总热度：${gameState.totalHotValueGained}`);
+}
+
+// ✅ 增加正面热度值记录
+function addPositiveHotValue(amount) {
+    initNegativeHotValueSystem();
+    gameState.totalHotValueGained = (gameState.totalHotValueGained || 0) + amount;
+    console.log(`[正面热度] 增加${amount}，总热度：${gameState.totalHotValueGained}`);
+}
+
+// ==================== 账号封禁（新增四种封号类型 + 负面热度机制）====================
 function banAccount(reason) {
     if (gameState.isBanned) return;
+    
+    // ✅ 关键修复：如果正在热搜，立即停止结束
+    if (gameState.isHotSearch) {
+        endHotSearch();
+        // ✅ 显示热搜被中断的通知
+        showEventPopup('🚫 热搜中断', '账号被封禁，热搜状态已立即结束');
+    }
+    
+    // ✅ 随机选择封号类型（0-3）
+    const banType = Math.floor(Math.random() * 4);
+    gameState.banType = banType;
     gameState.isBanned = true;
     gameState.banReason = reason;
     gameState.banDaysCount = Math.floor(Math.random() * 30) + 1;
     gameState.banStartTime = gameTimer;
     gameState.appealAvailable = true;
     
-    // ==================== 新增：封禁大幅减少热度值 ====================
-    if (window.HotValueSystem) {
-        const hotValueDecrease = Math.floor(Math.random() * 3000) + 2000; // 减少2000-5000热度值
-        window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - hotValueDecrease);
-        gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-        console.log(`🚫 账号被封禁！热度值减少 ${hotValueDecrease}，当前热度值：${window.HotValueSystem.currentHotValue}`);
+    // ✅ 保存封禁前的原始数据
+    gameState.originalUsername = gameState.username;
+    gameState.originalAvatar = gameState.avatar;
+    gameState.originalAvatarImage = gameState.avatarImage;
+    
+    // ✅ 根据封号类型执行相应处理
+    switch(banType) {
+        case 0:
+            // 类型0：原有普通封号
+            console.log('封号类型0：普通封号');
+            break;
+            
+        case 1:
+            // 类型1：所有作品私密 + 头像变空白 + 名字变UID
+            console.log('封号类型1：作品私密+头像空白+名字UID');
+            // 保存当前公开的作品ID列表
+            gameState.preBanPublicWorks = gameState.worksList
+                .filter(w => !w.isPrivate)
+                .map(w => w.id);
+            // 将所有作品设为私密
+            gameState.worksList.forEach(work => {
+                work.isPrivate = true;
+            });
+            // ✅ 作品数改为总作品数（私密作品也计入）
+            gameState.works = gameState.worksList.length;
+            // 头像变空白字符
+            gameState.avatar = '';
+            gameState.avatarImage = '';
+            // 名字变UID
+            gameState.username = gameState.userId;
+            break;
+            
+        case 2:
+            // 类型2：名字变UID + 头像变空白
+            console.log('封号类型2：名字UID+头像空白');
+            // 头像变空白字符
+            gameState.avatar = '';
+            gameState.avatarImage = '';
+            // 名字变UID
+            gameState.username = gameState.userId;
+            break;
+            
+        case 3:
+            // 类型3：所有作品私密
+            console.log('封号类型3：所有作品私密');
+            // 保存当前公开的作品ID列表
+            gameState.preBanPublicWorks = gameState.worksList
+                .filter(w => !w.isPrivate)
+                .map(w => w.id);
+            // 将所有作品设为私密
+            gameState.worksList.forEach(work => {
+                work.isPrivate = true;
+            });
+            // ✅ 作品数改为总作品数
+            gameState.works = gameState.worksList.length;
+            break;
     }
+    
+    // ==================== 修改：封禁触发负面热度机制（7天增加期）====================
+    // 封号属于负面事件，启动7天增加热度值阶段
+    initNegativeHotValueSystem();
+    startNegativeHotValueBoost(7);
     // ============================================================
     
     if (gameState.liveStatus) {
@@ -127,41 +229,21 @@ function showBanNotice() {
     }
     
     if (timeLeft <= 0) {
-        gameState.isBanned = false;
-        gameState.warnings = 0;
-        gameState.appealAvailable = true;
-        if (gameState.banInterval) {
-            clearInterval(gameState.banInterval);
-            gameState.banInterval = null;
-        }
-        if (gameState.banDropInterval) {
-            clearInterval(gameState.banDropInterval);
-            gameState.banDropInterval = null;
-        }
-        
-        // ==================== 新增：解封恢复部分热度值 ====================
-        if (window.HotValueSystem) {
-            const hotValueIncrease = Math.floor(Math.random() * 1000) + 500; // 恢复500-1500热度值
-            window.HotValueSystem.currentHotValue += hotValueIncrease;
-            gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-            console.log(`🔓 账号解封！热度值恢复 ${hotValueIncrease}，当前热度值：${window.HotValueSystem.currentHotValue}`);
-        }
-        // ============================================================
-        
-        // ✅ 修改：只显示小弹窗通知
-        showEventPopup('🔓 账号已解封', '封禁结束！警告次数已清空，可以继续创作啦');
-        
-        updateDisplay();
-        
-        // ✅ 修复：解封后立即检查不更新掉粉状态
-        if (typeof checkInactivityPenalty === 'function') {
-            checkInactivityPenalty();
-        }
+        endBan();
     }
     if (!gameState.banInterval) gameState.banInterval = setInterval(() => showBanNotice(), VIRTUAL_DAY_MS);
     if (!gameState.banDropInterval) gameState.banDropInterval = setInterval(() => {
         if (gameState.isBanned && gameState.fans > 0) {
-            const fanLoss = Math.floor(Math.random() * 90) + 10;
+            // ✅ 修复：将 const 改为 let，允许修改 fanLoss
+            let fanLoss = Math.floor(Math.random() * 90) + 10;
+            
+            // ✅ 应用负面热度掉粉加成
+            const negativeRatio = getNegativeHotValueRatio();
+            if (negativeRatio > 0) {
+                const bonusLoss = Math.floor(fanLoss * negativeRatio * 0.5); // 最多额外增加50%掉粉
+                fanLoss += bonusLoss;
+            }
+            
             gameState.fans = Math.max(0, gameState.fans - fanLoss);
             gameState.todayLostFans += fanLoss; // ✅ 新增：累计今日取关数
             // ✅ 修改：使用涨掉粉通知系统
@@ -171,7 +253,106 @@ function showBanNotice() {
     }, 1000);
 }
 
-// ==================== 舆论风波系统 ====================
+// ✅ 新增：解封处理函数（统一处理所有封号类型的恢复）
+function endBan() {
+    console.log('账号解封，恢复原始数据...');
+    
+    // 恢复基本状态
+    gameState.isBanned = false;
+    gameState.warnings = 0;
+    // ✅ 关键修复：解封时清空警告历史记录
+    if (gameState.warningHistory) {
+        gameState.warningHistory = [];
+    }
+    gameState.appealAvailable = true;
+    
+    if (gameState.banInterval) {
+        clearInterval(gameState.banInterval);
+        gameState.banInterval = null;
+    }
+    if (gameState.banDropInterval) {
+        clearInterval(gameState.banDropInterval);
+        gameState.banDropInterval = null;
+    }
+    
+    // ✅ 根据封号类型恢复数据
+    switch(gameState.banType) {
+        case 0:
+            // 类型0：无需恢复特殊数据
+            break;
+            
+        case 1:
+            // 类型1：恢复名字、头像，恢复作品公开状态
+            gameState.username = gameState.originalUsername;
+            gameState.avatar = gameState.originalAvatar;
+            gameState.avatarImage = gameState.originalAvatarImage;
+            // 恢复之前公开的作品
+            if (gameState.preBanPublicWorks && gameState.preBanPublicWorks.length > 0) {
+                gameState.worksList.forEach(work => {
+                    if (gameState.preBanPublicWorks.includes(work.id)) {
+                        work.isPrivate = false;
+                    }
+                });
+            }
+            break;
+            
+        case 2:
+            // 类型2：恢复名字和头像
+            gameState.username = gameState.originalUsername;
+            gameState.avatar = gameState.originalAvatar;
+            gameState.avatarImage = gameState.originalAvatarImage;
+            break;
+            
+        case 3:
+            // 类型3：恢复作品公开状态
+            if (gameState.preBanPublicWorks && gameState.preBanPublicWorks.length > 0) {
+                gameState.worksList.forEach(work => {
+                    if (gameState.preBanPublicWorks.includes(work.id)) {
+                        work.isPrivate = false;
+                    }
+                });
+            }
+            break;
+    }
+    
+    // ✅ 作品数改为总作品数（不按公开过滤）
+    gameState.works = gameState.worksList.length;
+    
+    // ✅ 播放量、点赞数、总互动数改为基于所有作品（不按公开过滤）
+    gameState.views = gameState.worksList
+        .filter(w => w.type === 'video' || w.type === 'live')
+        .reduce((sum, w) => sum + w.views, 0);
+    gameState.likes = gameState.worksList.reduce((sum, w) => sum + w.likes, 0);
+    gameState.totalInteractions = gameState.worksList.reduce((sum, w) => {
+        return sum + w.comments + w.likes + w.shares;
+    }, 0);
+    
+    // 清空临时数据
+    gameState.banType = 0;
+    gameState.originalUsername = '';
+    gameState.originalAvatar = '';
+    gameState.originalAvatarImage = '';
+    gameState.preBanPublicWorks = [];
+    
+    // ==================== 修改：解封后启动负面热度7天下降期 ====================
+    // 如果之前有负面热度积累，开始7天热度下降期
+    if (gameState.negativeHotValue > 0) {
+        endNegativeHotValueBoostAndStartDrop(7);
+    }
+    // ============================================================
+    
+    // ✅ 修改：只显示小弹窗通知
+    showEventPopup('🔓 账号已解封', '封禁结束！警告次数已清空，所有设置已恢复正常');
+    
+    updateDisplay();
+    
+    // ✅ 修复：解封后立即检查不更新掉粉状态
+    if (typeof checkInactivityPenalty === 'function') {
+        checkInactivityPenalty();
+    }
+}
+
+// ==================== 舆论风波系统（新增负面热度机制）====================
 function startPublicOpinionCrisis(title) {
     if (gameState.isPublicOpinionCrisis) return;
     gameState.isPublicOpinionCrisis = true;
@@ -179,19 +360,24 @@ function startPublicOpinionCrisis(title) {
     gameState.publicOpinionStartTime = gameTimer; // 使用游戏计时器
     gameState.publicOpinionTitle = title || '⚠️ 舆论风波中';
     
-    // ==================== 新增：舆论风波减少热度值 ====================
-    if (window.HotValueSystem) {
-        const hotValueDecrease = Math.floor(Math.random() * 2000) + 1500; // 减少1500-3500热度值
-        window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - hotValueDecrease);
-        gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-        console.log(`⚠️ 舆论风波！热度值减少 ${hotValueDecrease}，当前热度值：${window.HotValueSystem.currentHotValue}`);
-    }
+    // ==================== 修改：舆论风波属于负面事件，启动7天增加热度期 ====================
+    initNegativeHotValueSystem();
+    startNegativeHotValueBoost(7);
     // ============================================================
     
     if (!gameState.publicOpinionInterval) {
         gameState.publicOpinionInterval = setInterval(() => {
             if (gameState.isPublicOpinionCrisis && gameState.fans > 0) {
-                const fanLoss = Math.floor(Math.random() * 50) + 10;
+                // ✅ 修复：将 const 改为 let，允许修改 fanLoss
+                let fanLoss = Math.floor(Math.random() * 50) + 10;
+                
+                // ✅ 应用负面热度掉粉加成
+                const negativeRatio = getNegativeHotValueRatio();
+                if (negativeRatio > 0) {
+                    const bonusLoss = Math.floor(fanLoss * negativeRatio * 0.5);
+                    fanLoss += bonusLoss;
+                }
+                
                 gameState.fans = Math.max(0, gameState.fans - fanLoss);
                 gameState.todayLostFans += fanLoss; // ✅ 新增：累计今日取关数
                 // ✅ 修复：使用 addFanChangeNotification 替代 showNotification
@@ -203,7 +389,7 @@ function startPublicOpinionCrisis(title) {
         }, 1000);
     }
     // ✅ 修复：只显示小弹窗通知
-    showEventPopup('⚠️ 舆论风波', `你被卷入舆论风波，将持续${gameState.publicOpinionDaysCount}虚拟天！`);
+    showEventPopup('⚠️ 舆论风波', `你被卷入舆论风波，将持续${gameState.publicOpinionDaysCount}天！`);
     updateDisplay();
 }
 
@@ -234,12 +420,9 @@ function showPublicOpinionNotice() {
 }
 
 function endPublicOpinionCrisis() {
-    // ==================== 新增：舆论风波结束恢复热度值 ====================
-    if (window.HotValueSystem && gameState.isPublicOpinionCrisis) {
-        const hotValueIncrease = Math.floor(Math.random() * 1000) + 800; // 恢复800-1800热度值
-        window.HotValueSystem.currentHotValue += hotValueIncrease;
-        gameState.currentHotValue = window.HotValueSystem.currentHotValue;
-        console.log(`📉 舆论风波结束！热度值恢复 ${hotValueIncrease}，当前热度值：${window.HotValueSystem.currentHotValue}`);
+    // ==================== 修改：舆论风波结束启动负面热度7天下降期 ====================
+    if (gameState.isPublicOpinionCrisis) {
+        endNegativeHotValueBoostAndStartDrop(7);
     }
     // ============================================================
     
@@ -254,7 +437,204 @@ function endPublicOpinionCrisis() {
     updateDisplay();
 }
 
-// ==================== 图表更新（核心修复版） ====================
+// ==================== 负面热度值增长/下降系统（新增核心机制）====================
+
+// ✅ 启动负面热度值增加（持续7天，每秒1-50）
+function startNegativeHotValueBoost(durationDays = 7) {
+    // 确保清理之前的定时器
+    if (gameState.negativeBoostInterval) {
+        clearInterval(gameState.negativeBoostInterval);
+        gameState.negativeBoostInterval = null;
+    }
+    
+    gameState.isNegativeBoostActive = true;
+    gameState.negativeBoostEndTime = gameTimer + (durationDays * VIRTUAL_DAY_MS);
+    
+    console.log(`[负面热度] 启动7天增长期，每秒增加1-50热度值`);
+    
+    // ✅ 显示通知
+    showEventPopup('🔥 负面热度上升', `因负面事件，热度值将进入7天快速增长期！`);
+    
+    gameState.negativeBoostInterval = setInterval(() => {
+        // 检查是否到达结束时间
+        if (gameTimer >= gameState.negativeBoostEndTime) {
+            endNegativeHotValueBoostAndStartDrop(7);
+            return;
+        }
+        
+        // 每秒随机增加1-50点热度值（负面热度）
+        const increase = Math.floor(Math.random() * 50) + 1;
+        if (window.HotValueSystem) {
+            const oldValue = window.HotValueSystem.currentHotValue;
+            window.HotValueSystem.currentHotValue += increase;
+            gameState.currentHotValue = window.HotValueSystem.currentHotValue;
+            
+            // ✅ 记录为负面热度
+            addNegativeHotValue(increase);
+            
+            console.log(`[负面热度+] +${increase}，当前：${window.HotValueSystem.currentHotValue}，总负面热度：${gameState.negativeHotValue}`);
+        }
+    }, 1000);
+}
+
+// ✅ 结束增长期，开始下降期（持续7天，每秒掉1-40）
+function endNegativeHotValueBoostAndStartDrop(durationDays = 7) {
+    // 停止增长期
+    if (gameState.negativeBoostInterval) {
+        clearInterval(gameState.negativeBoostInterval);
+        gameState.negativeBoostInterval = null;
+    }
+    gameState.isNegativeBoostActive = false;
+    
+    // 确保清理之前的下降定时器
+    if (gameState.negativeDropInterval) {
+        clearInterval(gameState.negativeDropInterval);
+        gameState.negativeDropInterval = null;
+    }
+    
+    gameState.isNegativeDropActive = true;
+    gameState.negativeDropEndTime = gameTimer + (durationDays * VIRTUAL_DAY_MS);
+    
+    console.log(`[负面热度] 增长期结束，启动7天下降期，每秒减少1-40热度值`);
+    
+    // ✅ 显示通知
+    showEventPopup('📉 负面热度消退', `负面热度影响开始消退，热度值将进入7天下降期！`);
+    
+    gameState.negativeDropInterval = setInterval(() => {
+        // 检查是否到达结束时间
+        if (gameTimer >= gameState.negativeDropEndTime) {
+            endNegativeHotValueDrop();
+            return;
+        }
+        
+        // 每秒随机减少1-40点热度值
+        const decrease = Math.floor(Math.random() * 40) + 1;
+        if (window.HotValueSystem) {
+            const oldValue = window.HotValueSystem.currentHotValue;
+            window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - decrease);
+            gameState.currentHotValue = window.HotValueSystem.currentHotValue;
+            
+            // ✅ 减少负面热度记录（但不减少总热度记录）
+            if (gameState.negativeHotValue > 0) {
+                gameState.negativeHotValue = Math.max(0, gameState.negativeHotValue - decrease);
+            }
+            
+            console.log(`[负面热度-] -${decrease}，当前：${window.HotValueSystem.currentHotValue}，剩余负面热度：${gameState.negativeHotValue}`);
+        }
+    }, 1000);
+}
+
+// ✅ 结束下降期
+function endNegativeHotValueDrop() {
+    if (gameState.negativeDropInterval) {
+        clearInterval(gameState.negativeDropInterval);
+        gameState.negativeDropInterval = null;
+    }
+    gameState.isNegativeDropActive = false;
+    console.log(`[负面热度] 下降期结束`);
+    
+    // ✅ 显示通知
+    showEventPopup('✅ 负面热度结束', `负面热度影响已完全消退！`);
+}
+
+// ==================== 原版热度值系统（用于非负面事件）====================
+
+// ✅ 启动热度值增加（持续指定天数）【用于正面事件】
+function startHotValueBoost(durationDays, isNegative = false) {
+    // 确保清理之前的增加定时器
+    if (gameState.hotValueBoostInterval) {
+        clearInterval(gameState.hotValueBoostInterval);
+        gameState.hotValueBoostInterval = null;
+    }
+    
+    gameState.hotValueBoostActive = true;
+    gameState.hotValueBoostEndTime = gameTimer + (durationDays * VIRTUAL_DAY_MS);
+    gameState.hotValueOriginalDuration = durationDays;
+    
+    console.log(`[热度值] 开始增加，持续${durationDays}天，${isNegative ? '负面' : '正面'}事件`);
+    
+    gameState.hotValueBoostInterval = setInterval(() => {
+        // 检查是否到达结束时间
+        if (gameTimer >= gameState.hotValueBoostEndTime) {
+            stopHotValueBoost();
+            return;
+        }
+        
+        // 每秒随机增加1-50点热度值
+        const increase = Math.floor(Math.random() * 50) + 1;
+        if (window.HotValueSystem) {
+            window.HotValueSystem.currentHotValue += increase;
+            gameState.currentHotValue = window.HotValueSystem.currentHotValue;
+            
+            // ✅ 记录热度来源
+            if (isNegative) {
+                addNegativeHotValue(increase);
+            } else {
+                addPositiveHotValue(increase);
+            }
+        }
+    }, 1000);
+}
+
+// ✅ 停止热度值增加
+function stopHotValueBoost() {
+    if (gameState.hotValueBoostInterval) {
+        clearInterval(gameState.hotValueBoostInterval);
+        gameState.hotValueBoostInterval = null;
+    }
+    gameState.hotValueBoostActive = false;
+    console.log(`[热度值] 增加阶段结束`);
+}
+
+// ✅ 启动热度值减少（持续指定天数）
+function startHotValueDrop(durationDays, isNegativeAftermath = false) {
+    // 确保清理之前的减少定时器
+    if (gameState.hotValueDropInterval) {
+        clearInterval(gameState.hotValueDropInterval);
+        gameState.hotValueDropInterval = null;
+    }
+    
+    // 停止任何进行中的增加
+    stopHotValueBoost();
+    
+    gameState.hotValueDropActive = true;
+    gameState.hotValueDropEndTime = gameTimer + (durationDays * VIRTUAL_DAY_MS);
+    
+    console.log(`[热度值] 开始减少，持续${durationDays}天`);
+    
+    gameState.hotValueDropInterval = setInterval(() => {
+        // 检查是否到达结束时间
+        if (gameTimer >= gameState.hotValueDropEndTime) {
+            stopHotValueDrop();
+            return;
+        }
+        
+        // 每秒随机减少1-40点热度值
+        const decrease = Math.floor(Math.random() * 40) + 1;
+        if (window.HotValueSystem) {
+            window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - decrease);
+            gameState.currentHotValue = window.HotValueSystem.currentHotValue;
+        }
+    }, 1000);
+}
+
+// ✅ 停止热度值减少
+function stopHotValueDrop() {
+    if (gameState.hotValueDropInterval) {
+        clearInterval(gameState.hotValueDropInterval);
+        gameState.hotValueDropInterval = null;
+    }
+    gameState.hotValueDropActive = false;
+    console.log(`[热度值] 减少阶段结束`);
+}
+
+// ✅ 结束增加并开始减少（用于正面热搜等场景）
+function endHotValueBoostAndStartDrop(durationDays, isNegative = false) {
+    stopHotValueBoost();
+    startHotValueDrop(durationDays, isNegative);
+}
+
+// ==================== 图表更新（核心修复版）====================
 function updateChartData() {
     const virtualDays = Math.floor(getVirtualDaysPassed());
     const dayIndex = virtualDays % 60;
@@ -263,7 +643,7 @@ function updateChartData() {
     gameState.chartData.currentIndex = dayIndex;
     gameState.chartData.currentDay = virtualDays;
     
-    // ==================== 核心修复：粉丝数据真实记录（移除Math.max） ====================
+    // ==================== 核心修复：粉丝数据真实记录（移除Math.max）====================
     // 只保留点赞和播放量的累积最大值逻辑，粉丝数改为真实记录
     const prevLikes = gameState.chartData.likes[dayIndex] || 0;
     const prevViews = gameState.chartData.views[dayIndex] || 0;
@@ -276,7 +656,7 @@ function updateChartData() {
     gameState.chartData.views[dayIndex] = Math.max(prevViews, gameState.views);
     // ============================================================================
     
-    // ==================== 核心修改：互动改为每日增量 ====================
+    // ==================== 核心修改：互动改为每日增量====================
     // 计算今日新增互动数 = 当前累积值 - 昨日记录基准
     const todayInteractionIncrement = Math.max(0, gameState.totalInteractions - gameState.chartData.lastInteractionTotal);
     gameState.chartData.interactions[dayIndex] = todayInteractionIncrement;
@@ -316,7 +696,7 @@ function updateChartStatsRealtime() {
     if (statElements.likes) statElements.likes.textContent = gameState.likes.toLocaleString();
     if (statElements.views) statElements.views.textContent = gameState.views.toLocaleString();
     
-    // ==================== 修改：互动统计显示今日增量 ====================
+    // ==================== 修改：互动统计显示今日增量====================
     if (statElements.interactions) {
         const todayInteractions = gameState.chartData.interactions[gameState.chartData.currentIndex] || 0;
         statElements.interactions.textContent = '+' + todayInteractions.toLocaleString();
@@ -346,7 +726,7 @@ function updateChartsRealtime() {
     }
 }
 
-// ==================== 不更新掉粉检测（核心修改） ====================
+// ==================== 不更新掉粉检测（核心修改 - 增加负面热度掉粉加成）====================
 function checkInactivityPenalty() {
     // ❌ 原始代码：if (!gameState || gameState.isBanned) return;
     // ✅ 修复：移除gameState.isBanned检查，让该机制在封禁期间也能运行
@@ -359,6 +739,7 @@ function checkInactivityPenalty() {
     if (daysSinceLastWork < 7) {
         if (gameState.isDroppingFansFromInactivity) {
             gameState.isDroppingFansFromInactivity = false;
+            // ✅ 修复：修正变量名 game.state -> gameState
             if (gameState.inactivityDropInterval) {
                 clearInterval(gameState.inactivityDropInterval);
                 gameState.inactivityDropInterval = null;
@@ -374,16 +755,14 @@ function checkInactivityPenalty() {
     if (daysSinceLastWork >= 7 && !gameState.isDroppingFansFromInactivity) {
         gameState.isDroppingFansFromInactivity = true;
         
-        // 强制显示警告（首次触发）
-        // ✅ 修改：使用小弹窗通知
-        if (typeof window.showEventPopup === 'function') {
-            showEventPopup('⚠️ 粉丝流失警告', '连续7天未更新，粉丝开始流失！快发布新作品！');
-        }
-        
         // 启动每秒掉粉
         gameState.inactivityDropInterval = setInterval(() => {
             if (!gameState.isDroppingFansFromInactivity) { 
-                clearInterval(game.state.inactivityDropInterval);
+                // ✅ 修复：修正变量名 game.state -> gameState
+                if (gameState.inactivityDropInterval) {
+                    clearInterval(gameState.inactivityDropInterval);
+                    gameState.inactivityDropInterval = null;
+                }
                 return;
             }
             
@@ -394,7 +773,14 @@ function checkInactivityPenalty() {
             const extraDays = Math.floor(currentDaysSinceLastWork - 7);
             const baseDrop = Math.floor(Math.random() * 31) + 20; // 20-50基础掉粉
             const extraDrop = extraDays * (Math.floor(Math.random() * 11) + 5); // 每多1天额外掉5-15粉
-            const dropAmount = baseDrop + extraDrop;
+            let dropAmount = baseDrop + extraDrop;
+            
+            // ✅ 应用负面热度掉粉加成
+            const negativeRatio = getNegativeHotValueRatio();
+            if (negativeRatio > 0) {
+                const bonusLoss = Math.floor(dropAmount * negativeRatio * 0.5);
+                dropAmount += bonusLoss;
+            }
             
             gameState.fans = Math.max(0, gameState.fans - dropAmount);
             gameState.todayLostFans += dropAmount; // ✅ 新增：累计今日取关数
@@ -407,7 +793,7 @@ function checkInactivityPenalty() {
     }
 }
 
-// ==================== 游戏主循环（核心修改：加权随机事件 + 热度值影响自然涨粉） ====================
+// ==================== 游戏主循环（核心修改：加权随机事件 + 热度值影响自然涨粉 + 负面热度掉粉加成）====================
 function startGameLoop() {
     // 每虚拟天（1分钟）精确更新一次图表
     setInterval(() => {
@@ -463,13 +849,13 @@ function startGameLoop() {
         }
     }, 1000);
     
-    // ==================== 自然涨粉/掉粉（核心修改：每3秒触发1次，带热度值增益） ====================
+    // ==================== 自然涨粉/掉粉（核心修改：每3秒触发1次，带热度值增益 + 负面热度掉粉加成）====================
     setInterval(() => {
         // 每3秒固定触发1次，数量受作品增益和热度值影响
         const baseChange = Math.floor(Math.random() * 100) - 50;
         let boostedChange = baseChange + gameState.baseFanChangeBoost; // 应用作品增益
         
-        // ==================== 核心修改：应用热度值倍数（只影响涨粉） ====================
+        // ==================== 核心修改：应用热度值倍数（只影响涨粉）====================
         if (boostedChange > 0) {
             const hotMultiplier = (typeof window.getHotValueMultiplier === 'function') 
                 ? window.getHotValueMultiplier() 
@@ -477,8 +863,18 @@ function startGameLoop() {
             boostedChange = Math.floor(boostedChange * hotMultiplier);
             console.log(`[自然涨粉] 热度值倍数: ${hotMultiplier.toFixed(2)}x, 调整后: ${boostedChange}`);
         }
-        // 注意：掉粉（boostedChange <= 0）不受影响
+        // 注意：掉粉（boostedChange <= 0）暂时不受影响，后续添加负面热度影响
         // ==============================================================================
+        
+        // ✅ 如果是掉粉，应用负面热度加成
+        if (boostedChange < 0) {
+            const negativeRatio = getNegativeHotValueRatio();
+            if (negativeRatio > 0) {
+                const bonusLoss = Math.floor(Math.abs(boostedChange) * negativeRatio * 0.5);
+                boostedChange -= bonusLoss; // 减少更多（因为是负数）
+                console.log(`[自然掉粉] 负面热度加成: ${negativeRatio.toFixed(2)}, 额外掉粉: ${bonusLoss}`);
+            }
+        }
         
         const change = boostedChange;
         
@@ -541,196 +937,16 @@ function startGameLoop() {
     if (typeof window.startExposureCheck === 'function') {
         window.startExposureCheck();
     }
+    
+    // ✅ 新增：初始化负面热度系统
+    initNegativeHotValueSystem();
 }
 
-// ==================== 成就检查（核心修复版） ====================
-function checkAchievements() {
-    // ==================== 核心修复：遍历所有成就并检查 ====================
-    achievements.forEach(achievement => {
-        if (!achievement.unlocked) {
-            let unlocked = false;
-            
-            // 安全处理：确保gameState数据存在
-            if (!gameState) return;
-            
-            switch (achievement.id) {
-                // 基础粉丝类成就
-                case 1: 
-                    unlocked = (gameState.fans || 0) >= 1; 
-                    break;
-                    
-                case 2: 
-                    unlocked = (gameState.fans || 0) >= 1000; 
-                    break;
-                    
-                case 3: 
-                    unlocked = (gameState.fans || 0) >= 100000; 
-                    break;
-                    
-                case 4: 
-                    unlocked = (gameState.fans || 0) >= 10000000; 
-                    break;
-                
-                // 爆款制造机
-                case 5: 
-                    const videoWorks = gameState.worksList.filter(w => !w.isPrivate && (w.type === 'video' || w.type === 'live'));
-                    unlocked = videoWorks.some(w => (w.views || 0) >= 1000000);
-                    break;
-                
-                // 点赞狂魔
-                case 6: 
-                    unlocked = (gameState.likes || 0) >= 100000; 
-                    break;
-                
-                // 高产创作者
-                case 7: 
-                    unlocked = gameState.worksList.filter(w => !w.isPrivate).length >= 100; 
-                    break;
-                
-                // 直播新星
-                case 8: 
-                    const liveWorks = gameState.worksList.filter(w => !w.isPrivate && w.type === 'live');
-                    unlocked = liveWorks.some(w => (w.views || 0) >= 1000);
-                    break;
-                
-                // 收益第一桶金
-                case 9: 
-                    unlocked = (gameState.money || 0) >= 1; 
-                    break;
-                
-                // 百万富翁
-                case 10: 
-                    unlocked = (gameState.money || 0) >= 1000000; 
-                    break;
-                
-                // 话题之王
-                case 11: 
-                    const publicWorks = gameState.worksList.filter(w => !w.isPrivate);
-                    unlocked = publicWorks.some(w => (w.shares || 0) >= 10000);
-                    break;
-                
-                // 评论互动达人
-                case 12: 
-                    const publicWorksForComments = gameState.worksList.filter(w => !w.isPrivate);
-                    unlocked = publicWorksForComments.some(w => (w.comments || 0) >= 5000);
-                    break;
-                
-                // ✅ 已移除: case 13: 全勤主播成就
-                
-                // 逆风翻盘 - 特殊成就
-                case 14: 
-                    // 由申诉功能触发，无需自动检查
-                    break;
-                
-                // 幸运儿
-                case 15: 
-                    if (!gameState.eventCount) gameState.eventCount = 0;
-                    unlocked = gameState.eventCount >= 50;
-                    break;
-                
-                // 社交达人
-                case 16: 
-                    if (!gameState.following) gameState.following = [];
-                    unlocked = gameState.following.length >= 1000;
-                    break;
-                
-                // ✅ 已移除: case 17: 夜猫子成就
-                // ✅ 已移除: case 18: 早起鸟儿成就
-                
-                // 宠粉狂魔
-                case 19: 
-                    if (!gameState.commentRepliesCount) gameState.commentRepliesCount = 0;
-                    unlocked = gameState.commentRepliesCount >= 1000;
-                    break;
-                
-                // 传奇主播
-                case 20: 
-                    const otherAchievements = achievements.filter(a => a.id !== 20);
-                    unlocked = otherAchievements.every(a => a.unlocked);
-                    break;
-                
-                // 商单新人
-                case 21: 
-                    unlocked = gameState.worksList.filter(w => w.isAd && !w.isPrivate).length >= 1;
-                    break;
-                
-                // 广告达人
-                case 22: 
-                    unlocked = gameState.worksList.filter(w => w.isAd && !w.isPrivate).length >= 10;
-                    break;
-                
-                // 百万单王
-                case 23: 
-                    const adWorks = gameState.worksList.filter(w => w.isAd && !w.isPrivate);
-                    const revenues = adWorks.map(w => w.revenue || 0);
-                    unlocked = adWorks.some(w => (w.revenue || 0) >= 50000);
-                    break;
-                
-                // ✅ 已移除: case 24: 火眼金睛成就
-                
-                // 商单大师 - 需要同时满足两个条件
-                case 25: 
-                    unlocked = gameState.worksList.filter(w => w.isAd && !w.isPrivate).length >= 50 && (gameState.warnings || 0) < 5;
-                    break;
-                
-                // 赌徒
-                case 26: 
-                    const fakeAdCount = gameState.worksList.filter(w => w.isAd && w.adOrder && !w.adOrder.real && !w.isPrivate).length;
-                    unlocked = fakeAdCount >= 10;
-                    break;
-                
-                // 身败名裂（负面成就）
-                case 27: 
-                    if (!gameState.fakeAdBans) gameState.fakeAdBans = 0;
-                    unlocked = gameState.fakeAdBans >= 3;
-                    break;
-                
-                // 诚信经营（负面成就）
-                case 28: 
-                    unlocked = (gameState.monthsWithoutFakeAd || 0) >= 3;
-                    break;
-            }
-            
-            // 解锁成就
-            if (unlocked) {
-                achievement.unlocked = true;
-                
-                // 避免重复添加
-                if (!gameState.achievements.includes(achievement.id)) {
-                    gameState.achievements.push(achievement.id);
-                }
-                
-                // 显示成就弹窗
-                if (typeof showAchievementPopup === 'function') {
-                    showAchievementPopup(achievement);
-                }
-                
-                // ✅ 修改：移除重复的 showEventPopup 调用，只保留上面的 showAchievementPopup
-                // 原代码：showEventPopup('🏆 成就解锁', `${achievement.name}：${achievement.desc}`);
-                
-                console.log(`✅ 成就解锁: ${achievement.name} (ID: ${achievement.id})`);
-                
-                // ✅ 检查传奇主播成就（递归检查）
-                if (achievement.id !== 20 && !achievements.find(a => a.id === 20).unlocked) {
-                    const legendaryAchievement = achievements.find(a => a.id === 20);
-                    const otherAchievements = achievements.filter(a => a.id !== 20);
-                    const allUnlocked = otherAchievements.every(a => a.unlocked);
-                    
-                    if (allUnlocked && !legendaryAchievement.unlocked) {
-                        legendaryAchievement.unlocked = true;
-                        gameState.achievements.push(20);
-                        showAchievementPopup(legendaryAchievement);
-                        // ✅ 修改：移除重复的 showEventPopup 调用
-                        // 原代码：showEventPopup('🏆 传奇成就', '恭喜解锁所有成就！');
-                    }
-                }
-            }
-        }
-    });
-    // ==================== 修复结束 ====================
-}
+// ==================== 成就检查（已删除，使用 game_achievements.js 中的全局版本）====================
+// 注意：为了避免重复定义，此处不再包含 checkAchievements 函数。
+// 游戏中的成就检查统一由 game_achievements.js 中的 checkAchievements 处理。
 
-// ==================== 新增：将天数转换为月日格式的函数 ====================
+// ==================== 新增：将天数转换为月日格式的函数====================
 function convertDaysToMD(dayNumber) {
     if (dayNumber < 0) return '';
     
@@ -760,7 +976,7 @@ function convertDaysToMD(dayNumber) {
     return '12.31';
 }
 
-// ==================== Chart.js图表系统（修复版：显示月日日期） ====================
+// ==================== Chart.js图表系统（修复版：显示月日日期）====================
 function drawChart(canvasId, data, color, label) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
@@ -780,13 +996,13 @@ function drawChart(canvasId, data, color, label) {
         // 计算天数标签
         const dayNumber = currentDay - (59 - i);
         
-        // ==================== 修复：未来天数显示为null，不画线 ====================
+        // ==================== 修复：未来天数显示为null，不画线====================
         // 如果是未来的天数（dayNumber < 0），标签为空，数据设为null
         if (dayNumber < 0) {
             labels.push('');
             displayData.push(null); // 未来天数设为null，不画线
         } else {
-            // ==================== 修改：将天数转换为月日格式 ====================
+            // ==================== 修改：将天数转换为月日格式====================
             labels.push(convertDaysToMD(dayNumber));
             // =========================================================================
             
@@ -811,7 +1027,7 @@ function drawChart(canvasId, data, color, label) {
                 label: label,
                 data: displayData,
                 borderColor: color,
-                // ==================== 修复：使用RGBA格式确保APK兼容 ====================
+                // ==================== 修复：使用RGBA格式确保APK兼容====================
                 backgroundColor: color.startsWith('#') ? 
                     `rgba(${parseInt(color.slice(1,3), 16)}, ${parseInt(color.slice(3,5), 16)}, ${parseInt(color.slice(5,7), 16)}, 0.125)` : 
                     color + '20',
@@ -824,7 +1040,7 @@ function drawChart(canvasId, data, color, label) {
                 pointBackgroundColor: color,
                 pointBorderColor: '#fff',
                 pointBorderWidth: 2,
-                // ==================== 修复：断开null值，不连接 ====================
+                // ==================== 修复：断开null值，不连接====================
                 spanGaps: false, // 关键：null值处断开，不画线
                 // =========================================================================
             }]
@@ -845,7 +1061,7 @@ function drawChart(canvasId, data, color, label) {
                         label: function(context) {
                             return label + ': ' + context.parsed.y.toLocaleString();
                         },
-                        // ==================== 修改：tooltip显示完整日期 ====================
+                        // ==================== 修改：tooltip显示完整日期====================
                         title: function(context) {
                             const label = context[0].label;
                             if (label) {
@@ -898,7 +1114,7 @@ function drawChart(canvasId, data, color, label) {
     window.charts[canvasId] = chart;
 }
 
-// ==================== 数据分析界面（修改版 - 移除点赞图表） ====================
+// ==================== 数据分析界面（修改版 - 移除粉丝和互动图表）====================
 function showCharts() {
     document.getElementById('mainContent').style.display = 'none';
     document.querySelector('.bottom-nav').style.display = 'none';
@@ -952,8 +1168,13 @@ function showCharts() {
     }, 1000);
 }
 
-// ==================== 新增：涨掉粉通知管理函数 ====================
+// ==================== 新增：涨掉粉通知管理函数====================
 function addFanChangeNotification(icon, title, content, changeType, fanCount) {
+    // ✅ 关键修复：如果被封号且是涨粉，不添加通知
+    if (gameState.isBanned && changeType === 'gain') {
+        return;
+    }
+    
     // 确保初始化数组存在
     if (!gameState.fanChangeNotifications) {
         gameState.fanChangeNotifications = [];
@@ -979,12 +1200,13 @@ function addFanChangeNotification(icon, title, content, changeType, fanCount) {
     }
 }
 
-// ==================== 全局函数绑定 ====================
+// ==================== 全局函数绑定====================
 window.startHotSearch = startHotSearch;
 window.showHotSearchNotice = showHotSearchNotice;
 window.endHotSearch = endHotSearch;
 window.banAccount = banAccount;
 window.showBanNotice = showBanNotice;
+window.endBan = endBan;
 window.startPublicOpinionCrisis = startPublicOpinionCrisis;
 window.showPublicOpinionNotice = showPublicOpinionNotice;
 window.endPublicOpinionCrisis = endPublicOpinionCrisis;
@@ -994,8 +1216,20 @@ window.drawChart = drawChart;
 window.updateChartsRealtime = updateChartsRealtime;
 window.updateChartStatsRealtime = updateChartStatsRealtime;
 window.checkInactivityPenalty = checkInactivityPenalty;
-window.checkAchievements = checkAchievements; // ✅ 导出成就检查函数
-// ==================== 导出新增的日期转换函数 ====================
+// 注意：不再绑定 checkAchievements 到 window，使用 game_achievements.js 中的版本
 window.convertDaysToMD = convertDaysToMD;
-// ✅ 新增：导出涨掉粉通知管理函数
 window.addFanChangeNotification = addFanChangeNotification;
+
+// ✅ 新增：导出负面热度系统函数
+window.initNegativeHotValueSystem = initNegativeHotValueSystem;
+window.getNegativeHotValueRatio = getNegativeHotValueRatio;
+window.addNegativeHotValue = addNegativeHotValue;
+window.addPositiveHotValue = addPositiveHotValue;
+window.startNegativeHotValueBoost = startNegativeHotValueBoost;
+window.endNegativeHotValueBoostAndStartDrop = endNegativeHotValueBoostAndStartDrop;
+window.endNegativeHotValueDrop = endNegativeHotValueDrop;
+window.startHotValueBoost = startHotValueBoost;
+window.stopHotValueBoost = stopHotValueBoost;
+window.startHotValueDrop = startHotValueDrop;
+window.stopHotValueDrop = stopHotValueDrop;
+window.endHotValueBoostAndStartDrop = endHotValueBoostAndStartDrop;

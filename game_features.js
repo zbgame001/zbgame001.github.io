@@ -485,7 +485,115 @@ function toggleLive() {
 // ==================== 全局变量：购买流量排序状态 ====================
 window.currentTrafficSort = 'latest';
 
-// ==================== 流量购买（改为全屏 + 添加排序） ====================
+// ✅ 新增：全局流量推广热度值管理
+window.trafficHotValueManager = {
+    activeCount: 0,           // 当前活跃的流量推广数量
+    growthInterval: null,     // 增长定时器
+    dropInterval: null,       // 下降定时器
+    dropEndTime: null,        // 下降结束时间
+    
+    // 计算当前每秒增长范围
+    getGrowthRange: function() {
+        // 基础 1-10，每个推广 +10，上限 1-150
+        const minGrowth = 1;
+        const maxGrowth = Math.min(150, 10 + (this.activeCount - 1) * 10);
+        return { min: minGrowth, max: maxGrowth };
+    },
+    
+    // 开始增长
+    startGrowth: function() {
+        if (this.growthInterval) {
+            clearInterval(this.growthInterval);
+        }
+        
+        this.growthInterval = setInterval(() => {
+            if (window.HotValueSystem && window.HotValueSystem.currentHotValue !== undefined) {
+                const range = this.getGrowthRange();
+                const increase = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
+                window.HotValueSystem.currentHotValue = Math.min(
+                    window.HotValueSystem.config.maxHotValue,
+                    window.HotValueSystem.currentHotValue + increase
+                );
+                gameState.currentHotValue = window.HotValueSystem.currentHotValue;
+            }
+        }, 1000);
+        
+        console.log(`[流量热度值] 启动增长，当前推广数: ${this.activeCount}，范围: 1-${this.getGrowthRange().max}/秒`);
+    },
+    
+    // 停止增长
+    stopGrowth: function() {
+        if (this.growthInterval) {
+            clearInterval(this.growthInterval);
+            this.growthInterval = null;
+        }
+    },
+    
+    // 开始下降（3天）
+    startDrop: function() {
+        // 先清理可能存在的旧下降定时器
+        this.stopDrop();
+        
+        this.dropEndTime = gameTimer + (3 * VIRTUAL_DAY_MS);
+        
+        this.dropInterval = setInterval(() => {
+            // 检查是否已到3天
+            if (gameTimer >= this.dropEndTime) {
+                this.stopDrop();
+                console.log('[流量热度值] 3天下降期结束');
+                showEventPopup('📈 热度值回落完成', '流量推广带来的热度值已完全回落');
+                return;
+            }
+            
+            // 每秒掉1-100
+            if (window.HotValueSystem && window.HotValueSystem.currentHotValue !== undefined) {
+                const decrease = Math.floor(Math.random() * 100) + 1;
+                window.HotValueSystem.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue - decrease);
+                gameState.currentHotValue = window.HotValueSystem.currentHotValue;
+            }
+        }, 1000);
+        
+        console.log('[流量热度值] 启动3天下降期');
+    },
+    
+    // 停止下降
+    stopDrop: function() {
+        if (this.dropInterval) {
+            clearInterval(this.dropInterval);
+            this.dropInterval = null;
+        }
+        this.dropEndTime = null;
+    },
+    
+    // 增加活跃计数
+    addActive: function() {
+        this.activeCount++;
+        // 启动或重启增长
+        this.startGrowth();
+        // 如果有下降定时器，停止它
+        this.stopDrop();
+    },
+    
+    // 减少活跃计数
+    removeActive: function() {
+        this.activeCount = Math.max(0, this.activeCount - 1);
+        
+        // 如果没有活跃的了
+        if (this.activeCount === 0) {
+            this.stopGrowth();
+            this.startDrop();
+        }
+    },
+    
+    // 清理所有
+    cleanup: function() {
+        this.stopGrowth();
+        this.stopDrop();
+        this.activeCount = 0;
+    }
+};
+
+// ==================== 流量购买（改为全屏 + 添加排序 + 天数输入控件） ====================
 function showBuyTraffic() {
     // ✅ 新增：账号被封禁时无法购买流量
     if (gameState.isBanned) { 
@@ -518,17 +626,27 @@ function showBuyTraffic() {
         </div>
     `;
     
-    const daysOptions = Array.from({length: 30}, (_, i) => {
-        const day = i + 1;
-        return `<div class="day-option ${day === 1 ? 'selected' : ''}" onclick="selectTrafficDays(this, ${day})">${day}天<br><small>${day * 1000}元</small></div>`;
-    }).join('');
+    // ✅ 修改：天数选择改为可输入+加减按钮（1-30）
+    const daysSelector = `
+        <div style="margin-bottom: 15px; padding: 10px; background: #161823; border-radius: 10px;">
+            <div class="input-label">选择推广天数</div>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <button onclick="changeTrafficDays(-1)" style="background: linear-gradient(135deg, #667aea 0%, #764ba2 100%); border: none; color: #fff; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer;">-</button>
+                <input type="number" id="trafficDaysInput" min="1" max="30" value="1" style="width: 80px; text-align: center; background: #222; border: 1px solid #333; color: #fff; border-radius: 8px; padding: 10px; font-size: 16px; font-weight: bold;" onchange="updateTrafficDaysFromInput()">
+                <button onclick="changeTrafficDays(1)" style="background: linear-gradient(135deg, #667aea 0%, #764ba2 100%); border: none; color: #fff; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer;">+</button>
+            </div>
+            <div style="font-size: 12px; color: #999; text-align: center; margin-top: 5px;">
+                单价 1000元/天 · 总计 <span id="trafficPriceDisplay">1000</span> 元
+            </div>
+            <div style="font-size: 11px; color: #ff6b00; text-align: center; margin-top: 3px;">
+                (可输入1-30天)
+            </div>
+        </div>
+    `;
     
     const content = document.getElementById('buyTrafficPageContent');
     content.innerHTML = `
-        <div style="margin-bottom: 15px;">
-            <div class="input-label">选择推广天数</div>
-            <div class="days-selector">${daysOptions}</div>
-        </div>
+        ${daysSelector}
         ${sortSelector}
         <div style="margin-bottom: 15px;">
             <div class="input-label">选择要推广的作品（可多选）</div>
@@ -536,9 +654,6 @@ function showBuyTraffic() {
                 <div id="trafficWorksList"></div>
             </div>
             <div id="selectedCount" style="margin-top: 10px; font-size: 14px; color: #667aea;">已选择：0个作品</div>
-        </div>
-        <div style="font-size: 12px; color: #999; margin-bottom: 15px; text-align: center;">
-            推广期间：播放量疯狂增长，每秒随机涨粉
         </div>
         <button class="btn" id="confirmTrafficBtn" onclick="confirmBuyTraffic()">批量购买并启动推广</button>
     `;
@@ -554,6 +669,30 @@ function showBuyTraffic() {
     document.getElementById('buyTrafficPage').classList.add('active');
     document.getElementById('mainContent').style.display = 'none';
     document.querySelector('.bottom-nav').style.display = 'none';
+}
+
+// ✅ 新增：通过加减按钮改变推广天数
+function changeTrafficDays(delta) {
+    const input = document.getElementById('trafficDaysInput');
+    if (!input) return;
+    let newVal = parseInt(input.value) + delta;
+    if (isNaN(newVal)) newVal = 1;
+    newVal = Math.min(30, Math.max(1, newVal));
+    input.value = newVal;
+    window.selectedTrafficDays = newVal;
+    updateTrafficTotalPrice();
+}
+
+// ✅ 新增：手动输入时同步天数
+function updateTrafficDaysFromInput() {
+    const input = document.getElementById('trafficDaysInput');
+    if (!input) return;
+    let val = parseInt(input.value);
+    if (isNaN(val) || val < 1) val = 1;
+    if (val > 30) val = 30;
+    input.value = val;
+    window.selectedTrafficDays = val;
+    updateTrafficTotalPrice();
 }
 
 function sortTrafficWorks(sortType) {
@@ -644,10 +783,8 @@ function updateSelectedCount() {
 }
 
 function selectTrafficDays(element, days) {
-    document.querySelectorAll('.day-option').forEach(opt => opt.classList.remove('selected'));
-    element.classList.add('selected');
-    window.selectedTrafficDays = days;
-    updateTrafficTotalPrice();
+    // 此函数已废弃，但保留以免其他代码调用
+    console.warn('selectTrafficDays 已废弃，请使用天数输入控件');
 }
 
 function confirmBuyTraffic() {
@@ -679,17 +816,11 @@ function confirmBuyTraffic() {
         startNewTraffic(workId, days);
     });
     
-    // ✅ 增加热度值（购买流量）
-    if (window.HotValueSystem) {
-        const hotValueIncrease = Math.floor(Math.random() * 501) + 500; // 500-1000
-        window.HotValueSystem.currentHotValue += hotValueIncrease;
-        gameState.currentHotValue = Math.max(0, window.HotValueSystem.currentHotValue);
-    }
-    
     closeFullscreenPage('buyTraffic');
     
-    // ✅ 修改：只显示小弹窗通知，移除通知中心通知
-    showEventPopup('💰 流量购买成功', `已为 ${selectedCount} 个作品购买${days}天流量推送！`);
+    // ✅ 修改：显示热度值增长信息
+    const range = window.trafficHotValueManager.getGrowthRange();
+    showEventPopup('💰 流量购买成功', `已为 ${selectedCount} 个作品购买${days}天流量推送！热度值增长：1-${range.max}/秒`);
     
     updateDisplay();
 }
@@ -723,8 +854,7 @@ function showAppeal() {
     }
     
     const timePassed = gameTimer - gameState.banStartTime;
-    const daysPassed = timePassed / VIRTUAL_DAY_MS;
-    const daysLeft = Math.ceil(gameState.banDaysCount - daysPassed);
+    const daysLeft = Math.ceil(gameState.banDaysCount - (timePassed / VIRTUAL_DAY_MS));
     
     if (daysLeft <= 0) {
         showWarning('账号已解封，无需申诉');
@@ -928,7 +1058,7 @@ function checkViolation(content) {
     return false;
 }
 
-// ==================== 流量推广核心 ====================
+// ==================== 流量推广核心（修改版：点赞、评论、转发同步增长） ====================
 function startTrafficProcess(workId) {
     workId = Number(workId);
     const trafficData = gameState.trafficWorks[workId];
@@ -937,6 +1067,12 @@ function startTrafficProcess(workId) {
     if (trafficData.interval) {
         clearInterval(trafficData.interval);
     }
+    
+    // ✅ 新增：增加全局活跃计数，启动热度值增长
+    if (window.trafficHotValueManager) {
+        window.trafficHotValueManager.addActive();
+    }
+    
     trafficData.interval = setInterval(() => {
         const work = gameState.worksList.find(w => w.id === workId);
         if (!work) return;
@@ -955,15 +1091,32 @@ function startTrafficProcess(workId) {
             ? window.getHotValueMultiplier() 
             : 1.0;
         
+        // ✅ 修改：播放量增长（保持不变：1000-5000）
         const viewsBoost = Math.floor((Math.floor(Math.random() * 4000) + 1000) * hotMultiplier);
-        let fanBoost = Math.floor((Math.floor(Math.random() * 40) + 10) * hotMultiplier);
-        const commentBoost = Math.floor((Math.floor(Math.random() * 50) + 10) * hotMultiplier);
-        const shareBoost = Math.floor((Math.floor(Math.random() * 30) + 5) * hotMultiplier);
         
+        // ✅ 新增：点赞增长（约为播放量的20%：200-1000）
+        const likesBoost = Math.floor((Math.floor(Math.random() * 800) + 200) * hotMultiplier);
+        
+        // ✅ 修改：评论增长（提升为播放量的5%：50-200，原10-60太低）
+        const commentBoost = Math.floor((Math.floor(Math.random() * 150) + 50) * hotMultiplier);
+        
+        // ✅ 修改：转发增长（提升为播放量的3%：20-100，原5-35太低）
+        const shareBoost = Math.floor((Math.floor(Math.random() * 80) + 20) * hotMultiplier);
+        
+        // ✅ 新增：粉丝增长（保持10-50，因为粉丝是账号级别不是作品级别）
+        let fanBoost = Math.floor((Math.floor(Math.random() * 40) + 10) * hotMultiplier);
+        
+        // 更新作品数据
         work.views += viewsBoost;
+        work.likes += likesBoost;
+        work.comments += commentBoost;
+        work.shares += shareBoost;
+        
+        // 更新账号总数据
         if (work.type === 'video' || work.type === 'live') {
             gameState.views += viewsBoost;
         }
+        gameState.likes += likesBoost;
         gameState.fans += fanBoost;
         
         // ✅ 修复：记录到今日新增粉丝
@@ -974,11 +1127,9 @@ function startTrafficProcess(workId) {
             addFanChangeNotification('⬆️', `流量推广获得${fanBoost.toLocaleString()}个新粉丝`, '流量推广', 'gain', fanBoost);
         }
         
-        work.comments += commentBoost;
-        work.shares += shareBoost;
+        gameState.totalInteractions += commentBoost + likesBoost + shareBoost;
         
-        gameState.totalInteractions += commentBoost + shareBoost;
-        
+        // 收益计算（基于播放量）
         const oldRevenue = work.revenue || 0;
         const newRevenue = Math.floor(work.views / 1000);
         const revenueBoost = newRevenue - oldRevenue;
@@ -986,16 +1137,20 @@ function startTrafficProcess(workId) {
             work.revenue = newRevenue;
             gameState.money += revenueBoost;
         }
+        
+        // 更新UI
         const viewsEl = document.getElementById(`work-views-${work.id}`);
         if (viewsEl) {
             viewsEl.textContent = `${work.type === 'post' ? '👁️' : '▶️'} ${work.views.toLocaleString()}`;
             animateNumberUpdate(viewsEl);
         }
+        
         updateDisplay();
     }, 1000);
     updateDisplay();
 }
 
+// ✅ 修改版：结束后减少全局活跃计数，当所有推广都结束时才开始3天下降期
 function stopTrafficForWork(workId) {
     workId = Number(workId);
     const trafficData = gameState.trafficWorks[workId];
@@ -1006,8 +1161,21 @@ function stopTrafficForWork(workId) {
     }
     trafficData.isActive = false;
     delete gameState.trafficWorks[workId];
+    
+    // ✅ 减少全局活跃计数（当为0时会自动开始下降期）
+    if (window.trafficHotValueManager) {
+        window.trafficHotValueManager.removeActive();
+    }
+    
     // ✅ 修改：只显示小弹窗通知
-    showEventPopup('📈 流量推广结束', '本次推广已结束，效果非常显著！');
+    const remainingActive = window.trafficHotValueManager ? window.trafficHotValueManager.activeCount : 0;
+    if (remainingActive > 0) {
+        const range = window.trafficHotValueManager.getGrowthRange();
+        showEventPopup('📈 单个推广结束', '本作品推广已结束，还有其他推广在进行中。热度值增长调整中...');
+    } else {
+        showEventPopup('📈 流量推广全部结束', '所有推广已结束，热度值将在3天内逐渐回落。');
+    }
+    
     updateDisplay();
 }
 
@@ -1211,3 +1379,8 @@ window.addWorkToGlobalFanGrowth = window.addWorkToGlobalFanGrowth;
 window.startGlobalWorkFanGrowth = window.startGlobalWorkFanGrowth;
 window.stopGlobalWorkFanGrowth = window.stopGlobalWorkFanGrowth;
 window.removeWorkFromGlobalFanGrowth = window.removeWorkFromGlobalFanGrowth;
+// ✅ 新增：导出流量热度值管理器
+window.trafficHotValueManager = window.trafficHotValueManager;
+// ✅ 新增：导出天数控件函数
+window.changeTrafficDays = changeTrafficDays;
+window.updateTrafficDaysFromInput = updateTrafficDaysFromInput;

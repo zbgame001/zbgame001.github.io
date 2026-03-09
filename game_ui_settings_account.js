@@ -7,35 +7,73 @@ function showSettings() {
     const doNotDisturbStatus = gameState.doNotDisturb ? '已开启' : '已关闭';
     const doNotDisturbStatusColor = gameState.doNotDisturb ? '#ff6b00' : '#999';
     
-    content.innerHTML = `
-        <div class="settings-item" onclick="changeUsername()">
-            <div><div class="settings-label">修改昵称</div><div class="settings-value">${gameState.username}</div></div>
-            <div>></div>
-        </div>
-        <div class="settings-item" onclick="changeUserId()">
-            <div><div class="settings-label">用户ID</div><div class="settings-value">${gameState.userId}</div></div>
-            <div>></div>
-        </div>
-        <div class="settings-item" onclick="changeAvatar()">
-            <div><div class="settings-label">修改头像文字</div><div class="settings-value">点击修改</div></div>
-            <div>></div>
-        </div>
-        <div class="settings-item" onclick="uploadAvatar()">
-            <div><div class="settings-label">上传头像图片</div><div class="settings-value" style="color: #667aea;">选择图片</div></div>
-            <div>📷</div>
-        </div>
-        <div class="settings-item" onclick="toggleDoNotDisturb()" style="background: ${gameState.doNotDisturb ? '#1a2a1a' : '#161823'}; border: ${gameState.doNotDisturb ? '1px solid #00f2ea' : '1px solid #333'};">
-            <div>
-                <div class="settings-label" style="color: ${gameState.doNotDisturb ? '#00f2ea' : '#fff'};">🔕 消息免打扰</div>
-                <div class="settings-value" style="color: ${doNotDisturbStatusColor}; font-weight: ${gameState.doNotDisturb ? 'bold' : 'normal'};">
-                    ${doNotDisturbStatus}
+    // ✅ 检查是否被封号，如果是则显示警告并禁用修改功能
+    if (gameState.isBanned) {
+        content.innerHTML = `
+            <div style="background: #ff0050; color: #fff; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
+                <div style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">🚫 账号已被封禁</div>
+                <div style="font-size: 14px;">封禁期间无法修改账号信息</div>
+                <div style="font-size: 12px; margin-top: 5px; opacity: 0.9;">剩余封禁天数：<span id="settingsBanDays">${gameState.banDaysCount}</span>天</div>
+            </div>
+            <div class="settings-item" style="opacity: 0.5; cursor: not-allowed;">
+                <div><div class="settings-label">修改昵称</div><div class="settings-value">${gameState.username}</div></div>
+                <div>🔒</div>
+            </div>
+            <div class="settings-item" style="opacity: 0.5; cursor: not-allowed;">
+                <div><div class="settings-label">用户ID</div><div class="settings-value">${gameState.userId}</div></div>
+                <div>🔒</div>
+            </div>
+            <div class="settings-item" style="opacity: 0.5; cursor: not-allowed;">
+                <div><div class="settings-label">修改头像文字</div><div class="settings-value">封禁中</div></div>
+                <div>🔒</div>
+            </div>
+            <div class="settings-item" style="opacity: 0.5; cursor: not-allowed;">
+                <div><div class="settings-label">上传头像图片</div><div class="settings-value" style="color: #999;">封禁中</div></div>
+                <div>🔒</div>
+            </div>
+            <div class="settings-item" onclick="toggleDoNotDisturb()" style="background: ${gameState.doNotDisturb ? '#1a2a1a' : '#161823'}; border: ${gameState.doNotDisturb ? '1px solid #00f2ea' : '1px solid #333'};">
+                <div>
+                    <div class="settings-label" style="color: ${gameState.doNotDisturb ? '#00f2ea' : '#fff'};">🔕 消息免打扰</div>
+                    <div class="settings-value" style="color: ${doNotDisturbStatusColor}; font-weight: ${gameState.doNotDisturb ? 'bold' : 'normal'};">
+                        ${doNotDisturbStatus}
+                    </div>
+                </div>
+                <div style="font-size: 20px; color: ${gameState.doNotDisturb ? '#00f2ea' : '#666'};">
+                    ${gameState.doNotDisturb ? '🔕' : '🔔'}
                 </div>
             </div>
-            <div style="font-size: 20px; color: ${gameState.doNotDisturb ? '#00f2ea' : '#666'};">
-                ${gameState.doNotDisturb ? '🔕' : '🔔'}
+        `;
+    } else {
+        content.innerHTML = `
+            <div class="settings-item" onclick="changeUsername()">
+                <div><div class="settings-label">修改昵称</div><div class="settings-value">${gameState.username}</div></div>
+                <div>></div>
             </div>
-        </div>
-    `;
+            <div class="settings-item" onclick="changeUserId()">
+                <div><div class="settings-label">用户ID</div><div class="settings-value">${gameState.userId}</div></div>
+                <div>></div>
+            </div>
+            <div class="settings-item" onclick="changeAvatar()">
+                <div><div class="settings-label">修改头像文字</div><div class="settings-value">点击修改</div></div>
+                <div>></div>
+            </div>
+            <div class="settings-item" onclick="uploadAvatar()">
+                <div><div class="settings-label">上传头像图片</div><div class="settings-value" style="color: #667aea;">选择图片</div></div>
+                <div>📷</div>
+            </div>
+            <div class="settings-item" onclick="toggleDoNotDisturb()" style="background: ${gameState.doNotDisturb ? '#1a2a1a' : '#161823'}; border: ${gameState.doNotDisturb ? '1px solid #00f2ea' : '1px solid #333'};">
+                <div>
+                    <div class="settings-label" style="color: ${gameState.doNotDisturb ? '#00f2ea' : '#fff'};">🔕 消息免打扰</div>
+                    <div class="settings-value" style="color: ${doNotDisturbStatusColor}; font-weight: ${gameState.doNotDisturb ? 'bold' : 'normal'};">
+                        ${doNotDisturbStatus}
+                    </div>
+                </div>
+                <div style="font-size: 20px; color: ${gameState.doNotDisturb ? '#00f2ea' : '#666'};">
+                    ${gameState.doNotDisturb ? '🔕' : '🔔'}
+                </div>
+            </div>
+        `;
+    }
     
     const headerTitle = document.getElementById('settingsHeaderTitle');
     if (headerTitle) {
@@ -122,10 +160,17 @@ function renderProfileWorkCard(work) {
     const typeIcon = work.type === 'video' ? '🎬' : work.type === 'live' ? '📱' : '📝';
     const viewIcon = work.type === 'post' ? '👁️' : '▶️';
     
+    // ✅ 检查是否被封号且作品是被封禁时私密的，如果是则显示锁定状态且不可点击
+    const isLocked = gameState.isBanned && work.isPrivate && gameState.preBanPublicWorks.includes(work.id);
+    const clickAction = isLocked ? '' : `onclick="openProfileWorkDetail(${work.id})"`;
+    const cursorStyle = isLocked ? 'cursor: not-allowed; opacity: 0.6;' : 'cursor: pointer;';
+    const lockIcon = isLocked ? '<div style="position: absolute; top: 10px; right: 10px; background: #ff0050; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold;">🔒 封禁锁定</div>' : '';
+    
     return `
         <div class="profile-work-item" 
-             onclick="openProfileWorkDetail(${work.id})" 
-             style="background: #161823; border-radius: 10px; padding: 15px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; border: 1px solid #222; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation;">
+             ${clickAction}
+             style="background: #161823; border-radius: 10px; padding: 15px; margin-bottom: 10px; ${cursorStyle} transition: all 0.2s; border: 1px solid #222; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; position: relative;">
+            ${lockIcon}
             ${statusHtml ? `<div style="margin-bottom:8px;">${statusHtml}</div>` : ''}
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <span style="background: ${work.type === 'video' ? '#667eea' : work.type === 'live' ? '#ff0050' : '#00f2ea'}; padding: 3px 8px; border-radius: 5px; font-size: 12px;">
@@ -153,7 +198,14 @@ function renderProfileWorkCard(work) {
 // ✅ 关键修复：打开作品详情前先关闭个人主页
 window.openProfileWorkDetail = function(workId) {
     console.log('点击作品ID:', workId);
-    const work = window.profileWorksCache[workId];
+    
+    // ✅ 检查是否被封号且作品是被锁定的
+    const work = gameState.worksList.find(w => w.id === workId);
+    if (work && gameState.isBanned && work.isPrivate && gameState.preBanPublicWorks.includes(work.id)) {
+        showAlert('封禁期间，被私密的作品无法查看', '账号封禁中');
+        return;
+    }
+    
     if (!work) {
         console.error('未找到作品:', workId);
         const foundWork = gameState.worksList.find(w => w.id === workId);
@@ -325,6 +377,13 @@ function renderProfileContent() {
     
     const stats = calculateProfileStats();
     
+    // ✅ 检查是否被封号，如果是则显示"账号封禁中！"
+    const banWarningHtml = gameState.isBanned ? `
+        <div style="background: #ff0050; color: #fff; padding: 10px; text-align: center; font-size: 14px; font-weight: bold; margin-bottom: 15px; border-radius: 8px; animation: pulse 2s infinite;">
+            🚫 账号封禁中！
+        </div>
+    ` : '';
+    
     content.innerHTML = `
         <div style="padding: 0; animation: fadeIn 0.3s ease;">
             
@@ -381,6 +440,8 @@ function renderProfileContent() {
                     <span style="font-size: 18px; font-weight: bold; color: #ff0050; white-space: nowrap;">${formatNumber(stats.fans)}</span>
                 </div>
             </div>
+            
+            ${banWarningHtml}
             
             <div id="profileCategoryTabs" style="padding: 0 20px 20px 20px; display: flex; justify-content: flex-start; align-items: center; gap: 25px; flex-wrap: wrap;">
                 ${PROFILE_CONFIG.categories.map(cat => {
@@ -603,9 +664,34 @@ function showAllWorks() {
     }, 100);
 }
 
+// ==================== 同步成就系统（已更新至包含等级和新成就） ====================
 function showAchievementsFullscreen() {
+    // 在显示前进行一次成就检查，确保最新状态
+    checkAchievements();
+
     const content = document.getElementById('achievementsListTab');
     if (!content) return;
+    
+    // 确保成就点数已初始化
+    if (gameState.achievementPoints === undefined) {
+        const unlockedCount = achievements.filter(a => a.unlocked).length;
+        gameState.achievementPoints = unlockedCount * 10;
+    }
+    
+    // 计算成就等级（点数/10向下取整）
+    const points = gameState.achievementPoints || 0;
+    const level = Math.floor(points / 10);
+    const unlockedCount = achievements.filter(a => a.unlocked).length;
+    const totalCount = achievements.length;
+    
+    // 等级显示区域
+    const levelHtml = `
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 10px; padding: 15px; border-radius: 10px; text-align: center; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+            <div style="font-size: 12px; color: rgba(255,255,255,0.9); margin-bottom: 5px;">成就等级</div>
+            <div style="font-size: 32px; font-weight: bold; color: #fff; line-height: 1.2;">Lv.${level}</div>
+            <div style="font-size: 11px; color: rgba(255,255,255,0.8); margin-top: 5px;">${unlockedCount}/${totalCount} 已解锁 | 点数 ${points}</div>
+        </div>
+    `;
     
     const progressMap = {
         1: { current: () => gameState.fans || 0, target: 1 },
@@ -620,7 +706,7 @@ function showAchievementsFullscreen() {
             target: 1000000 
         },
         6: { current: () => gameState.likes || 0, target: 100000 },
-        7: { current: () => gameState.worksList.filter(w => !w.isPrivate).length, target: 100 },
+        7: { current: () => gameState.worksList.length, target: 100 },
         8: { 
             current: () => {
                 const liveWorks = gameState.worksList.filter(w => !w.isPrivate && w.type === 'live');
@@ -646,19 +732,14 @@ function showAchievementsFullscreen() {
         },
         13: { 
             current: () => {
-                if (!gameState.gameStartTime || gameState.gameStartTime <= 0) {
-                    return 0;
-                }
+                if (!gameState.gameStartTime || gameState.gameStartTime <= 0) return 0;
                 const now = Date.now();
                 const days = Math.floor((now - gameState.gameStartTime) / (24 * 60 * 60 * 1000));
                 return Math.max(0, days);
             }, 
             target: 30 
         },
-        14: { 
-            current: () => 0, 
-            target: 1 
-        },
+        14: { current: () => 0, target: 1 },
         15: { current: () => gameState.eventCount || 0, target: 50 },
         16: { current: () => (gameState.following && gameState.following.length) || 0, target: 1000 },
         17: { 
@@ -681,10 +762,7 @@ function showAchievementsFullscreen() {
                 const otherAchievements = achievements.filter(a => a.id !== 20);
                 return otherAchievements.filter(a => a.unlocked).length;
             }, 
-            target: () => {
-                const otherAchievements = achievements.filter(a => a.id !== 20);
-                return otherAchievements.length;
-            }
+            target: () => achievements.filter(a => a.id !== 20).length
         },
         21: { current: () => gameState.worksList.filter(w => w.isAd && !w.isPrivate).length, target: 1 },
         22: { current: () => gameState.worksList.filter(w => w.isAd && !w.isPrivate).length, target: 10 },
@@ -707,11 +785,13 @@ function showAchievementsFullscreen() {
             target: 50 
         },
         26: { current: () => gameState.worksList.filter(w => w.isAd && w.adOrder && !w.adOrder.real && !w.isPrivate).length, target: 10 },
-        27: { 
-            current: () => gameState.fakeAdBans || 0, 
-            target: 3 
-        },
-        28: { current: () => gameState.monthsWithoutFakeAd || 0, target: 3 }
+        27: { current: () => gameState.fakeAdBans || 0, target: 3 },
+        28: { current: () => gameState.monthsWithoutFakeAd || 0, target: 3 },
+        // ✅ 新增成就进度
+        29: { current: () => gameState.fans || 0, target: 1000000 },
+        30: { current: () => gameState.fans || 0, target: 100000000 },
+        31: { current: () => gameState.worksList.length, target: 50 },
+        32: { current: () => gameState.worksList.length, target: 1000 }
     };
     
     const achievementHtml = achievements.map(achievement => {
@@ -763,10 +843,16 @@ function showAchievementsFullscreen() {
         `;
     }).join('');
     
-    content.innerHTML = achievementHtml;
+    content.innerHTML = levelHtml + achievementHtml;
 }
 
 function changeUsername() {
+    // ✅ 检查是否被封号
+    if (gameState.isBanned) {
+        showAlert('封禁期间无法修改昵称', '账号封禁中');
+        return;
+    }
+    
     showPrompt('请输入新昵称（最多10个字符）', gameState.username, function(newName) {
         if (newName && newName.trim()) {
             gameState.username = newName.trim().substring(0, 10);
@@ -779,6 +865,12 @@ function changeUsername() {
 
 // ✅ 修改：输入新的UID只支持输入数字和字母和标点符号
 function changeUserId() {
+    // ✅ 检查是否被封号
+    if (gameState.isBanned) {
+        showAlert('封禁期间无法修改用户ID', '账号封禁中');
+        return;
+    }
+    
     showPrompt('请输入新ID（最多20个字符，仅限数字、字母和标点符号）', gameState.userId, function(newId) {
         if (newId && newId.trim()) {
             const trimmedId = newId.trim();
@@ -799,6 +891,12 @@ function changeUserId() {
 }
 
 function changeAvatar() {
+    // ✅ 检查是否被封号
+    if (gameState.isBanned) {
+        showAlert('封禁期间无法修改头像', '账号封禁中');
+        return;
+    }
+    
     showPrompt('请输入头像文字（1个字符），留空则使用图片头像', gameState.avatar || '', function(avatar) {
         if (avatar && avatar.trim()) {
             gameState.avatar = avatar.trim().substring(0, 1);
@@ -839,6 +937,12 @@ function clearData() {
 }
 
 function uploadAvatar() {
+    // ✅ 检查是否被封号
+    if (gameState.isBanned) {
+        showAlert('封禁期间无法上传头像', '账号封禁中');
+        return;
+    }
+    
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'image/*';
@@ -1200,7 +1304,7 @@ window.changeAvatar = changeAvatar;
 window.uploadAvatar = uploadAvatar;
 window.clearData = clearData;
 window.showAllWorks = showAllWorks;
-window.showAchievementsFullscreen = showAchievementsFullscreen;
+window.showAchievementsFullscreen = showAchievementsFullscreen; // ✅ 已同步更新
 window.updateLastWorkTime = updateLastWorkTime;
 window.toggleDoNotDisturb = toggleDoNotDisturb;
 window.changeProfileCategory = window.changeProfileCategory;
