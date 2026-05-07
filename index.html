@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>文字游戏-主播模拟器</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --neon-cyan: #00f0ff;
+            --neon-pink: #ff00a0;
+            --neon-purple: #b829dd;
+            --dark-bg: #0a0a12;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', 'Orbitron', sans-serif;
+            background: var(--dark-bg);
+            color: #e0e0e0;
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: var(--neon-cyan);
+            border-radius: 50%;
+            animation: floatUp linear infinite;
+            opacity: 0.6;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(100vh) scale(0); opacity: 0; }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.6; }
+            100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+        }
+
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                transparent 50%,
+                rgba(0, 240, 255, 0.02) 50%
+            );
+            background-size: 100% 4px;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .main-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            padding: 40px 20px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .hero-icon {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 24px;
+            position: relative;
+        }
+
+        .hero-icon-inner {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            position: relative;
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.3);
+            animation: iconGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes iconGlow {
+            0%, 100% { box-shadow: 0 0 30px rgba(0, 240, 255, 0.3); }
+            50% { box-shadow: 0 0 50px rgba(0, 240, 255, 0.5), 0 0 80px rgba(184, 41, 221, 0.2); }
+        }
+
+        .hero-icon::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            border-radius: 28px;
+            animation: rotateBorder 8s linear infinite;
+        }
+
+        @keyframes rotateBorder {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .game-name-cn {
+            font-family: 'Noto Sans SC', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .game-name-en {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.85rem;
+            color: var(--neon-purple);
+            letter-spacing: 3px;
+            margin-bottom: 40px;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            max-width: 280px;
+            padding: 16px 30px;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+            border: none;
+            border-radius: 14px;
+            color: #fff;
+            font-family: 'Noto Sans SC', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+            text-decoration: none;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 40px rgba(0, 240, 255, 0.5), 0 0 60px rgba(184, 41, 221, 0.2);
+        }
+
+        .download-btn:active {
+            transform: translateY(0);
+        }
+
+        .download-btn::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent 30%,
+                rgba(255, 255, 255, 0.1) 50%,
+                transparent 70%
+            );
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) rotate(45deg); }
+        }
+
+        .progress-container {
+            display: none;
+            margin-top: 20px;
+            max-width: 280px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .progress-container.active {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 0.75rem;
+            color: var(--neon-cyan);
+            margin-top: 8px;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 1001;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: linear-gradient(135deg, #1a1a2e, #0f0f1a);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            border-radius: 16px;
+            padding: 30px 25px;
+            text-align: center;
+            max-width: 320px;
+            width: 100%;
+            position: relative;
+            box-shadow: 0 0 40px rgba(0, 240, 255, 0.1);
+        }
+
+        .modal .modal-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .modal h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem;
+            color: var(--neon-cyan);
+            margin-bottom: 10px;
+        }
+
+        .modal p {
+            font-size: 0.85rem;
+            color: rgba(224, 224, 224, 0.6);
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .modal .modal-btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-family: 'Noto Sans SC', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .modal .modal-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
+        }
+
+        .modal .modal-close {
+            position: absolute;
+            top: 12px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: rgba(224, 224, 224, 0.4);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="particles" id="particles"></div>
+    <div class="scanline"></div>
+
+    <main class="main-content">
+        <div class="hero-icon">
+            <div class="hero-icon-inner">🎮</div>
+        </div>
+
+        <div class="game-name-cn">文字游戏-主播模拟器</div>
+        <div class="game-name-en">TEXT GAME - STREAMER SIMULATOR</div>
+
+        <button class="download-btn" id="downloadBtn">
+            <span>⬇️</span>
+            <span>立即下载</span>
+        </button>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">0%</div>
+        </div>
+    </main>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <button class="modal-close" id="modalClose">✕</button>
+            <div class="modal-icon">📱</div>
+            <h3>准备下载</h3>
+            <p>即将开始下载 game.apk<br>请确保设备有足够的存储空间</p>
+            <a href="game.apk" download class="modal-btn" id="confirmDownload">确认下载</a>
+        </div>
+    </div>
+
+    <script>
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 30; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDuration = (Math.random() * 10 + 5) + 's';
+            particle.style.animationDelay = Math.random() * 5 + 's';
+            particle.style.width = (Math.random() * 3 + 1) + 'px';
+            particle.style.height = particle.style.width;
+            const colors = ['#00f0ff', '#ff00a0', '#b829dd'];
+            particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+            particlesContainer.appendChild(particle);
+        }
+
+        const downloadBtn = document.getElementById('downloadBtn');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalClose = document.getElementById('modalClose');
+        const confirmDownload = document.getElementById('confirmDownload');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+
+        downloadBtn.addEventListener('click', () => {
+            modalOverlay.classList.add('active');
+        });
+
+        modalClose.addEventListener('click', () => {
+            modalOverlay.classList.remove('active');
+        });
+
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                modalOverlay.classList.remove('active');
+            }
+        });
+
+        confirmDownload.addEventListener('click', (e) => {
+            e.preventDefault();
+            modalOverlay.classList.remove('active');
+            progressContainer.classList.add('active');
+            downloadBtn.disabled = true;
+            downloadBtn.style.opacity = '0.6';
+            downloadBtn.innerHTML = '<span>⏳</span><span>下载中...</span>';
+
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 5 + 1;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        downloadBtn.innerHTML = '<span>✅</span><span>下载完成</span>';
+                        progressText.textContent = '完成';
+                        const link = document.createElement('a');
+                        link.href = 'game.apk';
+                        link.download = 'game.apk';
+                        link.click();
+                    }, 500);
+                }
+                progressFill.style.width = progress + '%';
+                progressText.textContent = Math.floor(progress) + '%';
+            }, 200);
+        });
+    </script>
+</body>
+</html>
