@@ -184,6 +184,16 @@
             text-decoration: none;
         }
 
+        .forum-btn {
+            background: linear-gradient(135deg, var(--neon-pink), #ff6b35);
+            box-shadow: 0 0 20px rgba(255, 0, 160, 0.3);
+            margin-top: 16px;
+        }
+
+        .forum-btn:hover {
+            box-shadow: 0 0 40px rgba(255, 0, 160, 0.5), 0 0 60px rgba(255, 107, 53, 0.2);
+        }
+
         .download-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 0 40px rgba(0, 240, 255, 0.5), 0 0 60px rgba(184, 41, 221, 0.2);
@@ -356,6 +366,18 @@
             </div>
             <div class="progress-text" id="progressText">0%</div>
         </div>
+
+        <button class="download-btn forum-btn" id="forumDownloadBtn">
+            <span>💬</span>
+            <span>下载论坛APP</span>
+        </button>
+
+        <div class="progress-container" id="forumProgressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="forumProgressFill"></div>
+            </div>
+            <div class="progress-text" id="forumProgressText">0%</div>
+        </div>
     </main>
 
     <div class="modal-overlay" id="modalOverlay">
@@ -365,6 +387,16 @@
             <h3>准备下载</h3>
             <p>即将开始下载 game.apk<br>请确保设备有足够的存储空间</p>
             <a href="game.apk" download class="modal-btn" id="confirmDownload">确认下载</a>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="forumModalOverlay">
+        <div class="modal">
+            <button class="modal-close" id="forumModalClose">✕</button>
+            <div class="modal-icon">💬</div>
+            <h3>下载论坛APP</h3>
+            <p>即将开始下载 lt.apk<br>论坛交流更方便</p>
+            <a href="lt.apk" download class="modal-btn" id="confirmForumDownload">确认下载</a>
         </div>
     </div>
 
@@ -430,6 +462,56 @@
                 }
                 progressFill.style.width = progress + '%';
                 progressText.textContent = Math.floor(progress) + '%';
+            }, 200);
+        });
+
+        const forumDownloadBtn = document.getElementById('forumDownloadBtn');
+        const forumModalOverlay = document.getElementById('forumModalOverlay');
+        const forumModalClose = document.getElementById('forumModalClose');
+        const confirmForumDownload = document.getElementById('confirmForumDownload');
+        const forumProgressContainer = document.getElementById('forumProgressContainer');
+        const forumProgressFill = document.getElementById('forumProgressFill');
+        const forumProgressText = document.getElementById('forumProgressText');
+
+        forumDownloadBtn.addEventListener('click', () => {
+            forumModalOverlay.classList.add('active');
+        });
+
+        forumModalClose.addEventListener('click', () => {
+            forumModalOverlay.classList.remove('active');
+        });
+
+        forumModalOverlay.addEventListener('click', (e) => {
+            if (e.target === forumModalOverlay) {
+                forumModalOverlay.classList.remove('active');
+            }
+        });
+
+        confirmForumDownload.addEventListener('click', (e) => {
+            e.preventDefault();
+            forumModalOverlay.classList.remove('active');
+            forumProgressContainer.classList.add('active');
+            forumDownloadBtn.disabled = true;
+            forumDownloadBtn.style.opacity = '0.6';
+            forumDownloadBtn.innerHTML = '<span>⏳</span><span>下载中...</span>';
+
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 5 + 1;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        forumDownloadBtn.innerHTML = '<span>✅</span><span>下载完成</span>';
+                        forumProgressText.textContent = '完成';
+                        const link = document.createElement('a');
+                        link.href = 'lt.apk';
+                        link.download = 'lt.apk';
+                        link.click();
+                    }, 500);
+                }
+                forumProgressFill.style.width = progress + '%';
+                forumProgressText.textContent = Math.floor(progress) + '%';
             }, 200);
         });
     </script>
