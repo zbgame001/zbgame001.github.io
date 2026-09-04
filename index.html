@@ -1,519 +1,189 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>文字游戏-主播模拟器</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;700&display=swap" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+ <title>文字游戏-主播模拟器</title>
+ <link rel="icon" href="favicon.ico" type="image/x-icon">
+ <style>
+ :root {
+ --bg-color: #ffffff;
+ --text-main: #1a1a1a;
+ --text-sub: #666666;
+ --btn-bg: #4a4a4a;
+ --btn-text: #ffffff;
+  }
 
-        :root {
-            --neon-cyan: #00f0ff;
-            --neon-pink: #ff00a0;
-            --neon-purple: #b829dd;
-            --dark-bg: #0a0a12;
-        }
+ * {
+ margin: 0;
+ padding: 0;
+ box-sizing: border-box;
+ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+ }
 
-        body {
-            font-family: 'Noto Sans SC', 'Orbitron', sans-serif;
-            background: var(--dark-bg);
-            color: #e0e0e0;
-            overflow-x: hidden;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
+ body {
+ background-color: var(--bg-color);
+ display: flex;
+ justify-content: center;
+ align-items: center;
+ min-height: 100vh;
+ padding: 20px;
+ user-select: none;
+ -webkit-user-select: none;
+ -webkit-touch-callout: none;
+ touch-action: pan-y pinch-zoom;
+ }
 
-        .bg-grid {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image:
-                linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
-            background-size: 50px 50px;
-            z-index: 0;
-            pointer-events: none;
-        }
+ .container {
+ max-width: 720px;
+ width: 100%;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ }
 
-        .particles {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0;
-            pointer-events: none;
-            overflow: hidden;
-        }
+ .left-content {
+ width: 100%;
+ display: flex;
+ flex-direction: column;
+ gap: 24px;
+ background: #fff;
+ border-radius: 20px;
+ padding: 32px;
+ box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+ }
 
-        .particle {
-            position: absolute;
-            width: 2px;
-            height: 2px;
-            background: var(--neon-cyan);
-            border-radius: 50%;
-            animation: floatUp linear infinite;
-            opacity: 0.6;
-        }
+ .header-group {
+ display: flex;
+ align-items: center;
+ gap: 20px;
+ }
+ .app-icon-img {
+ width: 80px;
+ height: 80px;
+ border-radius: 18px;
+ object-fit: contain;
+ }
+ .app-title {
+ display: flex;
+ flex-direction: column;
+ gap: 6px;
+ }
+ .app-title h1 {
+ font-size: 32px;
+ font-weight: 700;
+ color: var(--text-main);
+ letter-spacing: 1px;
+ }
+ .app-title p {
+ font-size: 16px;
+ color: var(--text-sub);
+ }
 
-        @keyframes floatUp {
-            0% { transform: translateY(100vh) scale(0); opacity: 0; }
-            10% { opacity: 0.6; }
-            90% { opacity: 0.6; }
-            100% { transform: translateY(-10vh) scale(1); opacity: 0; }
-        }
+ .description {
+ font-size: 16px;
+ color: var(--text-main);
+ line-height: 1.6;
+ margin-top: 10px;
+ }
 
-        .scanline {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(
-                to bottom,
-                transparent 50%,
-                rgba(0, 240, 255, 0.02) 50%
-            );
-            background-size: 100% 4px;
-            z-index: 1000;
-            pointer-events: none;
-        }
+ .btn-group {
+ display: flex;
+ gap: 20px;
+ flex-wrap: wrap;
+ }
+ .download-btn {
+ display: flex;
+ align-items: center;
+ gap: 12px;
+ background-color: var(--btn-bg);
+ color: var(--btn-text);
+ padding: 16px 30px;
+ border-radius: 12px;
+ text-decoration: none;
+ transition: opacity 0.3s;
+ min-width: 160px;
+ }
+ .download-btn:hover {
+ opacity: 0.85;
+ }
+ .download-btn .icon {
+ width: 26px;
+ height: 26px;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ flex-shrink: 0;
+ }
+ .download-btn .icon svg {
+ width: 100%;
+ height: 100%;
+ fill: #ffffff;
+ }
+ .download-btn .info {
+ display: flex;
+ flex-direction: column;
+ }
+ .download-btn .info .name {
+ font-size: 16px;
+ font-weight: bold;
+ }
+ .download-btn .info .status {
+ font-size: 12px;
+ opacity: 0.7;
+ }
 
-        .main-content {
-            position: relative;
-            z-index: 1;
-            text-align: center;
-            padding: 40px 20px;
-            width: 100%;
-            max-width: 400px;
-        }
-
-        .hero-icon {
-            width: 100px;
-            height: 100px;
-            margin: 0 auto 24px;
-            position: relative;
-        }
-
-        .hero-icon-inner {
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
-            border-radius: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.5rem;
-            position: relative;
-            box-shadow: 0 0 30px rgba(0, 240, 255, 0.3);
-            animation: iconGlow 3s ease-in-out infinite;
-        }
-
-        @keyframes iconGlow {
-            0%, 100% { box-shadow: 0 0 30px rgba(0, 240, 255, 0.3); }
-            50% { box-shadow: 0 0 50px rgba(0, 240, 255, 0.5), 0 0 80px rgba(184, 41, 221, 0.2); }
-        }
-
-        .hero-icon::before {
-            content: '';
-            position: absolute;
-            top: -5px;
-            left: -5px;
-            right: -5px;
-            bottom: -5px;
-            border: 1px solid rgba(0, 240, 255, 0.3);
-            border-radius: 28px;
-            animation: rotateBorder 8s linear infinite;
-        }
-
-        @keyframes rotateBorder {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .game-name-cn {
-            font-family: 'Noto Sans SC', sans-serif;
-            font-size: 1.6rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .game-name-en {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.85rem;
-            color: var(--neon-purple);
-            letter-spacing: 3px;
-            margin-bottom: 40px;
-        }
-
-        .download-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            width: 100%;
-            max-width: 280px;
-            padding: 16px 30px;
-            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
-            border: none;
-            border-radius: 14px;
-            color: #fff;
-            font-family: 'Noto Sans SC', sans-serif;
-            font-size: 1.1rem;
-            font-weight: 700;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
-            text-decoration: none;
-        }
-
-        .forum-btn {
-            background: linear-gradient(135deg, var(--neon-pink), #ff6b35);
-            box-shadow: 0 0 20px rgba(255, 0, 160, 0.3);
-            margin-top: 16px;
-        }
-
-        .forum-btn:hover {
-            box-shadow: 0 0 40px rgba(255, 0, 160, 0.5), 0 0 60px rgba(255, 107, 53, 0.2);
-        }
-
-        .download-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0 40px rgba(0, 240, 255, 0.5), 0 0 60px rgba(184, 41, 221, 0.2);
-        }
-
-        .download-btn:active {
-            transform: translateY(0);
-        }
-
-        .download-btn::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(
-                45deg,
-                transparent 30%,
-                rgba(255, 255, 255, 0.1) 50%,
-                transparent 70%
-            );
-            animation: shimmer 3s infinite;
-        }
-
-        @keyframes shimmer {
-            0% { transform: translateX(-100%) rotate(45deg); }
-            100% { transform: translateX(100%) rotate(45deg); }
-        }
-
-        .progress-container {
-            display: none;
-            margin-top: 20px;
-            max-width: 280px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .progress-container.active {
-            display: block;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 2px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
-            border-radius: 2px;
-            transition: width 0.3s ease;
-        }
-
-        .progress-text {
-            font-size: 0.75rem;
-            color: var(--neon-cyan);
-            margin-top: 8px;
-            font-family: 'Orbitron', sans-serif;
-        }
-
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(5px);
-            z-index: 1001;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .modal-overlay.active {
-            display: flex;
-        }
-
-        .modal {
-            background: linear-gradient(135deg, #1a1a2e, #0f0f1a);
-            border: 1px solid rgba(0, 240, 255, 0.3);
-            border-radius: 16px;
-            padding: 30px 25px;
-            text-align: center;
-            max-width: 320px;
-            width: 100%;
-            position: relative;
-            box-shadow: 0 0 40px rgba(0, 240, 255, 0.1);
-        }
-
-        .modal .modal-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
-        }
-
-        .modal h3 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.1rem;
-            color: var(--neon-cyan);
-            margin-bottom: 10px;
-        }
-
-        .modal p {
-            font-size: 0.85rem;
-            color: rgba(224, 224, 224, 0.6);
-            margin-bottom: 20px;
-            line-height: 1.6;
-        }
-
-        .modal .modal-btn {
-            display: inline-block;
-            padding: 12px 30px;
-            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
-            border: none;
-            border-radius: 10px;
-            color: #fff;
-            font-family: 'Noto Sans SC', sans-serif;
-            font-size: 0.95rem;
-            font-weight: 700;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.3s;
-        }
-
-        .modal .modal-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
-        }
-
-        .modal .modal-close {
-            position: absolute;
-            top: 12px;
-            right: 15px;
-            background: none;
-            border: none;
-            color: rgba(224, 224, 224, 0.4);
-            font-size: 1.2rem;
-            cursor: pointer;
-            padding: 5px;
-        }
-    </style>
+ @media (max-width: 850px) {
+ .container {
+ flex-direction: column-reverse;
+ gap: 40px;
+ align-items: center;
+ }
+ .left-content {
+ align-items: center;
+ text-align: center;
+ }
+ .header-group {
+ flex-direction: column;
+ }
+ .btn-group {
+ justify-content: center;
+ }
+ }
+ </style>
 </head>
-<body>
-    <div class="bg-grid"></div>
-    <div class="particles" id="particles"></div>
-    <div class="scanline"></div>
+<body oncopy="return false" oncut="return false" oncontextmenu="return false">
 
-    <main class="main-content">
-        <div class="hero-icon">
-            <div class="hero-icon-inner">🎮</div>
-        </div>
+ <div class="container">
+  <!-- 应用信息区 -->
+  <div class="left-content">
 
-        <div class="game-name-cn">文字游戏-主播模拟器</div>
-        <div class="game-name-en">TEXT GAME - STREAMER SIMULATOR</div>
-
-        <button class="download-btn" id="downloadBtn">
-            <span>⬇️</span>
-            <span>立即下载</span>
-        </button>
-
-        <div class="progress-container" id="progressContainer">
-            <div class="progress-bar">
-                <div class="progress-fill" id="progressFill"></div>
-            </div>
-            <div class="progress-text" id="progressText">0%</div>
-        </div>
-
-        <button class="download-btn forum-btn" id="forumDownloadBtn">
-            <span>💬</span>
-            <span>下载论坛APP</span>
-        </button>
-
-        <div class="progress-container" id="forumProgressContainer">
-            <div class="progress-bar">
-                <div class="progress-fill" id="forumProgressFill"></div>
-            </div>
-            <div class="progress-text" id="forumProgressText">0%</div>
-        </div>
-    </main>
-
-    <div class="modal-overlay" id="modalOverlay">
-        <div class="modal">
-            <button class="modal-close" id="modalClose">✕</button>
-            <div class="modal-icon">📱</div>
-            <h3>准备下载</h3>
-            <p>即将开始下载 game.apk<br>请确保设备有足够的存储空间</p>
-            <a href="game.apk" download class="modal-btn" id="confirmDownload">确认下载</a>
-        </div>
+   <div class="header-group">
+    <img src="favicon.ico" alt="文字游戏-主播模拟器" class="app-icon-img">
+    <div class="app-title">
+     <h1>文字游戏-主播模拟器</h1>
+     <p>开启你的主播成长之路</p>
     </div>
+   </div>
 
-    <div class="modal-overlay" id="forumModalOverlay">
-        <div class="modal">
-            <button class="modal-close" id="forumModalClose">✕</button>
-            <div class="modal-icon">💬</div>
-            <h3>下载论坛APP</h3>
-            <p>即将开始下载 lt.apk<br>论坛交流更方便</p>
-            <a href="lt.apk" download class="modal-btn" id="confirmForumDownload">确认下载</a>
-        </div>
-    </div>
+   <p class="description">下载《文字游戏-主播模拟器》，体验从零开始的主播之旅，积累粉丝、提升热度，打造属于你的直播间。</p>
 
-    <script>
-        const particlesContainer = document.getElementById('particles');
-        for (let i = 0; i < 30; i++) {
-            const particle = document.createElement('div');
-            particle.className = 'particle';
-            particle.style.left = Math.random() * 100 + '%';
-            particle.style.animationDuration = (Math.random() * 10 + 5) + 's';
-            particle.style.animationDelay = Math.random() * 5 + 's';
-            particle.style.width = (Math.random() * 3 + 1) + 'px';
-            particle.style.height = particle.style.width;
-            const colors = ['#00f0ff', '#ff00a0', '#b829dd'];
-            particle.style.background = colors[Math.floor(Math.random() * colors.length)];
-            particlesContainer.appendChild(particle);
-        }
+   <div class="btn-group">
+    <a href="主播模拟器_V6.5.apk" class="download-btn" download>
+     <span class="icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 28 28">
+       <path d="M6 18c0 .55.45 1 1 1h1v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h1c.55 0 1-.45 1-1V8H6v10zM3.5 8C2.67 8 2 8.67 2 9.5v7c0 .83.67 1.5 1.5 1.5S5 17.33 5 16.5v-7C5 8.67 4.33 8 3.5 8zm17 0c-.83 0-1.5.67-1.5 1.5v7c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zM15.53 2.16l1.3-1.3c.2-.2.2-.51 0-.71s-.51-.2-.71 0l-1.48 1.48A5.74 5.74 0 0 0 12 1c-1.34 0-2.58.47-3.55 1.22L6.98.74c-.2-.2-.51-.2-.71 0s-.2.51 0 .71l1.3 1.3C6.23 3.48 5.15 5.07 5.03 7h13.94c-.12-1.93-1.2-3.52-2.44-4.84zM10 5.5c-.28 0-.5-.22-.5-.5s.22-.5.5-.5.5.22.5.5-.22.5-.5.5zm4 0c-.28 0-.5-.22-.5-.5s.22-.5.5-.5.5.22.5.5-.22.5-.5.5z"/>
+      </svg>
+     </span>
+     <div class="info">
+      <span class="name">Android 下载</span>
+      <span class="status">V6.5</span>
+     </div>
+    </a>
+   </div>
 
-        const downloadBtn = document.getElementById('downloadBtn');
-        const modalOverlay = document.getElementById('modalOverlay');
-        const modalClose = document.getElementById('modalClose');
-        const confirmDownload = document.getElementById('confirmDownload');
-        const progressContainer = document.getElementById('progressContainer');
-        const progressFill = document.getElementById('progressFill');
-        const progressText = document.getElementById('progressText');
+  </div>
+ </div>
 
-        downloadBtn.addEventListener('click', () => {
-            modalOverlay.classList.add('active');
-        });
-
-        modalClose.addEventListener('click', () => {
-            modalOverlay.classList.remove('active');
-        });
-
-        modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay) {
-                modalOverlay.classList.remove('active');
-            }
-        });
-
-        confirmDownload.addEventListener('click', (e) => {
-            e.preventDefault();
-            modalOverlay.classList.remove('active');
-            progressContainer.classList.add('active');
-            downloadBtn.disabled = true;
-            downloadBtn.style.opacity = '0.6';
-            downloadBtn.innerHTML = '<span>⏳</span><span>下载中...</span>';
-
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += Math.random() * 5 + 1;
-                if (progress >= 100) {
-                    progress = 100;
-                    clearInterval(interval);
-                    setTimeout(() => {
-                        downloadBtn.innerHTML = '<span>✅</span><span>下载完成</span>';
-                        progressText.textContent = '完成';
-                        const link = document.createElement('a');
-                        link.href = 'game.apk';
-                        link.download = 'game.apk';
-                        link.click();
-                    }, 500);
-                }
-                progressFill.style.width = progress + '%';
-                progressText.textContent = Math.floor(progress) + '%';
-            }, 200);
-        });
-
-        const forumDownloadBtn = document.getElementById('forumDownloadBtn');
-        const forumModalOverlay = document.getElementById('forumModalOverlay');
-        const forumModalClose = document.getElementById('forumModalClose');
-        const confirmForumDownload = document.getElementById('confirmForumDownload');
-        const forumProgressContainer = document.getElementById('forumProgressContainer');
-        const forumProgressFill = document.getElementById('forumProgressFill');
-        const forumProgressText = document.getElementById('forumProgressText');
-
-        forumDownloadBtn.addEventListener('click', () => {
-            forumModalOverlay.classList.add('active');
-        });
-
-        forumModalClose.addEventListener('click', () => {
-            forumModalOverlay.classList.remove('active');
-        });
-
-        forumModalOverlay.addEventListener('click', (e) => {
-            if (e.target === forumModalOverlay) {
-                forumModalOverlay.classList.remove('active');
-            }
-        });
-
-        confirmForumDownload.addEventListener('click', (e) => {
-            e.preventDefault();
-            forumModalOverlay.classList.remove('active');
-            forumProgressContainer.classList.add('active');
-            forumDownloadBtn.disabled = true;
-            forumDownloadBtn.style.opacity = '0.6';
-            forumDownloadBtn.innerHTML = '<span>⏳</span><span>下载中...</span>';
-
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += Math.random() * 5 + 1;
-                if (progress >= 100) {
-                    progress = 100;
-                    clearInterval(interval);
-                    setTimeout(() => {
-                        forumDownloadBtn.innerHTML = '<span>✅</span><span>下载完成</span>';
-                        forumProgressText.textContent = '完成';
-                        const link = document.createElement('a');
-                        link.href = 'lt.apk';
-                        link.download = 'lt.apk';
-                        link.click();
-                    }, 500);
-                }
-                forumProgressFill.style.width = progress + '%';
-                forumProgressText.textContent = Math.floor(progress) + '%';
-            }, 200);
-        });
-    </script>
 </body>
 </html>
