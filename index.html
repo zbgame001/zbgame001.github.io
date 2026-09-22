@@ -501,7 +501,8 @@
  .credit,
  .works-head,
  .work-card,
- .more-btn {
+ .more-btn,
+ .visit-stat {
  animation: slideUpIn 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
  }
  .download-btn {
@@ -516,13 +517,17 @@
  .more-btn {
  animation-delay: 0.55s;
  }
+ .visit-stat {
+ animation-delay: 0.65s;
+ }
  @media (prefers-reduced-motion: reduce) {
  .hero-head,
  .download-btn,
  .credit,
  .works-head,
  .work-card,
- .more-btn {
+ .more-btn,
+ .visit-stat {
  animation: none;
  }
  }
@@ -629,6 +634,20 @@
  animation: none;
  }
  }
+
+ /* ---- 访问统计：本站总访问量 ---- */
+ .visit-stat {
+ margin-top: 22px;
+ font-size: 12.5px;
+ line-height: 1.5;
+ color: var(--text-sub);
+ text-align: center;
+ letter-spacing: 0.3px;
+ }
+ /* 数字取到之前整段隐藏，避免空数字或跳动 */
+ #vercount_container_site_pv {
+ display: none;
+ }
 </style>
 </head>
 <body oncopy="return false" oncut="return false" oncontextmenu="return false">
@@ -678,6 +697,11 @@
 
   <!-- 查看更多：进入全部作品页 -->
   <a class="more-btn" href="works.html">查看更多</a>
+
+  <!-- 访问统计：本站总访问量（vercount，显式上报 URL，不依赖 referrer） -->
+  <p class="visit-stat">
+   <span id="vercount_container_site_pv">本站总访问量 <span id="vercount_value_site_pv"></span> 次</span>
+  </p>
 
  </main>
 
@@ -1068,6 +1092,8 @@
   if (window.renderWorks) window.renderWorks('worksGrid', 6, true);
  })();
  </script>
+
+<script defer src="https://cn.vercount.one/js"></script>
 
 </body>
 </html>
