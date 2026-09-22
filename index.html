@@ -597,7 +597,39 @@
  font-size: 17px;
  }
  }
- </style>
+ 
+ /* 空位补齐块：电脑端两列且作品数为奇数时由 works.js 插入，保证横线连续 */
+ .work-filler {
+ display: none;
+ background-color: var(--card-bg);
+ }
+ /* 电脑端：一排两个，同样是连在一起的一整块（列间竖线 + 行间横线） */
+ @media (min-width: 768px) {
+ .works-grid {
+ display: grid;
+ grid-template-columns: repeat(2, minmax(0, 1fr));
+ }
+ .work-card:nth-child(n) {
+ border-top: 1px solid var(--card-border);
+ }
+ .work-card:nth-child(-n+2) {
+ border-top: 0;
+ }
+ .work-card:nth-child(odd) {
+ border-right: 1px solid var(--card-border);
+ }
+ .work-filler {
+ display: block;
+ border-top: 1px solid var(--card-border);
+ animation: slideUpIn 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+ }
+ }
+ @media (prefers-reduced-motion: reduce) {
+ .work-filler {
+ animation: none;
+ }
+ }
+</style>
 </head>
 <body oncopy="return false" oncut="return false" oncontextmenu="return false">
 

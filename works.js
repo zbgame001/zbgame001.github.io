@@ -3,6 +3,9 @@
 (function () {
  var WORKS = [
   { name: '主播模拟器', url: 'game/game.html' },
+  { name: '主播模拟器 2', url: 'game/game-1.html' },
+  { name: '主播模拟器 3', url: 'game/game-2.html' },
+  { name: '主播模拟器 4', url: 'game/game-3.html' },
   { name: '直播观看模拟器', url: 'game/game2.html' },
   { name: '窗外的死亡凝视', url: 'game/game3.html' },
   { name: '下班后的事（突脸鬼图预警）', url: 'game/game4.html' },
@@ -50,11 +53,20 @@
 
    var goEl = document.createElement('span');
    goEl.className = 'work-go';
-   goEl.textContent = '→';
+   goEl.textContent = '\u2192';
 
    a.appendChild(nameEl);
    a.appendChild(goEl);
    grid.appendChild(a);
   });
+
+  /* 电脑端两列布局：作品数为奇数时补一个空位块，行线才不会断半截 */
+  if (list.length % 2 === 1) {
+   var filler = document.createElement('div');
+   filler.className = 'work-filler';
+   filler.setAttribute('aria-hidden', 'true');
+   filler.style.animationDelay = (0.25 + list.length * 0.045).toFixed(2) + 's';
+   grid.appendChild(filler);
+  }
  };
 })();
