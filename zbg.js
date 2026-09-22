@@ -1015,8 +1015,9 @@
     try {
       program = parse(source);
     } catch (e) {
+      /* 语法错就报一行干净的，别 reject 出去 —— 那样命令行/控制台会再甩一大段堆栈 */
       rt.onError(e);
-      return Promise.reject(e);
+      return Promise.resolve({ ok: false, error: e });
     }
     return (async function () {
       try {
@@ -1111,6 +1112,10 @@
       /* 不用 process.exit：stdout 是管道时同步退出会把还没刷出的输出丢掉 */
       if (r && r.ok === false) { process.exitCode = 1; }
       else if (r && r.exitCode) { process.exitCode = r.exitCode; }
+    }).catch(function (e) {
+      /* 兜底：意外错误也只留一行，不甩堆栈 */
+      console.error('ZBG 出错 → ' + ((e && e.message) || e));
+      process.exitCode = 1;
     });
   }
 
