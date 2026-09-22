@@ -66,7 +66,6 @@
 
  /* 主体：第一行 大图标 + 标题/版本，第二行 下载按钮 */
  .stage {
- flex: 1;
  width: 100%;
  max-width: 720px;
  margin: 0 auto 0 0;   /* 左对齐，不居中 */
@@ -176,7 +175,34 @@
  }
  }
 
- /* 窄屏也保持「图标在左、名称+版本在右」，只缩小尺寸，不改成居中竖排 */
+ /* 电脑端（足够宽时）：第一行横向排布，下载按钮移到最右并缩小
+    需 ≥768px 才能一行容下：图标104 + 名称/版本 + 按钮 */
+ @media (min-width: 768px) {
+ .stage {
+ flex-direction: row;
+ align-items: center;
+ gap: 20px;
+ }
+ .download-btn {
+ width: auto;
+ margin-top: 0;
+ margin-left: auto;   /* 推到第一行最右 */
+ padding: 13px 20px;
+ gap: 8px;
+ border-radius: 12px;
+ flex-shrink: 0;
+ }
+ .download-btn .icon {
+ width: 20px;
+ height: 20px;
+ }
+ .download-btn .name {
+ font-size: 15px;
+ letter-spacing: 0.3px;
+ }
+ }
+
+ /* 窄屏（手机）保持「图标在左、名称+版本在右」，按钮另起一行满宽 */
  @media (max-width: 560px) {
  .hero-head {
  gap: 14px;
