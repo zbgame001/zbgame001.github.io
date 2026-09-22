@@ -151,6 +151,31 @@
  letter-spacing: 0.5px;
  }
 
+ /* 出场动画：第一行与第二行统一为「上滑淡入」 */
+ @keyframes slideUpIn {
+ from {
+ opacity: 0;
+ transform: translateY(20px);
+ }
+ to {
+ opacity: 1;
+ transform: translateY(0);
+ }
+ }
+ .hero-head,
+ .download-btn {
+ animation: slideUpIn 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+ }
+ .download-btn {
+ animation-delay: 0.1s;
+ }
+ @media (prefers-reduced-motion: reduce) {
+ .hero-head,
+ .download-btn {
+ animation: none;
+ }
+ }
+
  /* 窄屏也保持「图标在左、名称+版本在右」，只缩小尺寸，不改成居中竖排 */
  @media (max-width: 560px) {
  .hero-head {
@@ -326,13 +351,151 @@
   }
 
   function regexFallback(u8) {
-   var s = '';
-   var CH = 0x8000;
-   for (var i = 0; i < u8.length; i += CH) {
+   var s = '', i, CH = 0x8000;
+   for (i = 0; i < u8.length; i += CH) {
     s += String.fromCharCode.apply(null, u8.subarray(i, Math.min(i + CH, u8.length)));
    }
    var m = s.match(/[Vv]\d+(?:\.\d+)+(?:[-_.][0-9A-Za-z]+)*/);
-   return m ? m[0] : null;
+   if (m) return m[0];
+   /* 字符串池也可能是 UTF-16LE（字符间夹 0x00），再试一次 */
+   var s16 = '';
+   for (i = 0; i + 1 < u8.length; i += 2) s16 += String.fromCharCode(u8[i] | (u8[i + 1] << 8));
+   var m16 = s16.match(/[Vv]\d+(?:\.\d+)+(?:[-_.][0-9A-Za-z]+)*/);
+   return m16 ? m16[0] : null;
+  }
+
+  /* 纯 JS raw-DEFLATE：老浏览器/WebView 没有 DecompressionStream('deflate-raw') 时的兜底 */
+  function inflateRaw(data) {
+   var pos = 0, bitBuf = 0, bitCnt = 0;
+   var out = new Uint8Array(Math.max(4096, data.length * 8));
+   var outLen = 0;
+
+   function ensure(n) {
+    if (outLen + n > out.length) {
+     var size = out.length;
+     while (size < outLen + n) size *= 2;
+     var bigger = new Uint8Array(size);
+     bigger.set(out.subarray(0, outLen));
+     out = bigger;
+    }
+   }
+   function bits(n) {
+    while (bitCnt < n) {
+     if (pos >= data.length) throw new Error('out of input');
+     bitBuf |= data[pos++] << bitCnt;
+     bitCnt += 8;
+    }
+    var v = bitBuf & ((1 << n) - 1);
+    bitBuf >>>= n;
+    bitCnt -= n;
+    return v;
+   }
+   function buildTree(lengths) {
+    var i, maxLen = 0;
+    for (i = 0; i < lengths.length; i++) if (lengths[i] > maxLen) maxLen = lengths[i];
+    var blCount = new Array(maxLen + 2).fill(0);
+    for (i = 0; i < lengths.length; i++) if (lengths[i]) blCount[lengths[i]]++;
+    var nextCode = new Array(maxLen + 2).fill(0);
+    var code = 0;
+    for (var b = 1; b <= maxLen; b++) { code = (code + blCount[b - 1]) << 1; nextCode[b] = code; }
+    var map = {};
+    for (i = 0; i < lengths.length; i++) {
+     var l = lengths[i];
+     if (!l) continue;
+     map[l + ':' + nextCode[l]] = i;
+     nextCode[l]++;
+    }
+    return { maxLen: maxLen, map: map };
+   }
+   function decodeSym(tree) {
+    var code = 0;
+    for (var l = 1; l <= tree.maxLen; l++) {
+     code = (code << 1) | bits(1);
+     var s = tree.map[l + ':' + code];
+     if (s !== undefined) return s;
+    }
+    throw new Error('bad huffman code');
+   }
+
+   var LEN_BASE = [3,4,5,6,7,8,9,10,11,13,15,17,19,23,27,31,35,43,51,59,67,83,99,115,131,163,195,227,258];
+   var LEN_EXTRA = [0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0];
+   var DIST_BASE = [1,2,3,4,5,7,9,13,17,25,33,49,65,97,129,193,257,385,513,769,1025,1537,2049,3073,4097,6145,8193,12289,16385,24577];
+   var DIST_EXTRA = [0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13];
+   var ORDER = [16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15];
+
+   var fixedLit = null, fixedDist = null, final = 0;
+   do {
+    final = bits(1);
+    var type = bits(2);
+    if (type === 0) {
+     bitBuf = 0; bitCnt = 0;
+     var len = data[pos] | (data[pos + 1] << 8);
+     pos += 4;
+     ensure(len);
+     out.set(data.subarray(pos, pos + len), outLen);
+     outLen += len;
+     pos += len;
+    } else if (type === 1 || type === 2) {
+     var litTree, distTree, i;
+     if (type === 1) {
+      if (!fixedLit) {
+       var ll = new Array(288);
+       for (i = 0; i < 144; i++) ll[i] = 8;
+       for (; i < 256; i++) ll[i] = 9;
+       for (; i < 280; i++) ll[i] = 7;
+       for (; i < 288; i++) ll[i] = 8;
+       fixedLit = buildTree(ll);
+       fixedDist = buildTree(new Array(30).fill(5));
+      }
+      litTree = fixedLit; distTree = fixedDist;
+     } else {
+      var hlit = bits(5) + 257;
+      var hdist = bits(5) + 1;
+      var hclen = bits(4) + 4;
+      var clen = new Array(19).fill(0);
+      for (i = 0; i < hclen; i++) clen[ORDER[i]] = bits(3);
+      var clTree = buildTree(clen);
+      var lens = [];
+      while (lens.length < hlit + hdist) {
+       var sym = decodeSym(clTree);
+       if (sym < 16) lens.push(sym);
+       else if (sym === 16) { var r = 3 + bits(2), p = lens[lens.length - 1]; while (r--) lens.push(p); }
+       else if (sym === 17) { var r2 = 3 + bits(3); while (r2--) lens.push(0); }
+       else { var r3 = 11 + bits(7); while (r3--) lens.push(0); }
+      }
+      litTree = buildTree(lens.slice(0, hlit));
+      distTree = buildTree(lens.slice(hlit));
+     }
+     for (;;) {
+      var s = decodeSym(litTree);
+      if (s < 256) { ensure(1); out[outLen++] = s; }
+      else if (s === 256) break;
+      else {
+       var li = s - 257;
+       var llen = LEN_BASE[li] + bits(LEN_EXTRA[li]);
+       var dsi = decodeSym(distTree);
+       var dlen = DIST_BASE[dsi] + bits(DIST_EXTRA[dsi]);
+       ensure(llen);
+       var from = outLen - dlen;
+       for (var k = 0; k < llen; k++) out[outLen + k] = out[from + k];
+       outLen += llen;
+      }
+     }
+    } else {
+     throw new Error('bad block type');
+    }
+   } while (!final);
+   return out.subarray(0, outLen);
+  }
+
+  async function inflateRawAuto(comp) {
+   if (typeof DecompressionStream !== 'undefined') {
+    try {
+     var stream = new Blob([comp]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+     return new Uint8Array(await new Response(stream).arrayBuffer());
+    } catch (e) { /* 该浏览器不支持 deflate-raw：落到纯 JS */ }
+   }
+   return inflateRaw(comp);
   }
 
   async function apkVersion(reader) {
@@ -358,9 +521,7 @@
    if (entry.method === 0) {
     raw = comp;
    } else {
-    if (typeof DecompressionStream === 'undefined') throw new Error('no DecompressionStream');
-    var stream = new Blob([comp]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
-    raw = new Uint8Array(await new Response(stream).arrayBuffer());
+    raw = await inflateRawAuto(comp);
    }
 
    return parseAxmlVersionName(raw) || regexFallback(raw);
