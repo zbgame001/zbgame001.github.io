@@ -69,8 +69,8 @@
       series.push({ d: String(pts[i].d), v: diff > 0 ? diff : 0 });
     }
     series = series.slice(-DAYS);
-    if (series.length < 2) {
-      if (elHint) elHint.textContent = '访问趋势积累中（每天自动记录一次，攒够两天就出图）';
+    if (!series.length) {
+      if (elHint) elHint.textContent = '访问趋势积累中（每天自动记录一次，明天这里就有点了）';
       return;
     }
     if (elChart) elChart.hidden = false;
@@ -84,9 +84,9 @@
     var iw = W - PAD.l - PAD.r, ih = H - PAD.t - PAD.b;
     var max = Math.max.apply(null, series.map(function (s) { return s.v; }));
     if (max <= 0) max = 1;
-    var step = series.length > 1 ? iw / (series.length - 1) : iw;
+    var step = series.length > 1 ? iw / (series.length - 1) : 0;
 
-    function X(i) { return PAD.l + i * step; }
+    function X(i) { return PAD.l + (series.length > 1 ? i * step : iw / 2); }
     function Y(v) { return PAD.t + ih - (v / max) * ih; }
 
     var line = [], area = [];
@@ -114,7 +114,7 @@
         s.d + '：' + s.v + '</title></circle>');
     });
 
-    var ticks = series.length >= 3 ? [0, Math.floor((series.length - 1) / 2), series.length - 1] : [0, series.length - 1];
+    var ticks = series.length >= 3 ? [0, Math.floor((series.length - 1) / 2), series.length - 1] : (series.length === 2 ? [0, 1] : [0]);
     ticks.forEach(function (i) {
       var anchor = i === 0 ? 'start' : (i === series.length - 1 ? 'end' : 'middle');
       svg.push('<text x="' + X(i).toFixed(1) + '" y="' + (H - 6) + '" class="vc-axis" text-anchor="' + anchor + '">' +
