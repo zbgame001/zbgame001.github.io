@@ -744,7 +744,7 @@
   <!-- 查看更多：进入全部作品页 -->
   <a class="more-btn" href="works.html">查看更多</a>
 
-  <!-- 访问统计：实时总数（自搓上报）+ 近 14 天折线图（数据 = 同站 stats/visits.json，Actions 每天记录） -->
+  <!-- 访问统计：用自己写的 ZBG 小语言实现（zbg.js 解释执行下面那段程序），每 10 分钟自动重新查一次 -->
   <section class="visit-stat">
    <p class="visit-total">本站总访问量 <span id="visitTotal">&mdash;</span> 次</p>
    <figure class="visit-chart" id="visitChart" hidden>
@@ -1144,7 +1144,150 @@
  })();
  </script>
 
-<script defer src="visit-chart.js"></script>
+<script defer src="zbg.js"></script>
+<!-- 下面这段不是 JavaScript —— 是本站自己写的 ZBG 小语言，由 zbg.js 解释执行 -->
+<script type="text/zbg">
+# ── 本站访问统计（ZBG 版）─────────────────────────────
+# 打开页面：上报一次 → 显示实时总数；读同站 stats/visits.json → 自绘近 14 天折线图
+# 每 10 分钟自动重新查一次，不用刷新页面
+let 上报地址 = "https://events.vercount.one/api/v2/log"
+let 站点 = "https://zbgame001.github.io/"
+let 最多天数 = 14
+let W = 640
+let H = 176
+let 左边距 = 34
+let 右边距 = 10
+let 上边距 = 14
+let 下边距 = 22
+
+let 探针 = 0        # 记录脚本读取计数时也会让计数 +1，快照里记了这个次数，显示时扣掉
+let 最近原始值 = null
+
+fn 上报本次访问() {
+  let 是新访客 = not cookie("zbg_uv")
+  if 是新访客 { cookie("zbg_uv", "1") }
+  let 应答 = await post(上报地址, { url: 站点, isNewUv: 是新访客 })
+  if 应答 == null { return null }
+  return num(应答.data.site_pv)
+}
+
+fn 显示总数(原始值) {
+  if 原始值 == null { text("#visitTotal", "—")  return }
+  let n = 原始值 - 探针
+  if n < 0 { n = 原始值 }
+  text("#visitTotal", fmt(round(n)))
+}
+
+fn 取快照() {
+  return await get("stats/visits.json?v=" + date())
+}
+
+fn 算每天(点集) {
+  let 序列 = []
+  if len(点集) >= 2 {
+    let i = 1
+    while i < len(点集) {
+      let 差 = num(点集[i].pv) - num(点集[i - 1].pv)
+      序列 = push(序列, { d: 点集[i].d, v: 差 > 0 ? 差 : 0 })
+      i = i + 1
+    }
+  } elif len(点集) == 1 {
+    # 只有一个快照时，先把它当当天新增，让图有个点
+    序列 = push(序列, { d: 点集[0].d, v: num(点集[0].pv) })
+  }
+  if len(序列) > 最多天数 { 序列 = slice(序列, len(序列) - 最多天数, len(序列)) }
+  return 序列
+}
+
+fn 画图(序列) {
+  let 宽 = W - 左边距 - 右边距
+  let 高 = H - 上边距 - 下边距
+  let 最大 = 1
+  for 点 in 序列 { if 点.v > 最大 { 最大 = 点.v } }
+  let 步长 = 0
+  if len(序列) > 1 { 步长 = 宽 / (len(序列) - 1) }
+
+  fn X(i) { return 左边距 + (len(序列) > 1 ? i * 步长 : 宽 / 2) }
+  fn Y(v) { return 上边距 + 高 - (v / 最大) * 高 }
+
+  let 线 = []
+  let 面 = []
+  let i = 0
+  for 点 in 序列 {
+    线 = push(线, (i == 0 ? "M" : "L") + fixed(X(i), 1) + " " + fixed(Y(点.v), 1))
+    面 = push(面, "L" + fixed(X(i), 1) + " " + fixed(Y(点.v), 1))
+    i = i + 1
+  }
+  let 底 = fixed(上边距 + 高, 1)
+  let 面积 = "M" + fixed(X(0), 1) + " " + 底
+  for 段 in 面 { 面积 = 面积 + " " + 段 }
+  面积 = 面积 + " L" + fixed(X(len(序列) - 1), 1) + " " + 底 + " Z"
+
+  let 图形 = []
+  图形 = push(图形, '<svg viewBox="0 0 ' + str(W) + " " + str(H) + '" role="img" aria-label="近 ' + str(len(序列)) + ' 天访问量折线图">')
+  图形 = push(图形, '<defs><linearGradient id="vcFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity="0.20"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs>')
+  for 比例 in [0, 0.5, 1] {
+    let y = 上边距 + 高 - 比例 * 高
+    图形 = push(图形, '<line x1="' + str(左边距) + '" y1="' + fixed(y, 1) + '" x2="' + str(W - 右边距) + '" y2="' + fixed(y, 1) + '" class="vc-grid"/>')
+    图形 = push(图形, '<text x="' + str(左边距 - 6) + '" y="' + fixed(y + 3.5, 1) + '" class="vc-axis" text-anchor="end">' + str(round(最大 * 比例)) + '</text>')
+  }
+  图形 = push(图形, '<path d="' + 面积 + '" fill="url(#vcFill)"/>')
+  图形 = push(图形, '<path d="' + join(线, " ") + '" class="vc-line"/>')
+  let j = 0
+  for 点 in 序列 {
+    图形 = push(图形, '<circle cx="' + fixed(X(j), 1) + '" cy="' + fixed(Y(点.v), 1) + '" r="2.6" class="vc-dot"><title>' + 点.d + "：" + str(点.v) + '</title></circle>')
+    j = j + 1
+  }
+  let 刻度 = [0]
+  if len(序列) >= 3 { 刻度 = [0, floor((len(序列) - 1) / 2), len(序列) - 1] } elif len(序列) == 2 { 刻度 = [0, 1] }
+  for k in 刻度 {
+    let 对齐 = k == 0 ? "start" : (k == len(序列) - 1 ? "end" : "middle")
+    图形 = push(图形, '<text x="' + fixed(X(k), 1) + '" y="' + str(H - 6) + '" class="vc-axis" text-anchor="' + 对齐 + '">' + join(slice(序列[k].d, 5), "") + '</text>')
+  }
+  图形 = push(图形, "</svg>")
+  html("#visitChartSvg", join(图形, ""))
+}
+
+fn 渲染(快照) {
+  if 快照 == null { return }
+  探针 = num(pick(快照, "probes", 0))
+  if 最近原始值 != null { 显示总数(最近原始值) }
+  let 序列 = 算每天(sort(pick(快照, "points", []), "d"))
+  if len(序列) == 0 {
+    text("#visitHint", "访问趋势积累中（明天这里就有点了）")
+    return
+  }
+  show("#visitChart", true)
+  hide("#visitHint")
+  画图(序列)
+}
+
+# ── 开跑 ────────────────────────────────────────
+try {
+  最近原始值 = await 上报本次访问()
+  显示总数(最近原始值)
+} catch 错 {
+  text("#visitTotal", "—")
+  echo "ZBG：上报失败 —— " + 错.message
+}
+
+try {
+  渲染(await 取快照())
+} catch 错 {
+  text("#visitHint", "访问趋势暂时取不到数据")
+  echo "ZBG：读快照失败 —— " + 错.message
+}
+
+# 每 10 分钟自动重新查一次
+every 10min {
+  try {
+    渲染(await 取快照())
+    echo "ZBG：已重新查询访问统计"
+  } catch 错 {
+    echo "ZBG：定时查询失败 —— " + 错.message
+  }
+}
+</script>
 
 </body>
 </html>

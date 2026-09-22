@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ZBG —— 自己写的小语言</title>
+<style>
+  :root {
+    --bg: #0b0c0e; --card: #141619; --line: #24272c; --text: #e8eaed;
+    --muted: #8b9096; --accent: #f5d64e; --accent-fg: #1a1a1a; --ok: #7ee08a; --bad: #ff7b72;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 40px 20px 80px; background: var(--bg); color: var(--text);
+    font: 15px/1.7 -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  h1 { margin: 0 0 6px; font-size: 30px; letter-spacing: .5px; }
+  h1 .tag {
+    font-size: 12px; font-weight: 500; color: var(--accent); border: 1px solid rgba(245,214,78,.4);
+    border-radius: 99px; padding: 2px 10px; margin-left: 10px; vertical-align: middle;
+  }
+  .lead { color: var(--muted); margin: 0 0 26px; }
+  .lead a { color: var(--accent); text-decoration: none; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+  textarea {
+    width: 100%; min-height: 260px; resize: vertical; background: #0e1013; color: var(--text);
+    border: 1px solid var(--line); border-radius: 10px; padding: 14px;
+    font: 13px/1.65 ui-monospace, Menlo, Consolas, monospace; outline: none;
+  }
+  textarea:focus { border-color: #3a3f47; }
+  .row { display: flex; gap: 10px; align-items: center; margin: 14px 0 4px; flex-wrap: wrap; }
+  button {
+    border: 0; cursor: pointer; font: inherit; font-weight: 600;
+    background: var(--accent); color: var(--accent-fg);
+    padding: 9px 22px; border-radius: 99px; transition: transform .12s ease, filter .12s ease;
+  }
+  button:hover { filter: brightness(1.06); }
+  button:active { transform: translateY(1px); }
+  button.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); font-weight: 500; }
+  .hint { color: var(--muted); font-size: 13px; }
+  pre#out {
+    margin: 14px 0 0; min-height: 90px; max-height: 320px; overflow: auto; white-space: pre-wrap;
+    background: #0e1013; border: 1px solid var(--line); border-radius: 10px; padding: 14px;
+    font: 13px/1.7 ui-monospace, Menlo, Consolas, monospace; color: var(--text);
+  }
+  pre#out .err { color: var(--bad); }
+  details { margin-top: 26px; }
+  summary { cursor: pointer; color: var(--muted); }
+  details .card { margin-top: 12px; }
+  code { background: #0e1013; border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: 13px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td:first-child { color: var(--muted); white-space: nowrap; width: 96px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ZBG<span class="tag">v1.0 · 自己写的</span></h1>
+  <p class="lead">
+    一门从零手写的小语言：词法 → 语法 → 树遍历解释器，全部原生 JS，<b>零依赖、零构建、零第三方</b>。
+    浏览器直接就能跑 —— 本站首页底部的访问统计就是用它写的（<a href="./index.html">回首页</a>）。
+  </p>
+
+  <div class="card">
+    <textarea id="code" spellcheck="false"># ZBG 小示例：随便改，点「运行」
+fn 斐波那契(n) {
+  if n < 2 { return n }
+  return 斐波那契(n - 1) + 斐波那契(n - 2)
+}
+
+let 前十个 = []
+for i in 0..10 { push(前十个, 斐波那契(i)) }
+echo "斐波那契：" + join(前十个, ", ")
+
+# 数一数字符
+let 词频 = {}
+for 字 in split("主播模拟器开播啦", "") {
+  词频 = set(词频, 字, pick(词频, 字, 0) + 1)
+}
+let 逐个 = []
+for 字 in sort(keys(词频)) { push(逐个, 字 + "×" + str(词频[字])) }
+echo "字数：" + join(逐个, " ")
+
+# 条件、三元、时间字面量
+let 开播 = true
+echo 开播 ? "状态：直播中" : "状态：休息"
+echo "现在是 " + date() + "，每 2 秒会多一行："
+
+every 2s { echo "· 每 2 秒说一次 —— " + str(now()) }</textarea>
+    <div class="row">
+      <button id="run">运行</button>
+      <button id="clear" class="ghost">清空输出</button>
+      <span class="hint" id="status">准备就绪</span>
+    </div>
+    <pre id="out"></pre>
+  </div>
+
+  <details>
+    <summary>语法速查</summary>
+    <div class="card">
+      <table>
+        <tr><td>变量</td><td><code>let x = 1</code>　<code>x = x + 1</code>（裸赋值即声明；变量名可以用中文）</td></tr>
+        <tr><td>函数</td><td><code>fn 加(a, b) { return a + b }</code>（支持递归与闭包）</td></tr>
+        <tr><td>分支</td><td><code>if x &gt; 1 { } elif x &gt; 0 { } else { }</code>　还有三元 <code>x ? a : b</code></td></tr>
+        <tr><td>循环</td><td><code>while 条件 { }</code>　<code>for i in 0..5 { }</code>　<code>for 项 in 列表 { }</code>（break / continue）</td></tr>
+        <tr><td>定时</td><td><code>every 10min { }</code>　时间字面量：<code>500ms / 30s / 10min / 2h / 1d</code></td></tr>
+        <tr><td>容错</td><td><code>try { } catch e { echo e.message }</code></td></tr>
+        <tr><td>网络</td><td><code>d = await get("https://…/x.json")</code>　<code>await post(url, { a: 1 })</code></td></tr>
+        <tr><td>页面</td><td><code>text("#id", "文字")</code> <code>html("#id", "&lt;b&gt;…&lt;/b&gt;")</code> <code>value</code> <code>attr</code> <code>show</code> <code>hide</code> <code>on</code></td></tr>
+        <tr><td>数据</td><td><code>[1, 2, 3]</code>　<code>{ 名称: "值", pv: 3 }</code>　<code>a[0]</code>　<code>m.pv</code></td></tr>
+        <tr><td>字符串</td><td><code>"共 ${n} 次"</code>（<code>${}</code> 里写表达式）</td></tr>
+        <tr><td>其它</td><td><code>echo fmt len str num min max floor round random push slice sort join split keys pick set has upper lower trim replace contains parseJson toJson now date wait store cookie fixed</code></td></tr>
+      </table>
+    </div>
+  </details>
+</div>
+
+<script src="zbg.js"></script>
+<script>
+(function () {
+  var code = document.getElementById('code');
+  var out = document.getElementById('out');
+  var status = document.getElementById('status');
+
+  function append(line, isErr) {
+    var div = document.createElement('div');
+    if (isErr) { div.className = 'err'; }
+    div.textContent = line;
+    out.appendChild(div);
+    out.scrollTop = out.scrollHeight;
+  }
+
+  document.getElementById('run').addEventListener('click', function () {
+    out.innerHTML = '';
+    status.textContent = '运行中…';
+    ZBG.run(code.value, {
+      out: append,
+      onError: function (e) { append('✗ ' + e.message + (e.line ? '（第 ' + e.line + ' 行）' : ''), true); }
+    }).then(function () {
+      status.textContent = '已运行（定时任务会继续跑）';
+    }).catch(function () {
+      status.textContent = '有错误，看下面输出';
+    });
+  });
+
+  document.getElementById('clear').addEventListener('click', function () {
+    out.innerHTML = '';
+    status.textContent = '输出已清空';
+  });
+})();
+</script>
+</body>
+</html>
