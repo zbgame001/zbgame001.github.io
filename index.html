@@ -629,6 +629,175 @@
  animation: none;
  }
  }
+
+ /* ---- 论坛区按钮：模板由用户提供（galaxy：旋转星云描边 + 星星） ---- */
+ .galaxy-btn {
+/* Scoped Variables */
+--btn-bg: #0c0c14;
+--btn-text: #ffffff;
+--btn-primary: #8553f4; /* Purple */
+--btn-secondary: #3b82f6; /* Blue */
+--btn-accent: #f43f5e; /* Pink */
+--btn-font-size: 16px; /* Base size */
+
+/* Layout & Sizing */
+font-family:
+system-ui,
+-apple-system,
+sans-serif;
+font-size: var(--btn-font-size);
+padding: 0.9em 2em;
+border-radius: 0.75em;
+border: none;
+background: var(--btn-bg);
+position: relative;
+cursor: pointer;
+overflow: hidden;
+z-index: 1;
+text-decoration: none;
+transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+/* Shadow */
+box-shadow: 0 0.5em 1.5em -0.5em rgba(133, 83, 244, 0.4);
+ }
+
+ /* Accessible Focus State */
+ .galaxy-btn:focus-visible {
+outline: 2px solid var(--btn-primary);
+outline-offset: 4px;
+ }
+
+ /* Active Click State */
+ .galaxy-btn:active {
+transform: scale(0.96);
+ }
+
+ /* --- Interior Content --- */
+ .galaxy-btn__content {
+display: flex;
+align-items: center;
+gap: 0.75em;
+position: relative;
+z-index: 2;
+color: var(--btn-text);
+font-weight: 600;
+letter-spacing: 0.05em;
+text-transform: uppercase;
+ }
+
+ /* SVG Icon Styling */
+ .galaxy-btn__icon {
+width: 1.25em;
+height: 1.25em;
+transition: transform 0.3s ease;
+fill: var(--btn-text);
+ }
+
+ /* Hover: Move Icon */
+ .galaxy-btn:hover .galaxy-btn__icon {
+transform: translateX(0.25em) rotate(-10deg);
+ }
+
+ /* --- The Rotating Gradient Border (The Nebula) --- */
+ .galaxy-btn::before {
+content: "";
+position: absolute;
+inset: -4px; /* Border width */
+z-index: 0;
+background: conic-gradient(
+from 0deg,
+var(--btn-bg) 0deg,
+var(--btn-primary) 60deg,
+var(--btn-secondary) 120deg,
+var(--btn-bg) 180deg,
+var(--btn-accent) 240deg,
+var(--btn-primary) 300deg,
+var(--btn-bg) 360deg
+);
+border-radius: 0.75em;
+animation: rotate-nebula 4s linear infinite;
+filter: blur(8px); /* Soften for glow effect */
+opacity: 0.7;
+transition: opacity 0.3s ease;
+ }
+
+ .galaxy-btn:hover::before {
+opacity: 1;
+animation-duration: 2s; /* Speed up on hover */
+ }
+
+ /* Mask to create the inner dark area (Simulates border) */
+ .galaxy-btn::after {
+content: "";
+position: absolute;
+inset: 2px; /* Inner spacing */
+background: var(--btn-bg);
+border-radius: 0.6em; /* Slightly smaller radius */
+z-index: 1;
+ }
+
+ /* --- Internal Star Animation --- */
+ .galaxy-btn__stars {
+position: absolute;
+inset: 0;
+z-index: 1;
+pointer-events: none;
+background-image: radial-gradient(
+circle at 20% 30%,
+white 1px,
+transparent 1.5px
+),
+radial-gradient(circle at 80% 70%, white 1px, transparent 1.5px),
+radial-gradient(circle at 40% 80%, white 0.5px, transparent 1px);
+background-size: 120% 120%;
+opacity: 0.3;
+transition:
+opacity 0.3s ease,
+background-position 0.3s ease;
+ }
+
+ .galaxy-btn:hover .galaxy-btn__stars {
+opacity: 0.8;
+animation: star-drift 5s linear infinite alternate;
+ }
+
+ /* --- Keyframes --- */
+ @keyframes rotate-nebula {
+from {
+transform: rotate(0deg);
+}
+to {
+transform: rotate(360deg);
+}
+ }
+
+ @keyframes star-drift {
+0% {
+transform: scale(1);
+}
+100% {
+transform: scale(1.1) translate(-2%, -2%);
+}
+ }
+
+ /* 位置：紧跟在「部分UI来源」文字下方（窄屏居中，宽屏与来源行右对齐） */
+ .dl-wrap .galaxy-btn {
+margin-top: 14px;
+align-self: center;
+ }
+ @media (min-width: 768px) {
+.dl-wrap .galaxy-btn {
+align-self: flex-end;
+}
+ }
+ /* 跟随站点的“减少动态效果”设定 */
+ @media (prefers-reduced-motion: reduce) {
+.galaxy-btn::before,
+.galaxy-btn:hover::before,
+.galaxy-btn:hover .galaxy-btn__stars {
+animation: none;
+}
+ }
 </style>
 </head>
 <body oncopy="return false" oncut="return false" oncontextmenu="return false">
@@ -666,6 +835,27 @@
    <span class="name">Android 下载</span>
    </a>
    <p class="credit">部分UI来源：<a href="https://uiverse.io/" target="_blank" rel="noopener noreferrer">https://uiverse.io/</a></p>
+   <!-- 论坛区按钮（模板由用户提供） -->
+   <a class="galaxy-btn" href="https://www.zbgame.bid/" target="_blank" rel="noopener noreferrer">
+    <span class="galaxy-btn__content">
+     <span class="galaxy-btn__text">论坛区</span>
+     <svg
+      class="galaxy-btn__icon"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="24"
+      height="24"
+     >
+      <path fill="none" d="M0 0h24v24H0z"></path>
+      <path
+       d="M13 14h-2a8.999 8.999 0 0 0-7.968 4.81A10.136 10.136 0 0 1 3 18C3 12.477 7.477 8 13 8V3l10 8-10 8v-5z"
+       fill="currentColor"
+      ></path>
+     </svg>
+    </span>
+    <span class="galaxy-btn__glow"></span>
+    <span class="galaxy-btn__stars"></span>
+   </a>
   </div>
 
   </div>
