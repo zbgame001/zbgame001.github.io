@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+ <title>页面不存在 - 文字游戏-主播模拟器</title>
+ <meta name="theme-color" content="#ffffff">
+ <!-- 注意：404 页可能被任意深度的路径命中，所有链接/资源一律用绝对路径 -->
+ <link rel="icon" href="/favicon.ico" type="image/x-icon">
+ <script>
+ /* 首屏渲染前先把主题定下来，避免亮/暗闪一下 */
+ (function () {
+  var t = null;
+  try { t = localStorage.getItem('theme'); } catch (e) {}
+  if (t !== 'dark' && t !== 'light') {
+   t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  }
+  document.documentElement.setAttribute('data-theme', t);
+ })();
+ </script>
+ <style>
+ :root {
+ color-scheme: light;
+ --bg-color: #ffffff;
+ --text-main: #1a1a1a;
+ --text-sub: #666666;
+ --btn-bg: #4a4a4a;
+ --btn-text: #ffffff;
+ --btn-icon: #ffffff;
+ --bar-bg: #ffffff;
+ --bar-border: #ececec;
+ --loading: #9a9a9a;
+ --link-color: #1a73e8;
+ --card-bg: #ffffff;
+ --card-border: #ececec;
+ --card-hover-border: #d8d8d8;
+ --row-hover: rgba(0, 0, 0, 0.04);
+ --switch-track: rgba(0, 0, 0, 0.7);
+ --switch-track-on: rgba(0, 0, 0, 0.45);
+ --switch-shadow: rgba(0, 0, 0, 0.3);
+ --switch-shadow-on: rgba(0, 0, 0, 0.1);
+ --switch-knob: #d7d7d7;
+ --switch-sun: #fdea7b;
+ }
+
+ /* 夜间模式 */
+ html[data-theme="dark"] {
+ color-scheme: dark;
+ --bg-color: #0f0f0f;
+ --text-main: #f2f2f2;
+ --text-sub: #9a9a9a;
+ --btn-bg: #fdea7b;      /* 夜间用亮色胶囊主按钮（黄底深字） */
+ --btn-text: #1a1a1a;
+ --btn-icon: #1a1a1a;
+ --bar-bg: #161616;
+ --bar-border: #262626;
+ --loading: #7a7a7a;
+ --link-color: #6aa9ff;
+ --card-bg: #161616;
+ --card-border: #262626;
+ --card-hover-border: #3a3a3a;
+ --row-hover: rgba(255, 255, 255, 0.06);
+ --switch-track: rgba(255, 255, 255, 0.22);
+ --switch-track-on: rgba(255, 255, 255, 0.12);
+ --switch-shadow: rgba(0, 0, 0, 0.45);
+ --switch-shadow-on: rgba(0, 0, 0, 0.25);
+ --switch-knob: #eaeaea;
+ --switch-sun: #fdea7b;
+ }
+
+ * {
+ margin: 0;
+ padding: 0;
+ box-sizing: border-box;
+ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+ -webkit-tap-highlight-color: transparent;
+ }
+
+ /* 去掉浏览器自带的蓝色选中/聚焦框 */
+ ::selection {
+ background: transparent;
+ color: inherit;
+ }
+ a:focus {
+ outline: none;
+ }
+ :focus-visible {
+ outline: 2px solid var(--switch-sun);
+ outline-offset: 2px;
+ }
+
+ body {
+ background-color: var(--bg-color);
+ display: flex;
+ flex-direction: column;
+ min-height: 100vh;
+ user-select: none;
+ -webkit-user-select: none;
+ -webkit-touch-callout: none;
+ touch-action: pan-y pinch-zoom;
+ }
+
+ /* 日/夜切换：颜色平滑过渡 */
+ body,
+ .topbar,
+ .topbar-title,
+ .nf-code,
+ .nf-text,
+ .nf-btn {
+ transition:
+ background-color 0.45s ease,
+ color 0.45s ease,
+ border-color 0.45s ease,
+ fill 0.45s ease;
+ }
+
+ /* 顶部栏 */
+ .topbar {
+ flex-shrink: 0;
+ position: sticky;
+ top: 0;
+ z-index: 10;
+ background: var(--bar-bg);
+ border-bottom: 1px solid var(--bar-border);
+ }
+ .topbar-inner {
+ height: 64px;
+ display: flex;
+ align-items: center;
+ gap: 12px;
+ padding: 0 24px;
+ }
+ .topbar-icon {
+ width: 32px;
+ height: 32px;
+ border-radius: 8px;
+ object-fit: contain;
+ flex-shrink: 0;
+ }
+ .topbar-title {
+ font-size: 17px;
+ font-weight: 600;
+ color: var(--text-main);
+ letter-spacing: 0.5px;
+ min-width: 0;
+ white-space: nowrap;
+ overflow: hidden;
+ text-overflow: ellipsis;
+ }
+
+ /* ---- 404 主体：整屏居中，404 在上、文字居中、按钮在下 ---- */
+ .nf-stage {
+ flex: 1;
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ justify-content: center;
+ text-align: center;
+ padding: 40px 24px 88px;
+ }
+ .nf-code {
+ font-size: clamp(76px, 17vw, 124px);
+ font-weight: 800;
+ line-height: 1;
+ letter-spacing: 3px;
+ color: var(--text-main);
+ }
+ .nf-text {
+ margin-top: 18px;
+ font-size: 16px;
+ font-weight: 600;
+ letter-spacing: 1px;
+ color: var(--text-sub);
+ }
+ .nf-btn {
+ display: inline-flex;
+ align-items: center;
+ justify-content: center;
+ margin-top: 38px;
+ padding: 15px 36px;
+ border-radius: 999px;   /* 胶囊主按钮 */
+ background-color: var(--btn-bg);
+ color: var(--btn-text);
+ font-size: 16px;
+ font-weight: 700;
+ letter-spacing: 0.5px;
+ text-decoration: none;
+ }
+ .nf-btn:hover {
+ opacity: 0.88;
+ }
+ .nf-btn:active {
+ transform: scale(0.98);
+ }
+
+ /* ---- 日/夜开关：与首页同一套 ---- */
+ .l {
+ cursor: pointer;
+ font-size: 1em;
+ background-color: var(--switch-track);
+ border-radius: 0.75em;
+ box-shadow: 0.125em 0.125em 0 0.125em var(--switch-shadow) inset;
+ color: var(--switch-sun);
+ display: inline-flex;
+ align-items: center;
+ padding: 0.15em;
+ width: 3em;
+ height: 1.5em;
+ transition:
+ background-color 0.1s 0.3s ease-out,
+ box-shadow 0.1s 0.3s ease-out;
+ -webkit-appearance: none;
+ -moz-appearance: none;
+ appearance: none;
+ }
+ .l:before,
+ .l:after {
+ content: "";
+ display: block;
+ }
+ .l:before {
+ background-color: var(--switch-knob);
+ border-radius: 50%;
+ width: 1.2em;
+ height: 1.2em;
+ transition:
+ background-color 0.1s 0.3s ease-out,
+ transform 0.3s ease-out;
+ z-index: 1;
+ }
+ .l:after {
+ background:
+ linear-gradient(transparent 50%, rgba(0, 0, 0, 0.15) 0) 0 50% / 50% 100%,
+ repeating-linear-gradient(90deg, #bbb 0, #bbb, #bbb 20%, #999 20%, #999 40%)
+ 0 50% / 50% 100%,
+ radial-gradient(circle at 50% 50%, #888 25%, transparent 26%);
+ background-repeat: no-repeat;
+ border: 0.25em solid transparent;
+ border-left: 0.4em solid #d8d8d8;
+ border-right: 0 solid transparent;
+ transition:
+ border-left-color 0.1s 0.3s ease-out,
+ transform 0.3s ease-out;
+ transform: translateX(-22.5%);
+ transform-origin: 25% 50%;
+ width: 1.2em;
+ height: 1em;
+ box-sizing: border-box;
+ }
+ /* Checked */
+ .l:checked {
+ background-color: var(--switch-track-on);
+ box-shadow: 0.125em 0.125em 0 0.125em var(--switch-shadow-on) inset;
+ }
+ .l:checked:before {
+ background-color: currentColor;
+ transform: translateX(125%);
+ }
+ .l:checked:after {
+ border-left-color: currentColor;
+ transform: translateX(-2.5%) rotateY(180deg);
+ }
+ .l:focus {
+ outline: 0;
+ }
+ .l:focus-visible {
+ outline: 2px solid var(--switch-sun);
+ outline-offset: 2px;
+ }
+ .topbar .l {
+ margin: 0;
+ margin-left: auto;
+ flex-shrink: 0;
+ }
+
+ /* ---- 日/夜切换的渐变过场 ---- */
+ #themeFx {
+ position: fixed;
+ inset: 0;
+ z-index: 90;
+ pointer-events: none;
+ opacity: 0;
+ background: radial-gradient(
+ circle at var(--fx-x, calc(100% - 48px)) var(--fx-y, 32px),
+ var(--fx-color, rgba(6, 6, 6, 0.55)) 0%,
+ rgba(0, 0, 0, 0) 62%
+ );
+ }
+ #themeFx.on {
+ animation: themeWash 0.7s ease-out;
+ }
+ @keyframes themeWash {
+ 0% {
+ opacity: 0;
+ }
+ 35% {
+ opacity: 1;
+ }
+ 100% {
+ opacity: 0;
+ }
+ }
+ @media (prefers-reduced-motion: reduce) {
+ #themeFx {
+ display: none;
+ }
+ }
+
+ /* 出场动画：404 -> 文案 -> 按钮 依次上滑淡入 */
+ @keyframes slideUpIn {
+ from {
+ opacity: 0;
+ transform: translateY(20px);
+ }
+ to {
+ opacity: 1;
+ transform: translateY(0);
+ }
+ }
+ .nf-code,
+ .nf-text,
+ .nf-btn {
+ animation: slideUpIn 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+ }
+ .nf-text {
+ animation-delay: 0.08s;
+ }
+ .nf-btn {
+ animation-delay: 0.16s;
+ }
+ @media (prefers-reduced-motion: reduce) {
+ .nf-code,
+ .nf-text,
+ .nf-btn {
+ animation: none;
+ }
+ }
+ </style>
+</head>
+<body oncopy="return false" oncut="return false" oncontextmenu="return false">
+
+ <header class="topbar">
+  <div class="topbar-inner">
+   <img src="/favicon.ico" alt="文字游戏-主播模拟器" class="topbar-icon">
+   <span class="topbar-title">文字游戏-主播模拟器</span>
+   <input class="l" type="checkbox" id="themeSwitch" role="switch" aria-label="切换日间/夜间模式" title="日间 / 夜间模式">
+  </div>
+ </header>
+
+ <main class="nf-stage">
+  <h1 class="nf-code">404</h1>
+  <p class="nf-text">页面不存在</p>
+  <a class="nf-btn" href="/">返回首页</a>
+ </main>
+
+ <div id="themeFx" aria-hidden="true"></div>
+
+ <script>
+ /* ---- 日/夜模式切换：开关 + 渐变动画过场（与首页同一套） ---- */
+ (function () {
+  var root = document.documentElement;
+  var sw = document.getElementById('themeSwitch');
+  var fx = document.getElementById('themeFx');
+  var meta = document.querySelector('meta[name="theme-color"]');
+
+  function isDark() { return root.getAttribute('data-theme') === 'dark'; }
+  function applyMeta(dark) {
+   if (meta) meta.setAttribute('content', dark ? '#0f0f0f' : '#ffffff');
+  }
+
+  applyMeta(isDark());
+  if (!sw) return;
+
+  sw.checked = isDark();
+
+  sw.addEventListener('change', function () {
+   var dark = sw.checked;
+   root.setAttribute('data-theme', dark ? 'dark' : 'light');
+   applyMeta(dark);
+   try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
+
+   if (fx) {
+    var r = sw.getBoundingClientRect();
+    fx.style.setProperty('--fx-x', (r.left + r.width / 2) + 'px');
+    fx.style.setProperty('--fx-y', (r.top + r.height / 2) + 'px');
+    fx.style.setProperty('--fx-color', dark ? 'rgba(6, 6, 6, 0.55)' : 'rgba(255, 255, 255, 0.6)');
+    fx.classList.remove('on');
+    void fx.offsetWidth;
+    fx.classList.add('on');
+   }
+  });
+ })();
+ </script>
+
+</body>
+</html>
