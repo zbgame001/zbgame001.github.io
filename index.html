@@ -30,6 +30,10 @@
  --bar-border: #ececec;
  --loading: #9a9a9a;
  --link-color: #1a73e8;
+ --card-bg: #ffffff;
+ --card-border: #ececec;
+ --card-hover-border: #d8d8d8;
+ --go-bg: #f4f4f4;
  --switch-track: rgba(0, 0, 0, 0.7);
  --switch-track-on: rgba(0, 0, 0, 0.45);
  --switch-shadow: rgba(0, 0, 0, 0.3);
@@ -51,6 +55,10 @@
  --bar-border: #262626;
  --loading: #7a7a7a;
  --link-color: #6aa9ff;
+ --card-bg: #161616;
+ --card-border: #262626;
+ --card-hover-border: #3a3a3a;
+ --go-bg: #232323;
  --switch-track: rgba(255, 255, 255, 0.22);
  --switch-track-on: rgba(255, 255, 255, 0.12);
  --switch-shadow: rgba(0, 0, 0, 0.45);
@@ -143,15 +151,94 @@
  text-overflow: ellipsis;
  }
 
- /* 主体：第一行 大图标 + 标题/版本，第二行 下载按钮 */
+ /* 主体：第一行 大图标 + 标题/版本，第二行 下载按钮，第四行 作品标题，第五行 作品展示 */
  .stage {
  width: 100%;
  max-width: 720px;
  margin: 0 auto 0 0;   /* 左对齐，不居中 */
- padding: 32px 24px 40px;
+ padding: 32px 24px 56px;
  display: flex;
  flex-direction: column;
  align-items: stretch;
+ }
+
+ /* 首屏那两行（图标+标题 / 按钮+来源行）：窄屏竖排，宽屏横排 */
+ .hero-row {
+ display: flex;
+ flex-direction: column;
+ align-items: stretch;
+ }
+
+ /* ---- 第四行：作品展示标题 ---- */
+ .works-head {
+ margin-top: 56px;
+ font-size: 15px;
+ font-weight: 600;
+ color: var(--text-main);
+ letter-spacing: 0.3px;
+ line-height: 1.5;
+ }
+
+ /* ---- 第五行：作品展示区 ---- */
+ .works-grid {
+ margin-top: 16px;
+ display: grid;
+ grid-template-columns: 1fr;
+ gap: 12px;
+ }
+ .work-card {
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ gap: 12px;
+ padding: 15px 16px;
+ background-color: var(--card-bg);
+ border: 1px solid var(--card-border);
+ border-radius: 14px;
+ text-decoration: none;
+ transition:
+ background-color 0.45s ease,
+ border-color 0.45s ease,
+ transform 0.15s ease;
+ }
+ .work-card:hover {
+ border-color: var(--card-hover-border);
+ transform: translateY(-1px);
+ }
+ .work-card:active {
+ transform: scale(0.995);
+ }
+ .work-name {
+ min-width: 0;
+ font-size: 15px;
+ font-weight: 600;
+ color: var(--text-main);
+ letter-spacing: 0.2px;
+ white-space: nowrap;
+ overflow: hidden;
+ text-overflow: ellipsis;
+ }
+ .work-go {
+ flex-shrink: 0;
+ width: 28px;
+ height: 28px;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ border-radius: 50%;
+ background-color: var(--go-bg);
+ color: var(--text-sub);
+ font-size: 15px;
+ line-height: 1;
+ transition:
+ background-color 0.2s ease,
+ color 0.2s ease,
+ transform 0.2s ease;
+ }
+ .work-card:hover .work-go {
+ background-color: var(--link-color);
+ color: #ffffff;
+ transform: translateX(2px);
  }
 
  .hero-head {
@@ -385,7 +472,9 @@
  }
  .hero-head,
  .download-btn,
- .credit {
+ .credit,
+ .works-head,
+ .work-card {
  animation: slideUpIn 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
  }
  .download-btn {
@@ -394,10 +483,15 @@
  .credit {
  animation-delay: 0.2s;
  }
+ .works-head {
+ animation-delay: 0.25s;
+ }
  @media (prefers-reduced-motion: reduce) {
  .hero-head,
  .download-btn,
- .credit {
+ .credit,
+ .works-head,
+ .work-card {
  animation: none;
  }
  }
@@ -407,9 +501,15 @@
  @media (min-width: 768px) {
  .stage {
  max-width: none;   /* 放开到全屏宽，按钮才能真正贴最右 */
+ }
+ .hero-row {
  flex-direction: row;
  align-items: center;
  gap: 20px;
+ }
+ .works-grid {
+ grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+ gap: 14px;
  }
  .dl-wrap {
  margin-top: 0;
@@ -485,6 +585,8 @@
 
  <main class="stage">
 
+  <div class="hero-row">
+
   <!-- 第一行：大图标 + 标题（版本自动检测自 game.apk） -->
   <div class="hero-head">
    <img src="favicon.ico" alt="文字游戏-主播模拟器" class="hero-icon">
@@ -506,6 +608,14 @@
    </a>
    <p class="credit">部分UI来源：<a href="https://uiverse.io/" target="_blank" rel="noopener noreferrer">https://uiverse.io/</a></p>
   </div>
+
+  </div>
+
+  <!-- 第四行：作品展示标题（左对齐） -->
+  <p class="works-head">用户8044其它使用AI制作的游戏作品</p>
+
+  <!-- 第五行：作品展示区（从 game/ 里随机抽 5 个卡片） -->
+  <div class="works-grid" id="worksGrid"></div>
 
  </main>
 
@@ -885,6 +995,60 @@
     void fx.offsetWidth;   /* 强制重排，让动画能重播 */
     fx.classList.add('on');
    }
+  });
+ })();
+ </script>
+
+ <script>
+ /* ---- 作品展示：从 game/ 里随机抽 5 个（名字取自各页面自己的 <title>） ---- */
+ (function () {
+  var WORKS = [
+   { name: '主播模拟器', url: 'game/game.html' },
+   { name: '直播观看模拟器', url: 'game/game2.html' },
+   { name: '窗外的死亡凝视', url: 'game/game3.html' },
+   { name: '下班后的事（突脸鬼图预警）', url: 'game/game4.html' },
+   { name: '心理测试？（突脸鬼图警告）', url: 'game/game5.html' },
+   { name: '主播粉丝模拟器', url: 'game/game6.html' },
+   { name: '点按钮！（突脸鬼图警告）', url: 'game/game7.html' },
+   { name: '国家管理模拟器', url: 'game/game8.html' },
+   { name: '接水小游戏', url: 'game/game9.html' },
+   { name: 'AI 2048 对战', url: 'game/game10.html' },
+   { name: '赛博朋克 2048 合作版', url: 'game/game11.html' },
+   { name: 'AI 2048 大战 - 50格', url: 'game/game12.html' },
+   { name: '小球对战游戏', url: 'game/game13.html' }
+  ];
+
+  var grid = document.getElementById('worksGrid');
+  if (!grid) return;
+
+  /* 洗牌，取前 5 个 */
+  var pool = WORKS.slice();
+  for (var i = pool.length - 1; i > 0; i--) {
+   var j = Math.floor(Math.random() * (i + 1));
+   var tmp = pool[i];
+   pool[i] = pool[j];
+   pool[j] = tmp;
+  }
+
+  pool.slice(0, 5).forEach(function (w, idx) {
+   var a = document.createElement('a');
+   a.className = 'work-card';
+   a.href = w.url;
+   a.target = '_blank';
+   a.rel = 'noopener noreferrer';
+   a.style.animationDelay = (0.3 + idx * 0.06).toFixed(2) + 's';
+
+   var nameEl = document.createElement('span');
+   nameEl.className = 'work-name';
+   nameEl.textContent = w.name;
+
+   var goEl = document.createElement('span');
+   goEl.className = 'work-go';
+   goEl.textContent = '→';
+
+   a.appendChild(nameEl);
+   a.appendChild(goEl);
+   grid.appendChild(a);
   });
  })();
  </script>
