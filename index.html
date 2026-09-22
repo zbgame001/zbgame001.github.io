@@ -24,19 +24,52 @@
  body {
  background-color: var(--bg-color);
  display: flex;
- justify-content: center;
- align-items: center;
+ flex-direction: column;
  min-height: 100vh;
- padding: 20px;
  user-select: none;
  -webkit-user-select: none;
  -webkit-touch-callout: none;
  touch-action: pan-y pinch-zoom;
  }
 
+ /* 顶部栏 */
+ .topbar {
+ flex-shrink: 0;
+ position: sticky;
+ top: 0;
+ z-index: 10;
+ background: #ffffff;
+ border-bottom: 1px solid #ececec;
+ }
+ .topbar-inner {
+ max-width: 720px;
+ margin: 0 auto;
+ height: 64px;
+ display: flex;
+ align-items: center;
+ gap: 12px;
+ padding: 0 20px;
+ }
+ .topbar-icon {
+ width: 32px;
+ height: 32px;
+ border-radius: 8px;
+ object-fit: contain;
+ flex-shrink: 0;
+ }
+ .topbar-title {
+ font-size: 17px;
+ font-weight: 600;
+ color: var(--text-main);
+ letter-spacing: 0.5px;
+ }
+
  .container {
+ flex: 1;
  max-width: 720px;
  width: 100%;
+ margin: 0 auto;
+ padding: 20px;
  display: flex;
  align-items: center;
  justify-content: center;
@@ -153,6 +186,14 @@
  </style>
 </head>
 <body oncopy="return false" oncut="return false" oncontextmenu="return false">
+
+ <!-- 顶部栏：左 ico 图标 + 标题 -->
+ <header class="topbar">
+  <div class="topbar-inner">
+   <img src="favicon.ico" alt="游戏-主播模拟器" class="topbar-icon">
+   <span class="topbar-title">游戏-主播模拟器</span>
+  </div>
+ </header>
 
  <div class="container">
   <!-- 应用信息区 -->
