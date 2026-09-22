@@ -603,7 +603,7 @@
   <!-- 第四行：作品展示标题（左对齐） -->
   <p class="works-head">用户8044其它使用AI制作的游戏作品</p>
 
-  <!-- 第五行：作品展示区（从 game/ 里随机抽 5 个卡片） -->
+  <!-- 第五行：作品展示区（从 game/ 里随机抽 6 个卡片） -->
   <div class="works-grid" id="worksGrid"></div>
 
  </main>
@@ -989,7 +989,7 @@
  </script>
 
  <script>
- /* ---- 作品展示：从 game/ 里随机抽 5 个（名字取自各页面自己的 <title>） ---- */
+ /* ---- 作品展示：从 game/ 里随机抽 6 个（名字取自各页面自己的 <title>） ---- */
  (function () {
   var WORKS = [
    { name: '主播模拟器', url: 'game/game.html' },
@@ -1010,7 +1010,7 @@
   var grid = document.getElementById('worksGrid');
   if (!grid) return;
 
-  /* 洗牌，取前 5 个 */
+  /* 洗牌，取前 6 个 */
   var pool = WORKS.slice();
   for (var i = pool.length - 1; i > 0; i--) {
    var j = Math.floor(Math.random() * (i + 1));
@@ -1019,7 +1019,7 @@
    pool[j] = tmp;
   }
 
-  pool.slice(0, 5).forEach(function (w, idx) {
+  pool.slice(0, 6).forEach(function (w, idx) {
    var a = document.createElement('a');
    a.className = 'work-card';
    a.href = w.url;
