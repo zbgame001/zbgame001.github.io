@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>AI 2048 大战 - 50格</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: #faf8f5;
+      color: #776e65;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px;
+      touch-action: manipulation;
+    }
+
+    h1 {
+      font-size: 32px;
+      margin: 10px 0;
+      text-align: center;
+    }
+
+    .info {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 500px;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .grid-container {
+      position: relative;
+      width: 100%;
+      max-width: 500px;
+      background: #bbada0;
+      border-radius: 6px;
+      padding: 5px;
+      aspect-ratio: 2 / 1;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      grid-template-rows: repeat(5, 1fr);
+      gap: 3px;
+      width: 100%;
+      height: 100%;
+    }
+
+    .cell {
+      background: rgba(238, 228, 218, 0.35);
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: clamp(10px, 2.5vw, 14px);
+      color: #776e65;
+    }
+
+    .tile {
+      position: absolute;
+      border-radius: 3px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(10px, 2.5vw, 14px);
+      color: #f9f6f2;
+      transition: all 0.15s ease-in-out;
+      z-index: 10;
+    }
+
+    .ai-status {
+      width: 100%;
+      max-width: 500px;
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .ai-card {
+      background: #f0f0f0;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 2px solid transparent;
+      transition: border-color 0.3s;
+    }
+
+    .ai-card.active {
+      border-color: #f59563;
+      background: #fff4e6;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    button {
+      flex: 1;
+      padding: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      background: #8f7a66;
+      color: #f9f6f2;
+      cursor: pointer;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    /* Tile colors */
+    .tile-2 { background: #eee4da; color: #776e65; }
+    .tile-4 { background: #ede0c8; color: #776e65; }
+    .tile-8 { background: #f2b179; color: #f9f6f2; }
+    .tile-16 { background: #f59563; color: #f9f6f2; }
+    .tile-32 { background: #f67c5f; color: #f9f6f2; }
+    .tile-64 { background: #f65e3b; color: #f9f6f2; }
+    .tile-128 { background: #edcf72; color: #f9f6f2; font-size: clamp(8px, 2vw, 12px); }
+    .tile-256 { background: #edcc61; color: #f9f6f2; font-size: clamp(8px, 2vw, 12px); }
+    .tile-512 { background: #edc850; color: #f9f6f2; font-size: clamp(8px, 2vw, 12px); }
+    .tile-1024 { background: #edc53f; color: #f9f6f2; font-size: clamp(6px, 1.8vw, 10px); }
+    .tile-2048 { background: #edc22e; color: #f9f6f2; font-size: clamp(6px, 1.8vw, 10px); }
+    .tile-super { background: #3c3a32; color: #f9f6f2; font-size: clamp(6px, 1.8vw, 10px); }
+  </style>
+</head>
+<body>
+
+  <h1>AI 2048 大战 - 50格</h1>
+
+  <div class="info">
+    <div>回合: <span id="round">1</span></div>
+    <div>当前玩家: <span id="currentPlayer">-</span></div>
+    <div>最高分: <span id="maxScore">0</span></div>
+  </div>
+
+  <div class="grid-container">
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="controls">
+    <button id="startBtn">开始游戏</button>
+    <button id="pauseBtn">暂停</button>
+    <button id="resetBtn">重置</button>
+  </div>
+
+  <div class="ai-status">
+    <div class="ai-card" id="ai0">AI 1号 - 简单型 <span>得分: <span id="score0">0</span></span></div>
+    <div class="ai-card" id="ai1">AI 2号 - 深度思考型 <span>得分: <span id="score1">0</span></span></div>
+    <div class="ai-card" id="ai2">AI 3号 - 无脑型 <span>得分: <span id="score2">0</span></span></div>
+    <div class="ai-card" id="ai3">AI 4号 - 顺序型 <span>得分: <span id="score3">0</span></span></div>
+  </div>
+
+  <script>
+    const COLS = 10;
+    const ROWS = 5;
+    const SIZE = COLS * ROWS;
+    const DIRS = ['left', 'up', 'right', 'down'];
+    let grid = [];
+    let scores = [0, 0, 0, 0];
+    let currentAI = 0;
+    let round = 1;
+    let running = false;
+    let paused = false;
+    let moveOrder = 0;
+    let speed = 500;
+
+    const aiNames = ['简单型', '深度思考型', '无脑型', '顺序型'];
+
+    function initGrid() {
+      const gridDiv = document.getElementById('grid');
+      gridDiv.innerHTML = '';
+      for (let i = 0; i < SIZE; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        gridDiv.appendChild(cell);
+      }
+      grid = new Array(SIZE).fill(0);
+    }
+
+    function addTile() {
+      const empties = [];
+      for (let i = 0; i < SIZE; i++) if (grid[i] === 0) empties.push(i);
+      if (empties.length === 0) return;
+      const pos = empties[Math.floor(Math.random() * empties.length)];
+      grid[pos] = Math.random() < 0.9 ? 2 : 4;
+    }
+
+    function indexToPos(i) {
+      return { x: i % COLS, y: Math.floor(i / COLS) };
+    }
+
+    function posToIndex(x, y) {
+      return y * COLS + x;
+    }
+
+    function getLine(dir, index) {
+      const line = [];
+      if (dir === 'left') {
+        const y = Math.floor(index / COLS);
+        for (let x = 0; x < COLS; x++) line.push(grid[posToIndex(x, y)]);
+      } else if (dir === 'right') {
+        const y = Math.floor(index / COLS);
+        for (let x = COLS - 1; x >= 0; x--) line.push(grid[posToIndex(x, y)]);
+      } else if (dir === 'up') {
+        const x = index % COLS;
+        for (let y = 0; y < ROWS; y++) line.push(grid[posToIndex(x, y)]);
+      } else if (dir === 'down') {
+        const x = index % COLS;
+        for (let y = ROWS - 1; y >= 0; y--) line.push(grid[posToIndex(x, y)]);
+      }
+      return line;
+    }
+
+    function setLine(dir, index, line) {
+      if (dir === 'left') {
+        const y = Math.floor(index / COLS);
+        for (let x = 0; x < COLS; x++) grid[posToIndex(x, y)] = line[x];
+      } else if (dir === 'right') {
+        const y = Math.floor(index / COLS);
+        for (let x = 0; x < COLS; x++) grid[posToIndex(COLS - 1 - x, y)] = line[x];
+      } else if (dir === 'up') {
+        const x = index % COLS;
+        for (let y = 0; y < ROWS; y++) grid[posToIndex(x, y)] = line[y];
+      } else if (dir === 'down') {
+        const x = index % COLS;
+        for (let y = 0; y < ROWS; y++) grid[posToIndex(x, ROWS - 1 - y)] = line[y];
+      }
+    }
+
+    function processLine(line) {
+      const filtered = line.filter(v => v !== 0);
+      const merged = [];
+      let score = 0;
+      for (let i = 0; i < filtered.length; i++) {
+        if (i < filtered.length - 1 && filtered[i] === filtered[i + 1]) {
+          merged.push(filtered[i] * 2);
+          score += filtered[i] * 2;
+          i++;
+        } else {
+          merged.push(filtered[i]);
+        }
+      }
+      while (merged.length < line.length) merged.push(0);
+      return { line: merged, score };
+    }
+
+    function move(dir) {
+      let moved = false;
+      let score = 0;
+      const lines = dir === 'left' || dir === 'right' ? ROWS : COLS;
+      for (let i = 0; i < lines; i++) {
+        const oldLine = getLine(dir, i);
+        const { line: newLine, score: s } = processLine(oldLine);
+        if (oldLine.some((v, j) => v !== newLine[j])) moved = true;
+        setLine(dir, i, newLine);
+        score += s;
+      }
+      if (moved) {
+        scores[currentAI] += score;
+        addTile();
+      }
+      return moved;
+    }
+
+    function canMove(dir) {
+      const lines = dir === 'left' || dir === 'right' ? ROWS : COLS;
+      for (let i = 0; i < lines; i++) {
+        const oldLine = getLine(dir, i);
+        const { line: newLine } = processLine(oldLine);
+        if (oldLine.some((v, j) => v !== newLine[j])) return true;
+      }
+      return false;
+    }
+
+    function getAIMove(type) {
+      if (type === 0) {
+        for (const d of DIRS) if (canMove(d)) return d;
+        return DIRS[0];
+      } else if (type === 1) {
+        let best = { dir: 'up', score: -1 };
+        for (const d of DIRS) {
+          if (!canMove(d)) continue;
+          const oldGrid = [...grid];
+          const oldScore = scores[currentAI];
+          move(d);
+          const s = scores[currentAI];
+          if (s > best.score) best = { dir: d, score: s };
+          grid = oldGrid;
+          scores[currentAI] = oldScore;
+        }
+        return best.dir;
+      } else if (type === 2) {
+        const valid = DIRS.filter(d => canMove(d));
+        return valid.length > 0 ? valid[Math.floor(Math.random() * valid.length)] : DIRS[0];
+      } else if (type === 3) {
+        let d;
+        do {
+          d = DIRS[moveOrder % 4];
+          moveOrder++;
+        } while (!canMove(d) && moveOrder < 100);
+        return d;
+      }
+    }
+
+    function updateDisplay() {
+      const cells = document.querySelectorAll('.cell');
+      cells.forEach((cell, i) => {
+        cell.textContent = grid[i] === 0 ? '' : grid[i];
+        cell.className = 'cell';
+        if (grid[i] !== 0) {
+          const cls = grid[i] <= 2048 ? `tile-${grid[i]}` : 'tile-super';
+          cell.classList.add(cls);
+        }
+      });
+
+      document.getElementById('round').textContent = round;
+      document.getElementById('currentPlayer').textContent = `AI ${currentAI + 1}号`;
+      document.getElementById('maxScore').textContent = Math.max(...scores);
+
+      for (let i = 0; i < 4; i++) {
+        document.getElementById(`score${i}`).textContent = scores[i];
+        document.getElementById(`ai${i}`).classList.toggle('active', i === currentAI);
+      }
+    }
+
+    function isGameOver() {
+      if (grid.includes(0)) return false;
+      for (let i = 0; i < SIZE; i++) {
+        const { x, y } = indexToPos(i);
+        if (x < COLS - 1 && grid[i] === grid[i + 1]) return false;
+        if (y < ROWS - 1 && grid[i] === grid[i + COLS]) return false;
+      }
+      return true;
+    }
+
+    async function aiLoop() {
+      if (!running || paused) return;
+      const moveDir = getAIMove(currentAI);
+      move(moveDir);
+      updateDisplay();
+      if (isGameOver()) {
+        running = false;
+        alert(`游戏结束！最高得分：${Math.max(...scores)}`);
+        return;
+      }
+      currentAI = (currentAI + 1) % 4;
+      if (currentAI === 0) round++;
+      setTimeout(aiLoop, speed);
+    }
+
+    function start() {
+      running = true;
+      paused = false;
+      scores = [0, 0, 0, 0];
+      round = 1;
+      currentAI = 0;
+      moveOrder = 0;
+      initGrid();
+      addTile();
+      addTile();
+      updateDisplay();
+      aiLoop();
+    }
+
+    function pause() {
+      paused = !paused;
+      document.getElementById('pauseBtn').textContent = paused ? '继续' : '暂停';
+      if (!paused) aiLoop();
+    }
+
+    function reset() {
+      running = false;
+      paused = false;
+      scores = [0, 0, 0, 0];
+      round = 1;
+      currentAI = 0;
+      moveOrder = 0;
+      initGrid();
+      updateDisplay();
+      document.getElementById('pauseBtn').textContent = '暂停';
+    }
+
+    document.getElementById('startBtn').addEventListener('click', start);
+    document.getElementById('pauseBtn').addEventListener('click', pause);
+    document.getElementById('resetBtn').addEventListener('click', reset);
+
+    initGrid();
+    updateDisplay();
+  </script>
+
+</body>
+</html>

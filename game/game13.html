@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>小球对战游戏</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{
+            font-family:Arial,sans-serif;
+            background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+            min-height:100vh;overflow-x:hidden;padding:20px;
+        }
+        .container{max-width:800px;margin:0 auto;}
+        .title{
+            text-align:center;color:#fff;font-size:clamp(24px,5vw,36px);
+            margin-bottom:30px;text-shadow:2px 2px 4px rgba(0,0,0,.3);
+        }
+        .game-boards{display:flex;flex-direction:column;gap:30px;margin-bottom:30px;}
+        .game-board{
+            background:rgba(255,255,255,.1);border-radius:20px;padding:20px;
+            backdrop-filter:blur(10px);border:2px solid rgba(255,255,255,.2);
+        }
+        .board-header{text-align:center;color:#fff;margin-bottom:15px;font-size:clamp(16px,3vw,20px);}
+        .canvas-container{
+            position:relative;width:100%;max-width:350px;height:400px;margin:0 auto;
+            background:rgba(0,0,0,.8);border-radius:15px;overflow:hidden;border:3px solid rgba(255,255,255,.3);
+        }
+        canvas{display:block;width:100%;height:100%;}
+        .stats{display:flex;justify-content:space-between;margin-top:15px;color:#fff;font-size:clamp(12px,2.5vw,14px);}
+        .controls{text-align:center;margin-top:30px;}
+        .btn{
+            background:linear-gradient(45deg,#ff6b6b,#ee5a24);color:#fff;border:none;
+            padding:12px 30px;border-radius:25px;font-size:clamp(14px,3vw,16px);cursor:pointer;margin:0 10px;
+            transition:all .3s ease;box-shadow:0 4px 15px rgba(0,0,0,.2);
+        }
+        .btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.3);}
+        .btn:active{transform:translateY(0);}
+        .instructions{
+            background:rgba(255,255,255,.1);border-radius:15px;padding:20px;color:#fff;
+            margin-top:30px;backdrop-filter:blur(10px);
+        }
+        .instructions h3{margin-bottom:10px;text-align:center;}
+        .instructions p{margin-bottom:8px;font-size:clamp(12px,2.5vw,14px);line-height:1.5;}
+        @media(min-width:768px){
+            .game-boards{flex-direction:row;justify-content:space-between;}
+            .game-board{flex:1;max-width:380px;}
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">小球对战游戏</h1>
+        <div class="game-boards">
+            <div class="game-board">
+                <h2 class="board-header">斐波那契球</h2>
+                <div class="canvas-container"><canvas id="canvas1"></canvas></div>
+                <div class="stats">
+                    <span>当前数字: <span id="ball1Value">1</span></span>
+                    <span>剩余木板: <span id="board1Value">9999999999</span></span>
+                </div>
+            </div>
+            <div class="game-board">
+                <h2 class="board-header">阶乘球</h2>
+                <div class="canvas-container"><canvas id="canvas2"></canvas></div>
+                <div class="stats">
+                    <span>当前阶乘: <span id="ball2Fac">1</span>!</span>
+                    <span>当前数字: <span id="ball2Value">1</span></span>
+                    <span>剩余木板: <span id="board2Value">9999999999</span></span>
+                </div>
+            </div>
+        </div>
+        <div class="controls">
+            <button class="btn" onclick="resetGame()">重新开始</button>
+            <button class="btn" onclick="togglePause()">暂停/继续</button>
+        </div>
+        <div class="instructions">
+            <h3>游戏说明</h3>
+            <p>🔴 斐波那契球：每次碰撞木板数字变为下一项斐波那契数</p>
+            <p>🔵 阶乘球：每次碰撞木板数字=当前阶乘（1→2→6→24…）</p>
+            <p>🟢 木板初始值：9999999999</p>
+            <p>目标：看哪个小球能更快消耗完木板的数值！</p>
+        </div>
+    </div>
+
+    <script>
+        class Ball {
+            constructor(x,y,vx,vy,radius,color,type){
+                this.x=x;this.y=y;this.vx=vx;this.vy=vy;this.radius=radius;this.color=color;this.type=type;
+                this.value=1;
+                if(type==='value'){
+                    // 斐波那契
+                    this.fib=[1,1];this.fibIdx=1;
+                }else{
+                    // 阶乘
+                    this.facN=1;
+                }
+            }
+            update(canvas){
+                // 蓝球不加速度
+                const currSpeed=1;
+                this.x+=this.vx*currSpeed;
+                this.y+=this.vy*currSpeed;
+                if(this.x-this.radius<=0||this.x+this.radius>=canvas.width)this.vx=-this.vx;
+                if(this.y-this.radius<=0)this.vy=-this.vy;
+                if(this.y+this.radius>=canvas.height){
+                    this.vy=-this.vy;
+                    if(this.type==='value'){
+                        const next=this.fib[this.fibIdx]+this.fib[this.fibIdx-1];
+                        this.fib.push(next);this.fibIdx++;this.value=next;
+                    }else{
+                        this.facN++;this.value=this.factorial(this.facN);
+                    }
+                    return true;
+                }
+                return false;
+            }
+            factorial(n){return n<=1?1:n*this.factorial(n-1);}
+            draw(ctx){
+                ctx.beginPath();ctx.arc(this.x,this.y,this.radius,0,Math.PI*2);
+                ctx.fillStyle=this.color;ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+                ctx.fillStyle='#fff';ctx.font='bold 16px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
+                ctx.fillText(this.value,this.x,this.y);
+            }
+        }
+
+        class Game {
+            constructor(canvasId,type){
+                this.canvas=document.getElementById(canvasId);
+                this.ctx=this.canvas.getContext('2d');
+                this.type=type;
+                this.ball=null;
+                this.boardValue=9999999999;
+                this.isPaused=false;
+                this.setupCanvas();
+                this.initBall();
+                this.animate();
+            }
+            setupCanvas(){
+                const c=this.canvas.parentElement;
+                this.canvas.width=c.clientWidth;
+                this.canvas.height=c.clientHeight;
+            }
+            initBall(){
+                const w=this.canvas.width,h=this.canvas.height;
+                const angle=Math.random()*Math.PI*2;
+                const color=this.type==='value'?'#ff6b6b':'#4ecdc4';
+                this.ball=new Ball(w/2,h/2,Math.cos(angle)*2,Math.sin(angle)*2,20,color,this.type);
+            }
+            animate(){
+                if(!this.isPaused){
+                    this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
+                    this.ctx.fillStyle='#2ecc71';this.ctx.fillRect(0,this.canvas.height-20,this.canvas.width,20);
+                    this.ctx.fillStyle='#fff';this.ctx.font='bold 12px Arial';this.ctx.textAlign='center';
+                    this.ctx.fillText(this.boardValue.toLocaleString(),this.canvas.width/2,this.canvas.height-10);
+                    const hitBoard=this.ball.update(this.canvas);
+                    if(hitBoard&&this.boardValue>0){
+                        this.boardValue=Math.max(0,this.boardValue-this.ball.value);
+                        this.updateUI();
+                    }
+                    this.ball.draw(this.ctx);
+                    if(this.boardValue<=0)this.drawGameOver();
+                }
+                requestAnimationFrame(()=>this.animate());
+            }
+            updateUI(){
+                if(this.type==='value'){
+                    document.getElementById('ball1Value').textContent=this.ball.value;
+                    document.getElementById('board1Value').textContent=this.boardValue.toLocaleString();
+                }else{
+                    document.getElementById('ball2Fac').textContent=this.ball.facN;
+                    document.getElementById('ball2Value').textContent=this.ball.value;
+                    document.getElementById('board2Value').textContent=this.boardValue.toLocaleString();
+                }
+            }
+            drawGameOver(){
+                this.isPaused=true;
+                this.ctx.fillStyle='rgba(0,0,0,0.7)';this.ctx.fillRect(0,0,this.canvas.width,this.canvas.height);
+                this.ctx.fillStyle='#fff';this.ctx.font='bold 24px Arial';this.ctx.textAlign='center';
+                this.ctx.fillText('游戏结束!',this.canvas.width/2,this.canvas.height/2);
+                this.ctx.font='16px Arial';this.ctx.fillText('木板已消耗完毕',this.canvas.width/2,this.canvas.height/2+30);
+            }
+            reset(){
+                this.boardValue=9999999999;this.isPaused=false;this.initBall();this.updateUI();
+            }
+            togglePause(){this.isPaused=!this.isPaused;}
+        }
+
+        let game1,game2;
+        function initGames(){game1=new Game('canvas1','value');game2=new Game('canvas2','speed');}
+        function resetGame(){game1.reset();game2.reset();}
+        function togglePause(){game1.togglePause();game2.togglePause();}
+        window.addEventListener('load',initGames);
+        window.addEventListener('resize',()=>{setTimeout(()=>{game1.setupCanvas();game2.setupCanvas();},100);});
+    </script>
+</body>
+</html>

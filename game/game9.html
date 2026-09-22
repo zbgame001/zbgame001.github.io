@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>接水小游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 开始界面 */
+        .start-screen {
+            text-align: center;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .title {
+            font-size: 2.5em;
+            color: white;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .start-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            font-size: 1.2em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .start-btn:active {
+            transform: translateY(0);
+        }
+
+        /* 游戏界面 */
+        .game-screen {
+            display: none;
+            width: 100%;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        /* 水表 */
+        .water-meter {
+            background: rgba(255,255,255,0.9);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .meter-title {
+            font-size: 1.1em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .meter-display {
+            font-size: 2em;
+            color: #2196F3;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2196F3, #21CBF3);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* 水龙头 */
+        .faucet-container {
+            position: relative;
+            margin-bottom: 50px;
+        }
+
+        .faucet {
+            width: 100px;
+            height: 80px;
+            background: #e0e0e0;
+            border-radius: 10px 10px 0 0;
+            position: relative;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .faucet::before {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 0 0 50% 50%;
+        }
+
+        .faucet::after {
+            content: '';
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 10px;
+            height: 20px;
+            background: #999;
+            border-radius: 0 0 50% 50%;
+        }
+
+        /* 水滴 */
+        .water-drop {
+            position: absolute;
+            width: 8px;
+            height: 12px;
+            background: #2196F3;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: drop 2s infinite;
+            opacity: 0;
+        }
+
+        @keyframes drop {
+            0% {
+                top: 80px;
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                top: 180px;
+                opacity: 0;
+            }
+        }
+
+        /* 水杯 */
+        .cup-container {
+            position: relative;
+            margin-top: 50px;
+        }
+
+        .cup {
+            width: 120px;
+            height: 150px;
+            background: rgba(255,255,255,0.3);
+            border: 3px solid #fff;
+            border-radius: 0 0 50px 50px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .cup-handle {
+            position: absolute;
+            right: -25px;
+            top: 30px;
+            width: 40px;
+            height: 60px;
+            border: 3px solid #fff;
+            border-left: none;
+            border-radius: 0 30px 30px 0;
+        }
+
+        .water {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, #2196F3, #21CBF3);
+            border-radius: 0 0 47px 47px;
+            transition: height 0.3s ease;
+        }
+
+        .water-level {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.9);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            color: #333;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        /* 时间提示 */
+        .time-remaining {
+            display: none; /* 隐藏剩余时间 */
+            margin-top: 30px;
+            text-align: center;
+            color: white;
+            font-size: 1.1em;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        /* 完成提示 */
+        .completion-message {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 1000;
+            animation: popIn 0.5s ease-out;
+        }
+
+        @keyframes popIn {
+            0% {
+                transform: translate(-50%, -50%) scale(0.8);
+                opacity: 0;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .completion-title {
+            font-size: 1.8em;
+            color: #4CAF50;
+            margin-bottom: 15px;
+        }
+
+        .reset-btn {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 30px;
+            font-size: 1em;
+            border-radius: 25px;
+            cursor: pointer;
+            margin-top: 15px;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 480px) {
+            .title {
+                font-size: 2em;
+            }
+            
+            .cup {
+                width: 100px;
+                height: 130px;
+            }
+            
+            .faucet {
+                width: 80px;
+                height: 70px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 开始界面 -->
+        <div class="start-screen" id="startScreen">
+            <h1 class="title">请等待水杯接满</h1>
+            <button class="start-btn" id="startBtn">开始游戏</button>
+        </div>
+
+        <!-- 游戏界面 -->
+        <div class="game-screen" id="gameScreen">
+            <!-- 水表 -->
+            <div class="water-meter">
+                <div class="meter-title">水量进度</div>
+                <div class="meter-display" id="meterDisplay">0.00%</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+
+            <!-- 水龙头 -->
+            <div class="faucet-container">
+                <div class="faucet">
+                    <div class="water-drop" id="waterDrop"></div>
+                </div>
+            </div>
+
+            <!-- 水杯 -->
+            <div class="cup-container">
+                <div class="cup">
+                    <div class="cup-handle"></div>
+                    <div class="water" id="water">
+                        <div class="water-level" id="waterLevel">0%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 剩余时间 -->
+            <div class="time-remaining" id="timeRemaining">
+                预计剩余时间：5小时0分0秒
+            </div>
+        </div>
+
+        <!-- 完成提示 -->
+        <div class="completion-message" id="completionMessage">
+            <div class="completion-title">🎉 恭喜完成！</div>
+            <p>水杯已接满！</p>
+            <button class="reset-btn" id="resetBtn">重新开始</button>
+        </div>
+    </div>
+
+    <script>
+        // 游戏状态
+        let gameState = {
+            isRunning: false,
+            startTime: null,
+            totalDuration: 5 * 60 * 60 * 1000, // 5小时
+            currentProgress: 0,
+            savedProgress: 0
+        };
+
+        // DOM元素
+        const startScreen = document.getElementById('startScreen');
+        const gameScreen = document.getElementById('gameScreen');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const meterDisplay = document.getElementById('meterDisplay');
+        const progressFill = document.getElementById('progressFill');
+        const water = document.getElementById('water');
+        const waterLevel = document.getElementById('waterLevel');
+        const timeRemaining = document.getElementById('timeRemaining');
+        const completionMessage = document.getElementById('completionMessage');
+        const waterDrop = document.getElementById('waterDrop');
+
+        // 检查是否有保存的进度
+        function checkSavedProgress() {
+            const saved = localStorage.getItem('waterGameProgress');
+            const savedTime = localStorage.getItem('waterGameStartTime');
+            
+            if (saved && savedTime) {
+                const elapsed = Date.now() - parseInt(savedTime);
+                const progress = Math.min((elapsed / gameState.totalDuration) * 100, 100);
+                
+                if (progress < 100) {
+                    gameState.savedProgress = progress;
+                    gameState.startTime = parseInt(savedTime);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // 开始游戏
+        function startGame() {
+            gameState.isRunning = true;
+            startScreen.style.display = 'none';
+            gameScreen.style.display = 'block';
+            
+            if (gameState.savedProgress > 0) {
+                gameState.currentProgress = gameState.savedProgress;
+                updateDisplay();
+            } else {
+                gameState.startTime = Date.now();
+                localStorage.setItem('waterGameStartTime', gameState.startTime);
+            }
+            
+            // 开始动画
+            waterDrop.style.animation = 'drop 2s infinite';
+            
+            // 开始更新循环
+            updateGame();
+        }
+
+        // 更新游戏状态
+        function updateGame() {
+            if (!gameState.isRunning) return;
+            
+            const elapsed = Date.now() - gameState.startTime;
+            gameState.currentProgress = Math.min((elapsed / gameState.totalDuration) * 100, 100);
+            
+            updateDisplay();
+            
+            // 保存进度
+            localStorage.setItem('waterGameProgress', gameState.currentProgress);
+            
+            if (gameState.currentProgress >= 100) {
+                completeGame();
+            } else {
+                requestAnimationFrame(updateGame);
+            }
+        }
+
+        // 更新显示
+        function updateDisplay() {
+            const progress = gameState.currentProgress;
+            
+            // 更新水表
+            meterDisplay.textContent = progress.toFixed(2) + '%';
+            progressFill.style.width = progress + '%';
+            
+            // 更新水杯水位
+            water.style.height = progress + '%';
+            waterLevel.textContent = progress.toFixed(1) + '%';
+            
+            // 不再更新时间显示
+            // timeRemaining.textContent = ...;
+        }
+
+        // 游戏完成
+        function completeGame() {
+            gameState.isRunning = false;
+            completionMessage.style.display = 'block';
+            waterDrop.style.animation = 'none';
+            
+            // 清除保存的进度
+            localStorage.removeItem('waterGameProgress');
+            localStorage.removeItem('waterGameStartTime');
+        }
+
+        // 重置游戏
+        function resetGame() {
+            gameState = {
+                isRunning: false,
+                startTime: null,
+                totalDuration: 5 * 60 * 60 * 1000,
+                currentProgress: 0,
+                savedProgress: 0
+            };
+            
+            completionMessage.style.display = 'none';
+            gameScreen.style.display = 'none';
+            startScreen.style.display = 'block';
+            
+            // 重置显示
+            meterDisplay.textContent = '0.00%';
+            progressFill.style.width = '0%';
+            water.style.height = '0%';
+            waterLevel.textContent = '0%';
+            // 不再重置时间显示
+            // timeRemaining.textContent = ...;
+        }
+
+        // 事件监听
+        startBtn.addEventListener('click', startGame);
+        resetBtn.addEventListener('click', resetGame);
+
+        // 触摸事件处理
+        startBtn.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            startBtn.click();
+        });
+
+        resetBtn.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            resetBtn.click();
+        });
+
+        // 页面加载时检查保存的进度
+        window.addEventListener('load', function() {
+            if (checkSavedProgress()) {
+                startBtn.textContent = '继续游戏';
+            }
+        });
+
+        // 页面可见性变化处理
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden && gameState.isRunning) {
+                updateDisplay();
+            }
+        });
+    </script>
+</body>
+</html>

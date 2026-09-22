@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>心理测试？（突脸鬼图警告）</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+            text-align: left;
+            position: relative;
+        }
+
+        .glow-text {
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8),
+                         0 0 20px rgba(255, 255, 255, 0.6),
+                         0 0 30px rgba(255, 255, 255, 0.4);
+        }
+
+        .red-glow {
+            color: #ff0000;
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.8),
+                         0 0 20px rgba(255, 0, 0, 0.6),
+                         0 0 30px rgba(255, 0, 0, 0.4);
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .typewriter {
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        input[type="text"] {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            padding: 10px;
+            font-size: 16px;
+            width: 100%;
+            max-width: 300px;
+            margin: 10px 0;
+            border-radius: 5px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            border-color: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin: 5px;
+            transition: all 0.3s ease;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button:hover, button:active {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+        }
+
+        .option {
+            display: none;
+            margin: 10px 0;
+            cursor: pointer;
+            padding: 8px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+        }
+
+        .option.show {
+            display: block;
+        }
+
+        .option:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .image-window {
+            width: 100%;
+            max-width: 400px;
+            margin: 20px auto;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+        }
+
+        .image-window img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .version {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .glitch {
+            animation: glitch 0.1s infinite;
+        }
+
+        @keyframes glitch {
+            0% { opacity: 1; }
+            50% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+
+            input[type="text"], button {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 开始页面 -->
+        <div class="page active" id="start-page">
+            <h1 class="glow-text" style="text-align: center; margin-bottom: 30px;">心理测试？</h1>
+            <p class="glow-text" style="text-align: center; font-size: 14px; color: rgba(255, 255, 255, 0.7);">（突脸鬼图警告）</p>
+            <div style="text-align: center; margin-top: 40px;">
+                <button onclick="startGame()" class="glow-text">开始游戏</button>
+            </div>
+        </div>
+
+        <!-- 第1页 -->
+        <div class="page" id="page1">
+            <div class="glow-text">
+                <p id="page1-text1" style="font-size: 18px; margin-bottom: 20px;"></p>
+                <input type="text" id="nameInput" placeholder="请输入您的名字">
+                <br>
+                <button onclick="submitName()">确定</button>
+            </div>
+        </div>
+
+        <!-- 第2页 -->
+        <div class="page" id="page2">
+            <div class="glow-text">
+                <p id="page2-text" style="font-size: 18px;"></p>
+            </div>
+        </div>
+
+        <!-- 第3页 -->
+        <div class="page" id="page3">
+            <div class="glow-text">
+                <p id="page3-text1" style="font-size: 18px; margin-bottom: 20px;"></p>
+                <div class="option" onclick="goToPage(4)">男</div>
+                <div class="option" onclick="goToPage(4)">女</div>
+                <div class="option" onclick="goToPage(3.5)">不愿透露</div>
+            </div>
+        </div>
+
+        <!-- 第3.5页 -->
+        <div class="page" id="page3-5">
+            <div class="glow-text">
+                <p id="page3-5-text" style="font-size: 24px; text-align: center;"></p>
+            </div>
+        </div>
+
+        <!-- 第4页 -->
+        <div class="page" id="page4">
+            <div class="glow-text">
+                <p id="page4-text1" style="font-size: 18px; margin-bottom: 20px;"></p>
+                <div class="option" onclick="goToPage(4.5)">大</div>
+                <div class="option" onclick="goToPage(5)">不大</div>
+            </div>
+        </div>
+
+        <!-- 第4.5页 -->
+        <div class="page" id="page4-5">
+            <div class="image-window">
+                <img src="https://img2.baidu.com/it/u=1217151449,1933742333&fm=253&fmt=auto&app=120&f=JPEG?w=667&h=500" alt="恐怖图片">
+            </div>
+        </div>
+
+        <!-- 第5页 -->
+        <div class="page" id="page5">
+            <div class="glow-text">
+                <p id="page5-text1" style="font-size: 18px; margin-bottom: 20px;"></p>
+                <div class="option" onclick="goToPage(5.1)">自己解决</div>
+                <div class="option" onclick="goToPage(6)">寻求他人一起解决</div>
+                <div class="option" onclick="goToPage(5.2)" id="option5-3">你帮我</div>
+            </div>
+        </div>
+
+        <!-- 第5.1页 -->
+        <div class="page" id="page5-1">
+            <div class="glow-text">
+                <p id="page5-1-text" style="font-size: 36px; text-align: center;"></p>
+            </div>
+        </div>
+
+        <!-- 第5.2页 -->
+        <div class="page" id="page5-2">
+            <div class="glow-text">
+                <p id="page5-2-text" style="font-size: 24px; text-align: center;"></p>
+            </div>
+        </div>
+
+        <!-- 第5.3页 -->
+        <div class="page" id="page5-3">
+            <div class="glow-text">
+                <p id="page5-3-text1" style="font-size: 18px; margin-bottom: 20px;"></p>
+                <input type="text" id="helpInput" placeholder="请输入您需要的帮助">
+                <br>
+                <button onclick="submitHelp()">确定</button>
+            </div>
+        </div>
+
+        <!-- 第5.4页 -->
+        <div class="page" id="page5-4">
+            <div class="image-window">
+                <img src="https://www.gxgif.com/pic/kb/20251014115357.jpg" alt="恐怖图片">
+            </div>
+        </div>
+
+        <!-- 第6页 -->
+        <div class="page" id="page6">
+            <div class="glow-text">
+                <p id="page6-text1" style="font-size: 18px; margin-bottom: 20px;"></p>
+                <div class="option" onclick="goToPage(6.1)">是</div>
+                <div class="option" onclick="goToPage(7)">不是</div>
+                <div class="option" onclick="goToPage(6.2)" id="option6-3">还有你</div>
+            </div>
+        </div>
+
+        <!-- 第6.1页 -->
+        <div class="page" id="page6-1">
+            <div class="image-window">
+                <img src="https://www.gxgif.com/pic/kb/2024122219177.jpg" alt="恐怖图片">
+            </div>
+        </div>
+
+        <!-- 第6.2页 -->
+        <div class="page" id="page6-2">
+            <div class="glow-text">
+                <p id="page6-2-text" style="font-size: 24px; text-align: center;"></p>
+            </div>
+        </div>
+
+        <!-- 第7页 -->
+        <div class="page" id="page7">
+            <div class="glow-text">
+                <p id="page7-text1" style="font-size: 18px; margin-bottom: 20px;"></p>
+                <div class="option" onclick="goToPage(7.1)">会</div>
+                <div class="option" onclick="goToPage(8)">不会</div>
+            </div>
+        </div>
+
+        <!-- 第7.1页 -->
+        <div class="page" id="page7-1">
+            <div class="glow-text">
+                <p id="page7-1-text" style="font-size: 24px; text-align: center;"></p>
+            </div>
+        </div>
+
+        <!-- 第7.2页 -->
+        <div class="page" id="page7-2">
+            <div class="image-window">
+                <img src="https://www.gxgif.com/pic/kb/202491964838.jpg" alt="恐怖图片">
+            </div>
+        </div>
+
+        <!-- 第8页 -->
+        <div class="page" id="page8">
+            <div class="glow-text">
+                <p id="page8-text1" style="font-size: 18px; margin-bottom: 20px;"></p>
+                <div class="option" onclick="goToPage(9)">会</div>
+                <div class="option" onclick="goToPage(8.1)">不会</div>
+            </div>
+        </div>
+
+        <!-- 第8.1页 -->
+        <div class="page" id="page8-1">
+            <div class="image-window">
+                <img src="https://www.gxgif.com/pic/kb/20231213173528.jpg" alt="恐怖图片">
+            </div>
+        </div>
+
+        <!-- 第9页 -->
+        <div class="page" id="page9">
+            <div class="glow-text">
+                <p id="page9-text1" style="font-size: 18px; margin-bottom: 20px;"></p>
+                <div class="option" onclick="goToPage(9.1)">是的</div>
+                <div class="option" onclick="goToPage(10)">不是</div>
+            </div>
+        </div>
+
+        <!-- 第9.1页 -->
+        <div class="page" id="page9-1">
+            <div class="image-window">
+                <img src="https://www.gxgif.com/pic/kb/202449165223.jpg" alt="恐怖图片">
+            </div>
+        </div>
+
+        <!-- 第10页 -->
+        <div class="page" id="page10">
+            <div class="glow-text">
+                <p id="page10-text1" style="font-size: 18px; margin-bottom: 20px;"></p>
+                <div class="option" onclick="goToPage(11)" id="satisfied">满意</div>
+                <div class="option" onclick="makeSatisfied()" id="unsatisfied">不满意</div>
+            </div>
+        </div>
+
+        <!-- 第11页 -->
+        <div class="page" id="page11">
+            <div class="glow-text">
+                <p id="page11-text1" style="font-size: 24px; text-align: center; margin-bottom: 20px;"></p>
+                <p id="page11-text2" style="font-size: 20px; text-align: center; color: red;"></p>
+            </div>
+        </div>
+
+        <!-- 第12页 -->
+        <div class="page" id="page12">
+            <div class="image-window">
+                <img src="https://www.gxgif.com/pic/kb/2023912165956.jpg" alt="恐怖图片">
+            </div>
+        </div>
+
+        <!-- 第13页 -->
+        <div class="page" id="page13">
+            <div class="glow-text" style="text-align: center;">
+                <p style="color: red; font-size: 18px; margin: 10px 0;">测试题:@用户8044</p>
+                <p style="color: red; font-size: 18px; margin: 10px 0;">代码:K2-kimi</p>
+                <p style="color: red; font-size: 18px; margin: 10px 0;">感谢游玩</p>
+                <p style="color: red; font-size: 18px; margin: 10px 0;">游戏版本:V0.1-测试</p>
+                <p style="color: red; font-size: 14px; margin: 10px 0;">图片素材来源:百度，GXgif动图网</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="version">版本:V0.1-测试</div>
+
+    <script>
+        let userName = '';
+        let glitchInterval;
+
+        function startGame() {
+            document.getElementById('start-page').classList.remove('active');
+            document.getElementById('page1').classList.add('active');
+            typeWriterEffect('page1-text1', '你', '的名字是？', true);
+        }
+
+        function typeWriterEffect(elementId, firstPart, secondPart, hasRed = false) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = firstPart;
+
+            setTimeout(() => {
+                if (hasRed) {
+                    element.innerHTML = firstPart + '<span class="red-glow">' + secondPart + '</span>';
+                } else {
+                    element.innerHTML = firstPart + secondPart;
+                }
+                // 显示选项
+                showOptions(elementId);
+            }, 2000);
+        }
+
+        function showOptions(textElementId) {
+            let pageId = textElementId.split('-')[0];
+            let page = document.getElementById(pageId);
+            if (!page) return;
+            let options = page.querySelectorAll('.option');
+            options.forEach((opt, idx) => {
+                setTimeout(() => {
+                    opt.classList.add('show');
+                }, idx * 200);
+            });
+        }
+
+        function submitName() {
+            userName = document.getElementById('nameInput').value || '匿名用户';
+            document.getElementById('page1').classList.remove('active');
+            document.getElementById('page2').classList.add('active');
+            document.getElementById('page2-text').innerHTML = '您好，<span class="glitch">' + userName + '</span>';
+            startGlitchEffect();
+
+            setTimeout(() => {
+                stopGlitchEffect();
+                goToPage(3);
+            }, 1000);
+        }
+
+        function startGlitchEffect() {
+            const glitchElements = document.querySelectorAll('.glitch');
+            glitchInterval = setInterval(() => {
+                glitchElements.forEach(el => {
+                    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                    let result = '';
+                    for (let i = 0; i < el.textContent.length; i++) {
+                        result += chars.charAt(Math.floor(Math.random() * chars.length));
+                    }
+                    el.textContent = result;
+                });
+            }, 100);
+        }
+
+        function stopGlitchEffect() {
+            clearInterval(glitchInterval);
+        }
+
+        function goToPage(pageNum) {
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+
+            if (pageNum === 3) {
+                document.getElementById('page3').classList.add('active');
+                typeWriterEffect('page3-text1', '你', '的性别是？', true);
+            } else if (pageNum === 3.5) {
+                document.getElementById('page3-5').classList.add('active');
+                const element = document.getElementById('page3-5-text');
+                element.textContent = '没关系';
+                setTimeout(() => {
+                    element.classList.add('glitch');
+                    startGlitchEffect();
+                    setTimeout(() => {
+                        stopGlitchEffect();
+                        goToPage(4);
+                    }, 1000);
+                }, 1000);
+            } else if (pageNum === 4) {
+                document.getElementById('page4').classList.add('active');
+                typeWriterEffect('page4-text1', '你', '的胆子大吗？', true);
+            } else if (pageNum === 4.5) {
+                document.getElementById('page4-5').classList.add('active');
+                setTimeout(() => goToPage(5), 2000);
+            } else if (pageNum === 5) {
+                document.getElementById('page5').classList.add('active');
+                typeWriterEffect('page5-text1', '你', '遇到事情都是怎么解决的？', true);
+            } else if (pageNum === 5.1) {
+                document.getElementById('page5').classList.remove('active');
+                document.getElementById('page5-1').classList.add('active');
+                const element = document.getElementById('page5-1-text');
+                element.textContent = '很棒哟！';
+                setTimeout(() => {
+                    element.classList.add('glitch');
+                    startGlitchEffect();
+                    fillScreenWithGlitch();
+                    setTimeout(() => {
+                        stopGlitchEffect();
+                        goToPage(6);
+                    }, 3000);
+                }, 1000);
+            } else if (pageNum === 5.2) {
+                document.getElementById('page5').classList.remove('active');
+                document.getElementById('page5-2').classList.add('active');
+                const element = document.getElementById('page5-2-text');
+                element.textContent = '好啊！';
+                setTimeout(() => {
+                    element.classList.add('glitch');
+                    startGlitchEffect();
+                    setTimeout(() => {
+                        stopGlitchEffect();
+                        goToPage(5.3);
+                    }, 2000);
+                }, 1000);
+            } else if (pageNum === 5.3) {
+                document.getElementById('page5-3').classList.add('active');
+                typeWriterEffect('page5-3-text1', '我该帮你什么好呢？', '');
+            } else if (pageNum === 5.4) {
+                document.getElementById('page5-3').classList.remove('active');
+                document.getElementById('page5-4').classList.add('active');
+                setTimeout(() => goToPage(6), 3000);
+            } else if (pageNum === 6) {
+                document.getElementById('page6').classList.add('active');
+                typeWriterEffect('page6-text1', '你', '现在是一个人吗？', false);
+            } else if (pageNum === 6.1) {
+                document.getElementById('page6').classList.remove('active');
+                document.getElementById('page6-1').classList.add('active');
+                setTimeout(() => goToPage(7), 3000);
+            } else if (pageNum === 6.2) {
+                document.getElementById('page6').classList.remove('active');
+                document.getElementById('page6-2').classList.add('active');
+                const element = document.getElementById('page6-2-text');
+                element.textContent = '来一起玩啊！';
+                setTimeout(() => {
+                    element.classList.add('glitch');
+                    startGlitchEffect();
+                    setTimeout(() => {
+                        stopGlitchEffect();
+                        goToPage(7);
+                    }, 2000);
+                }, 1000);
+            } else if (pageNum === 7) {
+                document.getElementById('page7').classList.add('active');
+                typeWriterEffect('page7-text1', '你', '背后有时会发凉吗？', true);
+            } else if (pageNum === 7.1) {
+                document.getElementById('page7').classList.remove('active');
+                document.getElementById('page7-1').classList.add('active');
+                const element = document.getElementById('page7-1-text');
+                element.textContent = '你看背后';
+                setTimeout(() => {
+                    element.classList.add('glitch');
+                    startGlitchEffect();
+                    setTimeout(() => {
+                        stopGlitchEffect();
+                        goToPage(7.2);
+                    }, 2000);
+                }, 1000);
+            } else if (pageNum === 7.2) {
+                document.getElementById('page7-1').classList.remove('active');
+                document.getElementById('page7-2').classList.add('active');
+                setTimeout(() => goToPage(8), 3000);
+            } else if (pageNum === 8) {
+                document.getElementById('page8').classList.add('active');
+                typeWriterEffect('page8-text1', '你', '有时候会慌张吗？', true);
+            } else if (pageNum === 8.1) {
+                document.getElementById('page8').classList.remove('active');
+                document.getElementById('page8-1').classList.add('active');
+                setTimeout(() => goToPage(9), 2000);
+            } else if (pageNum === 9) {
+                document.getElementById('page9').classList.add('active');
+                typeWriterEffect('page9-text1', '你', '认为你一直以来做出来的事情都是对的吗？', true);
+            } else if (pageNum === 9.1) {
+                document.getElementById('page9').classList.remove('active');
+                document.getElementById('page9-1').classList.add('active');
+                setTimeout(() => goToPage(10), 2000);
+            } else if (pageNum === 10) {
+                document.getElementById('page10').classList.add('active');
+                typeWriterEffect('page10-text1', '你', '对本次的心理测试满意吗？', true);
+            } else if (pageNum === 11) {
+                document.getElementById('page11').classList.add('active');
+                const element1 = document.getElementById('page11-text1');
+                const element2 = document.getElementById('page11-text2');
+                element1.textContent = '答题完毕...';
+                element1.style.color = '#fff';
+                setTimeout(() => {
+                    element1.classList.add('glitch');
+                    startGlitchEffect();
+                    setTimeout(() => {
+                        stopGlitchEffect();
+                        element2.textContent = '感谢参与！';
+                        setTimeout(() => {
+                            goToPage(12);
+                        }, 3000);
+                    }, 3000);
+                }, 3000);
+            } else if (pageNum === 12) {
+                document.getElementById('page12').classList.add('active');
+                setTimeout(() => goToPage(13), 3000);
+            } else if (pageNum === 13) {
+                document.getElementById('page13').classList.add('active');
+                setTimeout(() => {
+                    document.getElementById('page13').classList.remove('active');
+                    document.getElementById('start-page').classList.add('active');
+                }, 3000);
+            }
+        }
+
+        function submitHelp() {
+            const helpText = document.getElementById('helpInput').value;
+            if (helpText) {
+                goToPage(5.4);
+            }
+        }
+
+        function makeSatisfied() {
+            const unsatisfied = document.getElementById('unsatisfied');
+            unsatisfied.textContent = '满意';
+            unsatisfied.onclick = () => goToPage(11);
+        }
+
+        function fillScreenWithGlitch() {
+            const container = document.querySelector('.container');
+            const glitchDiv = document.createElement('div');
+            glitchDiv.style.position = 'fixed';
+            glitchDiv.style.top = '0';
+            glitchDiv.style.left = '0';
+            glitchDiv.style.width = '100%';
+            glitchDiv.style.height = '100%';
+            glitchDiv.style.pointerEvents = 'none';
+            glitchDiv.style.zIndex = '1000';
+
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            for (let i = 0; i < 100; i++) {
+                const span = document.createElement('span');
+                span.style.position = 'absolute';
+                span.style.left = Math.random() * 100 + '%';
+                span.style.top = Math.random() * 100 + '%';
+                span.style.color = '#fff';
+                span.style.fontSize = '20px';
+                span.textContent = chars.charAt(Math.floor(Math.random() * chars.length));
+                glitchDiv.appendChild(span);
+            }
+
+            container.appendChild(glitchDiv);
+
+            setTimeout(() => {
+                glitchDiv.remove();
+            }, 3000);
+        }
+
+        // 初始化一些交互效果
+        document.addEventListener('DOMContentLoaded', function() {
+            // 为选项添加点击效果
+            document.querySelectorAll('.option').forEach(option => {
+                option.addEventListener('click', function() {
+                    this.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        this.style.transform = 'scale(1)';
+                    }, 100);
+                });
+            });
+
+            // 特殊选项的glitch效果
+            const option5_3 = document.getElementById('option5-3');
+            if (option5_3) {
+                setTimeout(() => {
+                    option5_3.classList.add('glitch');
+                    startGlitchEffect();
+                    setTimeout(() => {
+                        stopGlitchEffect();
+                    }, 1000);
+                }, 1000);
+            }
+
+            const option6_3 = document.getElementById('option6-3');
+            if (option6_3) {
+                setTimeout(() => {
+                    option6_3.classList.add('glitch');
+                    startGlitchEffect();
+                    setTimeout(() => {
+                        stopGlitchEffect();
+                    }, 1000);
+                }, 1000);
+            }
+
+            // 输入框输入后立即开始glitch
+            document.getElementById('nameInput').addEventListener('input', function() {
+                this.classList.add('glitch');
+                startGlitchEffect();
+                setTimeout(() => {
+                    this.classList.remove('glitch');
+                    stopGlitchEffect();
+                }, 100);
+            });
+
+            document.getElementById('helpInput').addEventListener('input', function() {
+                this.classList.add('glitch');
+                startGlitchEffect();
+                setTimeout(() => {
+                    this.classList.remove('glitch');
+                    stopGlitchEffect();
+                }, 100);
+            });
+        });
+    </script>
+</body>
+</html>

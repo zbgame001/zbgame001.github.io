@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>下班后的事（突脸鬼图预警）</title>
+<style>
+/* 样式与上一版完全一致，无改动 */
+* {margin:0;padding:0;box-sizing:border-box;}
+body{background:#000;color:#fff;font-family:"Microsoft YaHei",sans-serif;overflow:hidden;height:100vh;position:relative;display:flex;flex-direction:column;}
+@keyframes flicker{0%,100%{opacity:1;text-shadow:0 0 20px #ff0000,0 0 40px #ff0000;}50%{opacity:.3;text-shadow:0 0 10px #ff0000,0 0 20px #ff0000;}}
+.title{font-size:8vw;text-align:center;margin-top:20vh;animation:flicker 1.5s infinite;}
+.start-btn{display:block;margin:10vh auto;padding:15px 40px;font-size:5vw;background:#8B0000;color:#fff;border:none;border-radius:5px;cursor:pointer;transition:.3s;box-shadow:0 0 20px rgba(139,0,0,.5);}
+.start-btn:hover{background:#DC143C;transform:scale(1.05);}
+.warning-page{display:none;text-align:center;padding:20vh 10vw;}
+.warning-text{font-size:6vw;color:#ff0000;margin-bottom:10vh;text-shadow:0 0 10px #ff0000;}
+.game-page{display:none;width:100%;height:100%;align-items:center;justify-content:center;flex-direction:column;}
+.text-box{width:84vw;margin-left:8vw;display:flex;flex-direction:column;justify-content:center;min-height:50vh;}
+.glow-text{text-shadow:0 0 10px #fff,0 0 20px #fff,0 0 30px #fff;font-size:4.5vw;line-height:1.8;white-space:pre-wrap;word-break:break-word;}
+.timer{font-size:8vw;font-family:"Courier New",monospace;text-shadow:0 0 20px #fff;transition:all 1s ease;margin-bottom:5vh;}
+.timer.moved{font-size:6vw;}
+.image-window{width:80vw;max-width:480px;height:60vh;max-height:600px;border:2px solid #fff;box-shadow:0 0 30px rgba(255,255,255,.5);overflow:hidden;margin-top:5vh;}
+.image-window img{width:100%;height:100%;object-fit:cover;transition:transform 2s ease;}
+.typewriter{overflow:hidden;white-space:pre-wrap;word-break:break-word;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes fadeOut{from{opacity:1;}to{opacity:0;}}
+.fade-in{animation:fadeIn 2s ease-in;}
+.fade-out{animation:fadeOut 2s ease-out;}
+@media(min-width:768px){
+  .title{font-size:48px;}
+  .start-btn{font-size:24px;padding:20px 60px;}
+  .warning-text{font-size:36px;}
+  .glow-text{font-size:24px;}
+  .timer{font-size:48px;}
+  .timer.moved{font-size:36px;}
+}
+</style>
+</head>
+<body>
+
+<div id="startPage">
+  <h1 class="title">下班后的事（突脸鬼图预警）</h1>
+  <button class="start-btn" onclick="showWarning()">开始游戏</button>
+</div>
+
+<div id="warningPage" class="warning-page">
+  <div class="warning-text">⚠️ 警告 ⚠️</div>
+  <div class="glow-text">本游戏包含恐怖图片<br>可能引起不适<br>请谨慎选择是否继续</div>
+  <button class="start-btn" onclick="startGame()">我已做好准备</button>
+  <button class="start-btn" onclick="backToStart()" style="background:#333;margin-top:20px;">返回</button>
+</div>
+
+<div id="gamePage" class="game-page"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+let curr = 0, twStack = [];
+function clearTW(){twStack.forEach(t=>clearTimeout(t));twStack=[];}
+function typeWriter(el,text,speed,cb){
+  let i=0;
+  el.textContent='';
+  function run(){
+    if(i<text.length){
+      el.textContent+=text[i++];
+      const t=setTimeout(run,speed);
+      twStack.push(t);
+    }else if(cb){
+      const t=setTimeout(cb,300);
+      twStack.push(t);
+    }
+  }
+  run();
+}
+function showWarning(){
+  $('startPage').style.display='none';
+  $('warningPage').style.display='block';
+}
+function backToStart(){
+  $('warningPage').style.display='none';
+  $('startPage').style.display='block';
+}
+function startGame(){
+  $('warningPage').style.display='none';
+  $('gamePage').style.display='flex';
+  page1();
+}
+function page1(){
+  clearTW(); curr=1;
+  const box = $('gamePage');
+  box.innerHTML = `
+    <div class="timer" id="timer">21:59:54</div>
+    <div id="p1txt" class="glow-text fade-in" style="display:none;text-align:center;">你下班了。</div>`;
+  const aim = new Date();
+  aim.setHours(22,0,0,0);
+  const start = Date.now();
+  const startSec = 21*3600+59*60+54;
+  const endSec   = 22*3600;
+  const timerEl = $('timer');
+
+  function tick(){
+    const now = Date.now();
+    const delta = Math.floor((now - start)/1000);
+    let t = startSec + delta;
+    if(t >= endSec) t = endSec;
+    const h=Math.floor(t/3600),m=Math.floor((t%3600)/60),s=t%60;
+    timerEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    if(t>=endSec){
+      timerEl.classList.add('moved');
+      $('p1txt').style.display='block';
+      setTimeout(()=>{ $('p1txt').classList.add('fade-out'); setTimeout(page2,2000); },3000);
+      return;
+    }
+    requestAnimationFrame(tick);
+  }
+  tick();
+}
+/* ---- 仅内容变更 ---- */
+function page2(){
+  clearTW(); curr=2;
+  const box = $('gamePage');
+  box.innerHTML = `
+    <div class="text-box">
+      <div id="p2l1" class="glow-text typewriter"></div>
+      <div id="p2l2" class="glow-text typewriter"></div>
+    </div>`;
+  typeWriter($('p2l1'),'你',500,()=>{
+    typeWriter($('p2l1'),'你走出了公司，往公交站走去......',250,()=>{
+      let dots='',cnt=0;
+      const id=setInterval(()=>{
+        if(cnt<6){dots+='.';$('p2l2').textContent=dots;cnt++;}
+        else{clearInterval(id);setTimeout(page3,3000);}
+      },2000);
+    });
+  });
+}
+function page3(){
+  clearTW(); curr=3;
+  const box = $('gamePage');
+  box.innerHTML = `<div class="image-window"><img id="p3img" src="https://qcloud.dpfile.com/pc/WK4opKVy7T83Izkb05hVulZ3HHpK3MKykUDXwsEBoXnJwCSOZiTC01w3CEkYswXM.jpg"></div>`;
+  let s=1,c=0;
+  const zid = setInterval(()=>{
+    if(c<3){s+=0.3;$('p3img').style.transform=`scale(${s})`;c++;}
+    else{clearInterval(zid);setTimeout(page4,3000);}
+  },2000);
+}
+function page4(){
+  clearTW(); curr=4;
+  const box = $('gamePage');
+  box.innerHTML = `<div class="text-box"><div class="glow-text typewriter" id="p4txt"></div></div>`;
+  typeWriter($('p4txt'),'你走到了公交站，这个公交站有两个长椅子。',250,()=>setTimeout(page5,3000));
+}
+function page5(){
+  clearTW(); curr=5;
+  const box = $('gamePage');
+  box.innerHTML = `<div class="text-box"><div class="glow-text typewriter" id="p5txt"></div></div>`;
+  typeWriter($('p5txt'),'其中一个椅子做着一位全身捂了起来且是白色着装的人，只露出脸部，他底着头，在睡觉。',250,()=>setTimeout(page6,3000));
+}
+function page6(){
+  clearTW(); curr=6;
+  const box = $('gamePage');
+  box.innerHTML = `<div class="text-box"><div class="glow-text typewriter" id="p6txt"></div></div>`;
+  typeWriter($('p6txt'),'你没有在意，你在另一个椅子坐了下来。',250,()=>setTimeout(page7,3000));
+}
+function page7(){
+  clearTW(); curr=7;
+  const box = $('gamePage');
+  box.innerHTML = `<div class="text-box"><div class="glow-text typewriter" id="p7txt"></div></div>`;
+  typeWriter($('p7txt'),'你拿起了手机，刷起了短视频。',250,()=>setTimeout(page8,3000));
+}
+function page8(){
+  clearTW(); curr=8;
+  const box = $('gamePage');
+  box.innerHTML = `<div class="text-box"><div class="glow-text typewriter" id="p8txt"></div></div>`;
+  typeWriter($('p8txt'),'5分钟后，那个人突然重复着说:',250,()=>{
+    const red=document.createElement('span');
+    red.style.color='#ff0000';
+    $('p8txt').appendChild(red);
+    typeWriter(red,'"知否，知否......"',150,()=>setTimeout(page9,3000));
+  });
+}
+/* ---- 第9页内容修正 ---- */
+function page9(){
+  clearTW(); curr=9;
+  const box = $('gamePage');
+  box.innerHTML = `<div class="text-box"><div class="glow-text typewriter" id="p9txt"></div></div>`;
+  typeWriter($('p9txt'),'你还是没有在意，因为今天的你已经够累的了。',250,()=>setTimeout(page10,3000));
+}
+function page10(){
+  clearTW(); curr=10;
+  const box = $('gamePage');
+  box.innerHTML = `<div class="text-box"><div class="glow-text typewriter" id="p10txt"></div></div>`;
+  typeWriter($('p10txt'),'又过了5分钟，你抬起了头，发现那个人不见了，但你还是不在意，又低头继续刷着短视频。',250,()=>setTimeout(page11,3000));
+}
+function page11(){
+  clearTW(); curr=11;
+  const box = $('gamePage');
+  box.innerHTML = `<div class="text-box">
+    <span id="p11l1" class="glow-text typewriter"></span>
+    <span id="p11l2" class="glow-text typewriter"></span>
+  </div>`;
+  typeWriter($('p11l1'),'又过了5分钟，你抬起了头',250,()=>{
+    typeWriter($('p11l2'),'......',100,()=>setTimeout(page12,3000));
+  });
+}
+function page12(){
+  clearTW(); curr=12;
+  const box = $('gamePage');
+  box.innerHTML = `<div class="image-window"><img src="https://img0.baidu.com/it/u=4190771295,1201852930&fm=253&fmt=auto&app=120&f=JPEG?w=500&h=889"></div>`;
+  setTimeout(page13,3000);
+}
+/* ---- 第13页内容修正 ---- */
+function page13(){
+  clearTW(); curr=13;
+  const box = $('gamePage');
+  box.innerHTML = `<div class="text-box">
+    <div id="p13l1" class="glow-text typewriter"></div>
+    <div id="p13l2" class="glow-text typewriter"></div>
+    <div id="p13l3" class="glow-text typewriter"></div>
+  </div>`;
+  typeWriter($('p13l1'),'你被吓的跳了起来，那个人就站在你的面前。',250,()=>{
+    typeWriter($('p13l2'),'然后来了几个人，称是这个人的家属，家属称，他有精神病，他脸长得很奇怪，在住院，在晚上7:30的时候他偷偷溜出了医院。',250,()=>{
+      typeWriter($('p13l3'),'然后，家属给你道歉，并向你赔偿了1000元精神损失费，你高兴坏了。',250,()=>setTimeout(page14,3000));
+    });
+  });
+}
+function page14(){
+  clearTW(); curr=14;
+  const box = $('gamePage');
+  box.innerHTML = `<div class="text-box"><div class="glow-text typewriter" id="p14txt"></div></div>`;
+  typeWriter($('p14txt'),'又过去了5分钟，公交车终于来了，你上了公交车，发现公交车最后一排坐着一位腰挺直的老人，他双手放在两边膝盖，闭着眼。',250,()=>setTimeout(page15,3000));
+}
+function page15(){
+  clearTW(); curr=15;
+  const box = $('gamePage');
+  box.innerHTML = `<div class="text-box"><div class="glow-text typewriter" id="p15txt"></div></div>`;
+  typeWriter($('p15txt'),'但你还是不在意，随便找了一个座位坐了下去。',250,()=>setTimeout(page16,3000));
+}
+function page16(){
+  clearTW(); curr=16;
+  const box = $('gamePage');
+  box.innerHTML = `<div class="text-box"><div class="glow-text typewriter" id="p16txt"></div></div>`;
+  typeWriter($('p16txt'),'坐下后，你闭着眼睛，内心想着快点到家。',250,()=>setTimeout(page17,3000));
+}
+function page17(){
+  clearTW(); curr=17;
+  const box = $('gamePage');
+  box.innerHTML = `<div class="text-box"><div class="glow-text typewriter" id="p17txt"></div></div>`;
+  typeWriter($('p17txt'),'10分钟后，你',250,()=>{
+    const red=document.createElement('span');
+    red.style.color='#ff0000';
+    $('p17txt').appendChild(red);
+    typeWriter(red,'睁开了眼......',100,()=>setTimeout(page18,3000));
+  });
+}
+function page18(){
+  clearTW(); curr=18;
+  const box = $('gamePage');
+  box.innerHTML = `<div class="image-window"><img src="https://img0.baidu.com/it/u=2748415251,238564509&fm=253&fmt=auto&app=138&f=JPEG?w=584&h=471"></div>`;
+  setTimeout(page19,3000);
+}
+function page19(){
+  clearTW(); curr=19;
+  const box = $('gamePage');
+  box.innerHTML = `<div class="text-box"><div class="glow-text typewriter" id="p19txt"></div></div>`;
+  typeWriter($('p19txt'),'你又被吓的跳了起来，那位老人就站在你面前。',250,()=>setTimeout(page20,3000));
+}
+/* ---- 第20页内容修正 ---- */
+function page20(){
+  clearTW(); curr=20;
+  const box = $('gamePage');
+  box.innerHTML = `<div class="text-box"><div class="glow-text typewriter" id="p20txt"></div></div>`;
+  typeWriter($('p20txt'),'司机注意到后，停了公交车，并走到你面前称是这位老人的家属，老人去年得了精神病，一直没好转，老人喜欢戴着恐怖面具到处吓人，然后给你道歉，并向你赔偿了5000元精神损失费，你又高兴坏了。',250,()=>setTimeout(page21,3000));
+}
+/* ---- 第21页内容修正 ---- */
+function page21(){
+  clearTW(); curr=21;
+  const box = $('gamePage');
+  box.innerHTML = `<div class="text-box"><div class="glow-text typewriter" id="p21txt"></div></div>`;
+  typeWriter($('p21txt'),'公交车到站了，你下了公交车，又走了一段路回到家后，高兴着唱起了一段',250,()=>{
+    const red=document.createElement('span');
+    red.style.color='#ff0000';
+    $('p21txt').appendChild(red);
+    typeWriter(red,'"好运来"',250,()=>setTimeout(page22,3000));
+  });
+}
+function page22(){
+  clearTW(); curr=22;
+  const box = $('gamePage');
+  box.innerHTML = `<div class="text-box"><div class="glow-text typewriter" id="p22txt"></div></div>`;
+  typeWriter($('p22txt'),'然后，你洗了澡，洗完澡后睡觉去了，',400,()=>{
+    const red=document.createElement('span');
+    red.style.color='#ff0000';
+    $('p22txt').appendChild(red);
+    typeWriter(red,'准备迎接新的一天。',250,()=>setTimeout(page23,3000));
+  });
+}
+function page23(){
+  clearTW(); curr=23;
+  const box = $('gamePage');
+  box.innerHTML = `
+    <div class="timer" id="timer3">7:59:54</div>
+    <div id="p23txt" class="glow-text fade-in" style="display:none;text-align:center;color:#ff0000;margin-top:10vh;">第二天......</div>`;
+  const aim = new Date();
+  aim.setHours(8,0,0,0);
+  const start = Date.now();
+  const startSec = 7*3600+59*60+54;
+  const endSec   = 8*3600;
+  const timerEl = $('timer3');
+
+  function tick(){
+    const now = Date.now();
+    const delta = Math.floor((now - start)/1000);
+    let t = startSec + delta;
+    if(t >= endSec) t = endSec;
+    const h=Math.floor(t/3600),m=Math.floor((t%3600)/60),s=t%60;
+    timerEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    if(t>=endSec){
+      timerEl.classList.add('moved');
+      timerEl.style.color='#ff0000';
+      $('p23txt').style.display='block';
+      setTimeout(page24,5000);
+      return;
+    }
+    requestAnimationFrame(tick);
+  }
+  tick();
+}
+function page24(){
+  clearTW(); curr=24;
+  const box = $('gamePage');
+  box.innerHTML = `<div class="image-window"><img src="https://img1.baidu.com/it/u=3660385709,2782397062&fm=253&fmt=auto&app=120&f=JPEG?w=800&h=500"></div>`;
+  setTimeout(page25,5000);
+}
+/* ---- 第25页谢幕内容全新 ---- */
+function page25(){
+  clearTW(); curr=25;
+  const box = $('gamePage');
+  box.innerHTML = `<div style="text-align:center;margin-top:30vh;">
+    <div class="glow-text" style="color:#ff0000;font-size:6vw;">
+      故事内容:@用户8044<br>
+      代码:k2-kimi<br><br>
+      感谢游玩<br>
+      愿你今夜好梦...
+    </div>
+  </div>`;
+  setTimeout(()=>{
+    $('gamePage').style.display='none';
+    $('startPage').style.display='block';
+    curr=0;
+  },3000);
+}
+window.onbeforeunload = () => curr>0 ? "游戏正在进行，确定退出？" : null;
+</script>
+</body>
+</html>

@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>国家管理模拟器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        /* 开始界面 */
+        .start-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .game-title {
+            font-size: 2.5em;
+            color: #5a67d8;
+            margin-bottom: 30px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .name-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2em;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            transition: border-color 0.3s;
+        }
+
+        .name-input:focus {
+            outline: none;
+            border-color: #5a67d8;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2em;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: bold;
+        }
+
+        .start-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 游戏主界面 */
+        .game-screen {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .country-name {
+            font-size: 1.8em;
+            color: #5a67d8;
+            margin-bottom: 10px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #718096;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #2d3748;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #48bb78 0%, #38a169 100%);
+            transition: width 0.3s ease;
+        }
+
+        .day-info {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #edf2f7;
+            border-radius: 10px;
+        }
+
+        .day-count {
+            font-size: 1.3em;
+            color: #2d3748;
+            font-weight: bold;
+        }
+
+        .event-log {
+            background: #f7fafc;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .event-item {
+            padding: 8px;
+            margin-bottom: 5px;
+            background: white;
+            border-radius: 5px;
+            font-size: 0.9em;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .action-btn {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .positive-action {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+        }
+
+        .negative-action {
+            background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+            color: white;
+        }
+
+        .neutral-action {
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+            color: white;
+        }
+
+        .action-btn:active {
+            transform: scale(0.95);
+        }
+
+        .achievement {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #ffd700;
+            color: #333;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            display: none;
+            animation: bounceIn 0.5s ease;
+            z-index: 1000;
+        }
+
+        @keyframes bounceIn {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .version {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.8em;
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .game-title {
+                font-size: 2em;
+            }
+            
+            .stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .actions {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 开始界面 -->
+        <div class="start-screen" id="startScreen">
+            <h1 class="game-title">国家管理模拟器</h1>
+            <input type="text" class="name-input" id="countryNameInput" placeholder="请输入国家名称" maxlength="20">
+            <button class="start-btn" onclick="startGame()">开始游戏</button>
+        </div>
+
+        <!-- 游戏主界面 -->
+        <div class="game-screen" id="gameScreen">
+            <div class="header">
+                <h2 class="country-name" id="displayCountryName"></h2>
+            </div>
+
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-label">人口</div>
+                    <div class="stat-value" id="population">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">经济</div>
+                    <div class="stat-value" id="economy">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">幸福度</div>
+                    <div class="stat-value" id="happiness">0%</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="happinessBar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">环境</div>
+                    <div class="stat-value" id="environment">0%</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="environmentBar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">人口信用</div>
+                    <div class="stat-value" id="credit">0%</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="creditBar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">领土</div>
+                    <div class="stat-value" id="territory">0%</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="territoryBar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="day-info">
+                <div class="day-count">建国第 <span id="dayCount">0</span> 天</div>
+            </div>
+
+            <div class="event-log" id="eventLog"></div>
+
+            <div class="actions">
+                <button class="action-btn positive-action" onclick="executeAction('developEconomy')">发展经济</button>
+                <button class="action-btn positive-action" onclick="executeAction('improveEnvironment')">改善环境</button>
+                <button class="action-btn neutral-action" onclick="executeAction('populationPolicy')">人口政策</button>
+                <button class="action-btn negative-action" onclick="executeAction('increaseTaxes')">增加税收</button>
+                <button class="action-btn positive-action" onclick="executeAction('socialWelfare')">社会福利</button>
+                <button class="action-btn negative-action" onclick="executeAction('militaryExpansion')">军事扩张</button>
+            </div>
+        </div>
+
+        <div class="achievement" id="achievement"></div>
+    </div>
+
+    <div class="version">V0.1-测试</div>
+
+    <script>
+        let gameState = {
+            countryName: '',
+            population: 0,
+            economy: 0,
+            happiness: 50,
+            environment: 50,
+            credit: 50,
+            territory: 100,
+            day: 0,
+            achievements: [],
+            events: []
+        };
+
+        const randomEvents = [
+            { text: '发现新资源！经济+10', effect: { economy: 10 } },
+            { text: '自然灾害发生，环境-15', effect: { environment: -15 } },
+            { text: '科技突破，幸福度+10', effect: { happiness: 10 } },
+            { text: '外交成功，领土+5', effect: { territory: 5 } },
+            { text: '经济危机，经济-20', effect: { economy: -20 } },
+            { text: '教育改革，信用+10', effect: { credit: 10 } },
+            { text: '疫情爆发，人口-5%，幸福度-10', effect: { population: -5, happiness: -10 } },
+            { text: '环保政策生效，环境+10', effect: { environment: 10 } }
+        ];
+
+        const achievements = [
+            { id: 'day10', name: '建国10天', condition: () => gameState.day >= 10 },
+            { id: 'population1000', name: '人口破千', condition: () => gameState.population >= 1000 },
+            { id: 'economy1000', name: '经济繁荣', condition: () => gameState.economy >= 1000 },
+            { id: 'happiness80', name: '人民幸福', condition: () => gameState.happiness >= 80 },
+            { id: 'environment80', name: '绿水青山', condition: () => gameState.environment >= 80 }
+        ];
+
+        function startGame() {
+            const countryName = document.getElementById('countryNameInput').value.trim();
+            if (!countryName) {
+                alert('请输入国家名称！');
+                return;
+            }
+
+            gameState.countryName = countryName;
+            gameState.population = Math.floor(Math.random() * 500) + 100;
+            gameState.economy = Math.floor(Math.random() * 500) + 100;
+            gameState.happiness = Math.floor(Math.random() * 40) + 40;
+            gameState.environment = Math.floor(Math.random() * 40) + 40;
+            gameState.credit = Math.floor(Math.random() * 40) + 40;
+
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+            document.getElementById('displayCountryName').textContent = countryName;
+
+            updateDisplay();
+            addEvent('国家成立！欢迎来到' + countryName + '！');
+            
+            // 开始游戏循环
+            setInterval(() => {
+                gameState.day++;
+                updateDisplay();
+                checkRandomEvent();
+                checkAchievements();
+            }, 10000);
+        }
+
+        function updateDisplay() {
+            document.getElementById('population').textContent = gameState.population;
+            document.getElementById('economy').textContent = gameState.economy;
+            document.getElementById('happiness').textContent = gameState.happiness + '%';
+            document.getElementById('environment').textContent = gameState.environment + '%';
+            document.getElementById('credit').textContent = gameState.credit + '%';
+            document.getElementById('territory').textContent = gameState.territory + '%';
+            document.getElementById('dayCount').textContent = gameState.day;
+
+            document.getElementById('happinessBar').style.width = gameState.happiness + '%';
+            document.getElementById('environmentBar').style.width = gameState.environment + '%';
+            document.getElementById('creditBar').style.width = gameState.credit + '%';
+            document.getElementById('territoryBar').style.width = gameState.territory + '%';
+        }
+
+        function executeAction(action) {
+            const actions = {
+                developEconomy: () => {
+                    gameState.economy += 20;
+                    gameState.environment -= 5;
+                    addEvent('实施经济发展计划，经济+20，环境-5');
+                },
+                improveEnvironment: () => {
+                    gameState.environment += 15;
+                    gameState.economy -= 10;
+                    addEvent('启动环保计划，环境+15，经济-10');
+                },
+                populationPolicy: () => {
+                    gameState.population += Math.floor(gameState.population * 0.1);
+                    gameState.happiness -= 5;
+                    addEvent('调整人口政策，人口+10%，幸福度-5');
+                },
+                increaseTaxes: () => {
+                    gameState.economy += 30;
+                    gameState.happiness -= 15;
+                    gameState.credit -= 10;
+                    addEvent('提高税收，经济+30，幸福度-15，信用-10');
+                },
+                socialWelfare: () => {
+                    gameState.happiness += 10;
+                    gameState.economy -= 15;
+                    addEvent('增加社会福利，幸福度+10，经济-15');
+                },
+                militaryExpansion: () => {
+                    gameState.territory += 10;
+                    gameState.economy -= 20;
+                    gameState.happiness -= 10;
+                    addEvent('军事扩张，领土+10，经济-20，幸福度-10');
+                }
+            };
+
+            if (actions[action]) {
+                actions[action]();
+                updateDisplay();
+            }
+        }
+
+        function checkRandomEvent() {
+            if (Math.random() < 0.3) {
+                const event = randomEvents[Math.floor(Math.random() * randomEvents.length)];
+                addEvent(event.text);
+                
+                if (event.effect.population) {
+                    gameState.population = Math.floor(gameState.population * (1 + event.effect.population / 100));
+                }
+                if (event.effect.economy) gameState.economy += event.effect.economy;
+                if (event.effect.happiness) gameState.happiness = Math.max(0, Math.min(100, gameState.happiness + event.effect.happiness));
+                if (event.effect.environment) gameState.environment = Math.max(0, Math.min(100, gameState.environment + event.effect.environment));
+                if (event.effect.credit) gameState.credit = Math.max(0, Math.min(100, gameState.credit + event.effect.credit));
+                if (event.effect.territory) gameState.territory = Math.max(0, Math.min(100, gameState.territory + event.effect.territory));
+                
+                updateDisplay();
+            }
+        }
+
+        function checkAchievements() {
+            achievements.forEach(achievement => {
+                if (!gameState.achievements.includes(achievement.id) && achievement.condition()) {
+                    gameState.achievements.push(achievement.id);
+                    showAchievement(achievement.name);
+                }
+            });
+        }
+
+        function showAchievement(name) {
+            const achievementEl = document.getElementById('achievement');
+            achievementEl.textContent = '🏆 解锁成就：' + name;
+            achievementEl.style.display = 'block';
+            setTimeout(() => {
+                achievementEl.style.display = 'none';
+            }, 3000);
+        }
+
+        function addEvent(text) {
+            const eventLog = document.getElementById('eventLog');
+            const eventItem = document.createElement('div');
+            eventItem.className = 'event-item';
+            eventItem.textContent = `第${gameState.day}天：${text}`;
+            eventLog.insertBefore(eventItem, eventLog.firstChild);
+            
+            // 保持最多10条事件
+            while (eventLog.children.length > 10) {
+                eventLog.removeChild(eventLog.lastChild);
+            }
+        }
+    </script>
+</body>
+</html>

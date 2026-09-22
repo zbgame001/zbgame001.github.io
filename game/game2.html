@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>直播观看模拟器</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{
+            font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+            background:#000;color:#fff;height:100vh;overflow:hidden;
+            -webkit-overflow-scrolling:touch;display:flex;flex-direction:column;
+        }
+        /* 输入页 */
+        #nameInputPage{
+            flex:1;display:flex;align-items:center;justify-content:center;
+            background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:20px;
+        }
+        .name-input-container{
+            background:rgba(255,255,255,.1);backdrop-filter:blur(10px);
+            border-radius:20px;padding:40px 30px;width:100%;max-width:350px;text-align:center;
+        }
+        .name-input-container h1{font-size:24px;margin-bottom:30px;color:#fff;}
+        .name-input{
+            width:100%;padding:15px;border:none;border-radius:10px;font-size:16px;
+            background:rgba(255,255,255,.9);margin-bottom:20px;outline:none;
+        }
+        .start-btn{
+            width:100%;padding:15px;border:none;border-radius:10px;font-size:18px;font-weight:bold;
+            background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%);color:white;cursor:pointer;
+            transition:transform .2s;
+        }
+        .start-btn:active{transform:scale(.95);}
+
+        /* 直播间 */
+        #liveRoomPage{flex:1;display:none;flex-direction:column;background:#000;position:relative;}
+        /* 16:9 视频区 */
+        .video-container{
+            width:100%;flex:0 0 56.25%;background:#000;position:relative;
+        }
+        #liveVideo{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;}
+        .video-placeholder{
+            position:absolute;top:0;left:0;right:0;bottom:0;display:flex;
+            align-items:center;justify-content:center;font-size:48px;opacity:.3;background:#222;
+        }
+
+        /* 透明聊天浮层（中下） */
+        .chat-overlay{
+            position:absolute;left:0;right:0;bottom:0;height:50%; /* 中下部分 */
+            background:linear-gradient(to top,rgba(0,0,0,.7) 0%,rgba(0,0,0,.4) 60%,transparent 100%);
+            display:flex;flex-direction:column;pointer-events:none; /* 仅内部可点击 */
+        }
+        .chat-scroll{
+            flex:1;overflow-y:auto;padding:10px 15px;pointer-events:auto;
+        }
+        .chat-message{
+            background:rgba(0,0,0,.55);padding:8px 12px;border-radius:16px;margin-bottom:6px;font-size:14px;
+            animation:slideIn .3s;max-width:80%;word-wrap:break-word;
+        }
+        @keyframes slideIn{from{transform:translateX(-100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+        .chat-username{color:#ffd700;margin-right:5px;}
+
+        /* 底部输入栏 */
+        .bottom-bar{
+            flex:0 0 auto;background:rgba(0,0,0,.85);padding:10px 15px;
+            display:flex;align-items:center;gap:10px;pointer-events:auto;
+        }
+        .msg-input{
+            flex:1;padding:10px 15px;border:none;border-radius:20px;font-size:14px;
+            background:rgba(255,255,255,.2);color:#fff;outline:none;
+        }
+        .send-btn{background:#667eea;color:#fff;border:none;padding:10px 20px;border-radius:20px;font-size:14px;}
+        .action-btn{
+            background:rgba(255,255,255,.2);color:#fff;border:none;padding:10px 20px;border-radius:25px;font-size:14px;
+        }
+        .red-packet-btn{background:linear-gradient(135deg,#ff6b6b 0%,#ff8e53 100%);}
+        .red-packet-btn.hidden{display:none;}
+
+        /* 红包弹窗 & 排行榜 */
+        .red-packet-modal,.rank-modal{
+            position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);
+            display:none;justify-content:center;align-items:center;z-index:1000;
+        }
+        .red-packet{
+            background:linear-gradient(135deg,#ff6b6b 0%,#ff8e53 100%);
+            border-radius:20px;padding:40px;text-align:center;animation:bounceIn .5s;width:90%;max-width:350px;
+        }
+        @keyframes bounceIn{0%{transform:scale(0);}50%{transform:scale(1.1);}100%{transform:scale(1);}}
+        .red-packet h2{font-size:24px;margin-bottom:20px;}
+        .red-packet-amount{font-size:48px;font-weight:bold;margin:20px 0;color:#ffd700;}
+        .close-btn{background:white;color:#ff6b6b;border:none;padding:10px 30px;border-radius:25px;font-size:16px;font-weight:bold;}
+        .rank-content{background:#1a1a1a;min-height:100vh;padding:20px;}
+        .rank-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;}
+        .rank-title{font-size:24px;font-weight:bold;}
+        .rank-item{background:rgba(255,255,255,.1);border-radius:15px;padding:15px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+        .rank-number{font-size:20px;font-weight:bold;width:30px;text-align:center;}
+        .rank-name{flex:1;margin-left:15px;}
+        .rank-amount{font-size:18px;font-weight:bold;color:#ffd700;}
+        .current-user{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);}
+    </style>
+</head>
+<body>
+
+    <!-- 输入名字 -->
+    <div id="nameInputPage">
+        <div class="name-input-container">
+            <h1>直播观看模拟器</h1>
+            <input id="userNameInput" class="name-input" placeholder="请输入您的昵称" maxlength="10">
+            <button class="start-btn" onclick="startLive()">开始观看直播</button>
+        </div>
+    </div>
+
+    <!-- 直播间 -->
+    <div id="liveRoomPage">
+        <!-- 16:9 直播画面 -->
+        <div class="video-container">
+            <video id="liveVideo" autoplay muted></video>
+            <div class="video-placeholder" id="videoPlaceholder">📹</div>
+        </div>
+
+        <!-- 透明聊天浮层（中下） -->
+        <div class="chat-overlay">
+            <div class="chat-scroll" id="chatScroll">
+                <div id="chatContainer"></div>
+            </div>
+            <!-- 底部输入栏 -->
+            <div class="bottom-bar">
+                <input id="msgInput" class="msg-input" placeholder="说点什么..." maxlength="30">
+                <button class="send-btn" onclick="sendUserMsg()">发送</button>
+                <button class="action-btn red-packet-btn" id="redPacketBtn" onclick="grabRedPacket()">抢红包</button>
+                <button class="action-btn" onclick="showRank()">榜</button>
+                <button class="action-btn" onclick="sendLike()">❤️</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 红包结果 -->
+    <div class="red-packet-modal" id="redPacketModal">
+        <div class="red-packet">
+            <h2 id="rpTitle">恭喜发财</h2>
+            <div class="red-packet-amount" id="rpAmount">0.00</div>
+            <div id="rpMsg"></div>
+            <button class="close-btn" onclick="closeRedPacket()">关闭</button>
+        </div>
+    </div>
+
+    <!-- 排行榜 -->
+    <div class="rank-modal" id="rankModal">
+        <div class="rank-content">
+            <div class="rank-header">
+                <h2 class="rank-title">红包排行榜</h2>
+                <button class="close-btn" onclick="closeRank()">关闭</button>
+            </div>
+            <div id="rankList"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script>
+        /* ---------- 数据 ---------- */
+        let userName='', robots=[], userAmount=0, rankings=[];
+        const robotNames=['小可爱123','直播达人','夜猫子','追星少年','快乐每一天','吃瓜群众','热心网友','匿名用户','月光族','打工人','佛系青年','二次元控','音乐发烧友','电影迷','游戏宅','美食家','旅行爱好者','健身达人','摄影爱好者','文艺青年','科技控','时尚达人','宠物爱好者','书虫','画画小能手','舞蹈爱好者','唱歌达人','乐器演奏家','手工达人','园艺爱好者','收藏家','模型爱好者','动漫迷','漫画党','小说迷','诗词爱好者','书法达人','围棋高手','象棋爱好者','扑克玩家','麻将达人','骰子高手','抽奖锦鲤','运气爆棚','欧皇','非酋','非洲人','欧洲人','亚洲人','美洲人','非洲小白脸','欧洲大土豪','亚洲小公举','美洲小王子','澳洲小袋鼠','直播小能手','抢红包高手','手速达人','网速飞快','反应神速','幸运星','招财猫','财神爷','锦鲤附体','好运连连','喜气洋洋','红红火火','大吉大利','万事如意','心想事成','一帆风顺','二龙腾飞','三羊开泰','四季平安','五福临门','六六大顺','七星高照','八方来财','九九同心','十全十美','百事可乐','千事吉祥','万事如意','心想事成','一帆风顺','二龙腾飞','三羊开泰','四季平安','五福临门','六六大顺','七星高照','八方来财','九九同心','十全十美','百事可乐','千事吉祥','万事如意','心想事成','一帆风顺','二龙腾飞'];
+        const chatMessages=['主播好棒！','666666','太厉害了','加油加油','支持支持','来了来了','前排围观','精彩精彩','好看好看','赞赞赞','主播最美','主播最帅','爱了爱了','关注了','已点赞','礼物走一波','大气大气','优秀优秀','厉害了','太棒了','继续继续','不错不错','很好很好','可以可以','行而行而','支持主播','主播加油','越来越好','越来越棒','越来越火','直播真好看','内容真精彩','表演真出色','技术真高超','才艺真丰富'];
+
+        /* ---------- 直播流 ---------- */
+        function loadLiveStream(){
+            const video=document.getElementById('liveVideo'),placeholder=document.getElementById('videoPlaceholder');
+            if(Hls.isSupported()){
+                const hls=new Hls();
+                hls.loadSource('https://hwapi.yntv.net:443/ew265l/9gp7eg.m3u8');
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED,()=>{placeholder.style.display='none';video.play();});
+                hls.on(Hls.Events.ERROR,()=>{placeholder.textContent='直播加载失败';});
+            }else if(video.canPlayType('application/vnd.apple.mpegurl')){
+                video.src='https://hwapi.yntv.net:443/ew265l/9gp7eg.m3u8';
+                video.addEventListener('loadedmetadata',()=>{placeholder.style.display='none';video.play();});
+                video.addEventListener('error',()=>{placeholder.textContent='直播加载失败';});
+            }else{placeholder.textContent='浏览器不支持直播';}
+        }
+
+        /* ---------- 进入/退出 ---------- */
+        function startLive(){
+            const inp=document.getElementById('userNameInput');
+            if(!inp.value.trim()){alert('请输入昵称');return;}
+            userName=inp.value.trim();
+            document.getElementById('nameInputPage').style.display='none';
+            document.getElementById('liveRoomPage').style.display='flex';
+            initRobots();loadLiveStream();startChat();startRedPacketLoop();updateRank();
+        }
+
+        /* ---------- 机器人 ---------- */
+        function initRobots(){robots=[];for(let i=0;i<100;i++)robots.push({name:robotNames[i],amount:0});}
+        function startChat(){
+            setInterval(()=>{
+                if(Math.random()>0.5){
+                    const r=robots[Math.floor(Math.random()*robots.length)];
+                    const m=chatMessages[Math.floor(Math.random()*chatMessages.length)];
+                    addChat(r.name,m);
+                }
+            },1000);
+        }
+        function addChat(username,msg){
+            const box=document.getElementById('chatContainer');
+            const d=document.createElement('div');d.className='chat-message';
+            d.innerHTML=`<span class="chat-username">${username}:</span>${msg}`;
+            box.appendChild(d);if(box.children.length>100)box.removeChild(box.firstChild);
+            scrollChatToBottom();
+        }
+        function scrollChatToBottom(){
+            const sc=document.getElementById('chatScroll');
+            sc.scrollTop=sc.scrollHeight;
+        }
+
+        /* ---------- 用户发言 ---------- */
+        function sendUserMsg(){
+            const inp=document.getElementById('msgInput');
+            if(!inp.value.trim())return;
+            addChat(userName,inp.value.trim());inp.value='';
+        }
+        document.getElementById('msgInput').addEventListener('keypress',e=>{if(e.key==='Enter')sendUserMsg();});
+
+        /* ---------- 点赞 ---------- */
+        function sendLike(){
+            const span=document.getElementById('likeCount');
+            const n=parseFloat(span.textContent);
+            span.textContent=(n+0.1).toFixed(1)+'k';
+            addChat(userName,'❤️ 点赞');
+        }
+
+        /* ---------- 红包系统 ---------- */
+        let rpAmount=0,rpCount=0,rpTimeout=null;
+        function startRedPacketLoop(){
+            sendRedPacket();
+            setInterval(sendRedPacket,40000);
+        }
+        function sendRedPacket(){
+            rpAmount=Math.random()*100+10;rpCount=50;
+            const btn=document.getElementById('redPacketBtn');btn.classList.remove('hidden');
+            // 机器人抢
+            const grabCount=Math.min(rpCount,Math.floor(Math.random()*30)+20);
+            for(let i=0;i<grabCount;i++){
+                const r=robots[Math.floor(Math.random()*robots.length)];
+                r.amount+=parseFloat((rpAmount/grabCount*(0.5+Math.random())).toFixed(2));
+            }
+            rpCount-=grabCount;
+            addChat('系统','🧧红包已发放，限时1分钟！');
+            if(rpTimeout)clearTimeout(rpTimeout);
+            rpTimeout=setTimeout(()=>{document.getElementById('redPacketBtn').classList.add('hidden');},60000);
+            updateRank();
+        }
+        function grabRedPacket(){
+            if(rpCount<=0){showRP(0,'手慢了，红包已被抢光！');return;}
+            const amount=parseFloat((rpAmount/rpCount*(0.5+Math.random())).toFixed(2));
+            userAmount+=amount;rpCount--;
+            showRP(amount,`恭喜抢到 ${amount} 元！`);
+            document.getElementById('redPacketBtn').classList.add('hidden');
+            if(rpTimeout){clearTimeout(rpTimeout);rpTimeout=null;}
+            updateRank();
+        }
+        function showRP(amount,msg){
+            document.getElementById('rpAmount').textContent=amount>0?`¥${amount}`:'手慢了';
+            document.getElementById('rpMsg').textContent=msg;
+            document.getElementById('redPacketModal').style.display='flex';
+        }
+        function closeRedPacket(){document.getElementById('redPacketModal').style.display='none';}
+
+        /* ---------- 排行榜 ---------- */
+        function updateRank(){
+            rankings=[...robots,{name:userName,amount:userAmount}];
+            rankings.sort((a,b)=>b.amount-a.amount);
+        }
+        function showRank(){
+            const box=document.getElementById('rankList');box.innerHTML='';
+            rankings.slice(0,20).forEach((u,i)=>{
+                const d=document.createElement('div');d.className=`rank-item ${u.name===userName?'current-user':''}`;
+                d.innerHTML=`<div class="rank-number">${i+1}</div><div class="rank-name">${u.name}</div><div class="rank-amount">¥${u.amount.toFixed(2)}</div>`;
+                box.appendChild(d);
+            });
+            document.getElementById('rankModal').style.display='block';
+        }
+        function closeRank(){document.getElementById('rankModal').style.display='none';}
+    </script>
+</body>
+</html>

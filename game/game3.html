@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>窗外的死亡凝视</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'Microsoft YaHei', sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+        }
+        
+        .glow-text {
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8),
+                         0 0 20px rgba(255, 255, 255, 0.6),
+                         0 0 30px rgba(255, 255, 255, 0.4);
+        }
+        
+        .red-text {
+            color: #ff0000 !important;
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.8),
+                         0 0 20px rgba(255, 0, 0, 0.6),
+                         0 0 30px rgba(255, 0, 0, 0.4);
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 100vw;
+            padding: 20px;
+            text-align: center;
+            display: none;
+        }
+        
+        .container.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        
+        #startScreen {
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 8vw;
+            margin-bottom: 30px;
+            animation: flicker 2s infinite alternate;
+        }
+        
+        @keyframes flicker {
+            0% { opacity: 1; }
+            50% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+        
+        #startBtn {
+            padding: 15px 40px;
+            font-size: 5vw;
+            background: transparent;
+            border: 2px solid #fff;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+        }
+        
+        #startBtn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.05);
+        }
+        
+        .timer {
+            font-size: 10vw;
+            margin-bottom: 20px;
+            transition: all 0.5s ease;
+        }
+        
+        .timer.moved {
+            transform: translateY(-50px);
+        }
+        
+        .text-content {
+            font-size: 5vw;
+            line-height: 1.8;
+            max-width: 90vw;
+            text-align: left;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .typing-text {
+            display: inline;
+            visibility: hidden;
+        }
+        
+        .typing-text.visible {
+            visibility: visible;
+        }
+        
+        .typing-cursor {
+            display: inline-block;
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        
+        .fade-in {
+            animation: fadeIn 1s ease-in;
+        }
+        
+        .fade-out {
+            animation: fadeOut 1s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        
+        .window-container {
+            width: 80vw;
+            height: 50vh;
+            border: 3px solid #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+        
+        .window-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .warning {
+            color: #ff0000;
+            font-size: 4vw;
+            margin-top: 20px;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        @media (max-width: 768px) {
+            h1 { font-size: 6vw; }
+            #startBtn { font-size: 4vw; }
+            .timer { font-size: 8vw; }
+            .text-content { font-size: 4vw; }
+        }
+    </style>
+</head>
+<body>
+    <div id="startScreen" class="container active">
+        <h1 class="glow-text">窗外的死亡凝视</h1>
+        <p class="warning glow-text">突脸鬼图预警！</p>
+        <button id="startBtn" class="glow-text">开始游戏</button>
+    </div>
+    
+    <div id="page1" class="container">
+        <div id="timer1" class="timer glow-text">11:19:54</div>
+        <div id="classStart" class="text-content glow-text" style="display:none; font-size: 8vw;">上课了！</div>
+    </div>
+    
+    <div id="page2" class="container">
+        <div class="text-content glow-text">
+            <span class="typing-text" data-speed="0.5">趁着英语老师还没进教室，你</span>
+            <span class="typing-text" data-delay="2000" data-speed="0.5">将藏在抽屉里的</span>
+            <span class="red-text typing-text" data-speed="0.5">手机</span>
+            <span class="typing-text" data-speed="0.5">拿出来玩了起来。</span>
+        </div>
+    </div>
+    
+    <div id="page3" class="container">
+        <div class="text-content glow-text">
+            <span class="typing-text" data-speed="0.5">过了5分钟，英语老师走进了教室，说了句:</span>
+            <span class="red-text typing-text" data-speed="0.5">Good morning everyone</span>
+            <span class="typing-text" data-speed="0.5">，你把刚拿出来的</span>
+            <span class="red-text typing-text" data-speed="0.5">手机</span>
+            <span class="typing-text" data-speed="0.5">又放了回去，然后，英语老师接着说:把昨天发的试卷都拿出来，今天来讲试卷。</span>
+        </div>
+    </div>
+    
+    <div id="page4" class="container">
+        <div class="text-content glow-text">
+            <span class="typing-text" data-speed="0.5">你从书包里掏出来一堆试卷，由于试卷太多了太乱了，2分钟后，你才找到昨天的试卷，这时，英语老师己经讲到试卷上的第四题了。</span>
+        </div>
+    </div>
+    
+    <div id="page5" class="container">
+        <div class="text-content glow-text">
+            <span class="typing-text" data-speed="0.5">过了10分钟，英语老师说:接下来我要开始写一篇小作文了，你们看一下后面的题，然后开始用粉笔写起来了，此时，你趁着英语老师在写小作文的时候，又把</span>
+            <span class="red-text typing-text" data-speed="0.5">手机</span>
+            <span class="typing-text" data-speed="0.5">拿出来玩了。</span>
+        </div>
+    </div>
+    
+    <div id="page6" class="container">
+        <div class="text-content glow-text">
+            <span class="typing-text" data-speed="0.5">3分钟后，你的</span>
+            <span class="red-text typing-text" data-speed="0.5">手机</span>
+            <span class="typing-text" data-speed="0.5">突然来骚扰电话，然而你又忘记把手机调成静音，声音直接响起了整个教室，你立即挂断电话，把手机塞回了抽屉，此时，整个教室早已变成菜市场了......</span>
+        </div>
+    </div>
+    
+    <div id="page7" class="container">
+        <div class="text-content glow-text">
+            <span class="typing-text" data-speed="0.5">这时你很慌，英语老师回头一看，你的</span>
+            <span class="red-text typing-text" data-speed="0.5">心率</span>
+            <span class="typing-text" data-speed="0.5">嘎嘎往上涨，然后，英语老师说:别吵了！然后拿起自己的手机一看，接着说:这也没人来打电话啊，奇怪了。原来英语老师的手机电话铃声和你一样，此时，你的</span>
+            <span class="red-text typing-text" data-speed="0.5">心率</span>
+            <span class="typing-text" data-speed="0.5">又嘎嘎往下掉，然后又拿起刚塞回去的</span>
+            <span class="red-text typing-text" data-speed="0.5">手机</span>
+            <span class="typing-text" data-speed="0.5">又玩了起来。</span>
+        </div>
+    </div>
+    
+    <div id="page8" class="container">
+        <div class="text-content glow-text">
+            <span class="typing-text" data-speed="0.5">又过了2分钟，你</span>
+            <span class="typing-text" data-delay="2000" data-speed="0.5">突然有种不详的预感，但你认为只是看小说看多了而已，根本就没有那么多预感。</span>
+        </div>
+    </div>
+    
+    <div id="page9" class="container">
+        <div class="text-content glow-text">
+            <span class="typing-text" data-speed="0.5">又过了3分钟，低着头的你将眼珠子往上移了一点，看到英语老师还在写小作文，然后又往右移了一点</span>
+            <span class="red-text typing-text" data-speed="0.5" data-dot-delay="2000">......</span>
+        </div>
+    </div>
+    
+    <div id="page10" class="container">
+        <div class="window-container">
+            <img src="https://img1.baidu.com/it/u=1124319421,160745206&fm=253&fmt=auto&app=138&f=JPEG?w=890&h=500" alt="恐怖图片">
+        </div>
+    </div>
+    
+    <div id="page11" class="container">
+        <div id="timer2" class="timer glow-text">11:59:54</div>
+        <div class="text-content" style="margin-top: 20px;">
+            <div class="fade-text red-text" style="font-size: 8vw; margin-bottom: 20px; display:none;">下课了......</div>
+            <div class="fade-text red-text" style="font-size: 8vw; display:none;">你死定了......</div>
+        </div>
+    </div>
+    
+    <div id="page12" class="container">
+        <div class="text-content glow-text red-text" style="text-align: center;">
+            <div style="margin-bottom: 30px;">故事内容:@用户8044</div>
+            <div style="margin-bottom: 30px;">代码:k2-kimi</div>
+            <div style="font-size: 6vw;">以后带手机去学校记得调静音哦！</div>
+        </div>
+    </div>
+    
+    <script>
+        let currentPage = 0;
+        const pages = document.querySelectorAll('.container');
+        
+        function showPage(pageIndex) {
+            pages.forEach(page => page.classList.remove('active'));
+            if (pageIndex < pages.length) {
+                pages[pageIndex].classList.add('active');
+                currentPage = pageIndex;
+            }
+        }
+        
+        function startTimer(elementId, startTime, endTime, callback) {
+            const element = document.getElementById(elementId);
+            let current = new Date(`2024-01-01 ${startTime}`);
+            const end = new Date(`2024-01-01 ${endTime}`);
+            
+            const interval = setInterval(() => {
+                const timeStr = current.toTimeString().split(' ')[0];
+                element.textContent = timeStr;
+                
+                if (current >= end) {
+                    clearInterval(interval);
+                    element.classList.add('moved');
+                    if (callback) callback();
+                } else {
+                    current.setSeconds(current.getSeconds() + 1);
+                }
+            }, 1000);
+        }
+        
+        function typeText(element, callback) {
+            const texts = element.querySelectorAll('.typing-text');
+            let currentIndex = 0;
+            
+            function typeNext() {
+                if (currentIndex >= texts.length) {
+                    if (callback) callback();
+                    return;
+                }
+                
+                const text = texts[currentIndex];
+                const content = text.dataset.content || text.textContent;
+                const delay = parseInt(text.dataset.delay) || 0;
+                const speed = parseFloat(text.dataset.speed) || 1;
+                const dotDelay = parseInt(text.dataset.dotDelay) || 0;
+                
+                text.textContent = '';
+                text.classList.add('visible');
+                
+                setTimeout(() => {
+                    if (dotDelay > 0 && content.includes('...')) {
+                        // 特殊处理点点点
+                        let dotIndex = 0;
+                        const dotInterval = setInterval(() => {
+                            text.textContent += content[dotIndex];
+                            dotIndex++;
+                            if (dotIndex >= content.length) {
+                                clearInterval(dotInterval);
+                                currentIndex++;
+                                typeNext();
+                            }
+                        }, dotDelay);
+                    } else {
+                        let charIndex = 0;
+                        const typeInterval = setInterval(() => {
+                            if (charIndex < content.length) {
+                                text.textContent += content[charIndex];
+                                charIndex++;
+                            } else {
+                                clearInterval(typeInterval);
+                                currentIndex++;
+                                typeNext();
+                            }
+                        }, 100 / speed);
+                    }
+                }, delay);
+            }
+            
+            // 保存原始内容
+            texts.forEach(text => {
+                if (!text.dataset.content) {
+                    text.dataset.content = text.textContent;
+                }
+            });
+            
+            typeNext();
+        }
+        
+        function fadeIn(element, callback) {
+            element.style.display = 'block';
+            element.classList.add('fade-in');
+            setTimeout(() => {
+                if (callback) callback();
+            }, 1000);
+        }
+        
+        function fadeOut(element, callback) {
+            element.classList.add('fade-out');
+            setTimeout(() => {
+                element.style.display = 'none';
+                element.classList.remove('fade-out');
+                if (callback) callback();
+            }, 1000);
+        }
+        
+        // 开始游戏
+        document.getElementById('startBtn').addEventListener('click', function() {
+            showPage(1);
+            startTimer('timer1', '11:19:54', '11:20:00', () => {
+                const classStart = document.getElementById('classStart');
+                fadeIn(classStart, () => {
+                    setTimeout(() => {
+                        fadeOut(classStart, () => {
+                            showPage(2);
+                            typeText(document.querySelector('#page2 .text-content'), () => {
+                                setTimeout(() => showPage(3), 3000);
+                            });
+                        });
+                    }, 3000);
+                });
+            });
+        });
+        
+        // 页面3
+        const page3Observer = new MutationObserver(() => {
+            if (pages[3].classList.contains('active')) {
+                typeText(document.querySelector('#page3 .text-content'), () => {
+                    setTimeout(() => showPage(4), 3000);
+                });
+                page3Observer.disconnect();
+            }
+        });
+        page3Observer.observe(pages[3], { attributes: true, attributeFilter: ['class'] });
+        
+        // 页面4
+        const page4Observer = new MutationObserver(() => {
+            if (pages[4].classList.contains('active')) {
+                typeText(document.querySelector('#page4 .text-content'), () => {
+                    setTimeout(() => showPage(5), 3000);
+                });
+                page4Observer.disconnect();
+            }
+        });
+        page4Observer.observe(pages[4], { attributes: true, attributeFilter: ['class'] });
+        
+        // 页面5
+        const page5Observer = new MutationObserver(() => {
+            if (pages[5].classList.contains('active')) {
+                typeText(document.querySelector('#page5 .text-content'), () => {
+                    setTimeout(() => showPage(6), 3000);
+                });
+                page5Observer.disconnect();
+            }
+        });
+        page5Observer.observe(pages[5], { attributes: true, attributeFilter: ['class'] });
+        
+        // 页面6
+        const page6Observer = new MutationObserver(() => {
+            if (pages[6].classList.contains('active')) {
+                typeText(document.querySelector('#page6 .text-content'), () => {
+                    setTimeout(() => showPage(7), 3000);
+                });
+                page6Observer.disconnect();
+            }
+        });
+        page6Observer.observe(pages[6], { attributes: true, attributeFilter: ['class'] });
+        
+        // 页面7
+        const page7Observer = new MutationObserver(() => {
+            if (pages[7].classList.contains('active')) {
+                typeText(document.querySelector('#page7 .text-content'), () => {
+                    setTimeout(() => showPage(8), 3000);
+                });
+                page7Observer.disconnect();
+            }
+        });
+        page7Observer.observe(pages[7], { attributes: true, attributeFilter: ['class'] });
+        
+        // 页面8
+        const page8Observer = new MutationObserver(() => {
+            if (pages[8].classList.contains('active')) {
+                typeText(document.querySelector('#page8 .text-content'), () => {
+                    setTimeout(() => showPage(9), 3000);
+                });
+                page8Observer.disconnect();
+            }
+        });
+        page8Observer.observe(pages[8], { attributes: true, attributeFilter: ['class'] });
+        
+        // 页面9
+        const page9Observer = new MutationObserver(() => {
+            if (pages[9].classList.contains('active')) {
+                typeText(document.querySelector('#page9 .text-content'), () => {
+                    setTimeout(() => showPage(10), 3000);
+                });
+                page9Observer.disconnect();
+            }
+        });
+        page9Observer.observe(pages[9], { attributes: true, attributeFilter: ['class'] });
+        
+        // 页面10
+        const page10Observer = new MutationObserver(() => {
+            if (pages[10].classList.contains('active')) {
+                setTimeout(() => showPage(11), 5000);
+                page10Observer.disconnect();
+            }
+        });
+        page10Observer.observe(pages[10], { attributes: true, attributeFilter: ['class'] });
+        
+        // 页面11
+        const page11Observer = new MutationObserver(() => {
+            if (pages[11].classList.contains('active')) {
+                const timer2 = document.getElementById('timer2');
+                startTimer('timer2', '11:59:54', '12:00:00', () => {
+                    timer2.classList.add('red-text');
+                    const fadeTexts = document.querySelectorAll('#page11 .fade-text');
+                    fadeIn(fadeTexts[0], () => {
+                        setTimeout(() => {
+                            fadeIn(fadeTexts[1], () => {
+                                setTimeout(() => {
+                                    pages[11].classList.add('fade-out');
+                                    setTimeout(() => {
+                                        showPage(12);
+                                    }, 1000);
+                                }, 3000);
+                            });
+                        }, 3000);
+                    });
+                });
+                page11Observer.disconnect();
+            }
+        });
+        page11Observer.observe(pages[11], { attributes: true, attributeFilter: ['class'] });
+        
+        // 页面12
+        const page12Observer = new MutationObserver(() => {
+            if (pages[12].classList.contains('active')) {
+                setTimeout(() => {
+                    pages[12].classList.add('fade-out');
+                    setTimeout(() => {
+                        showPage(0);
+                    }, 1000);
+                }, 3000);
+                page12Observer.disconnect();
+            }
+        });
+        page12Observer.observe(pages[12], { attributes: true, attributeFilter: ['class'] });
+        
+        // 防止双击缩放
+        document.addEventListener('touchstart', function(e) {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>

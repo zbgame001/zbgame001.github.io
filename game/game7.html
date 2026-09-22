@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>点按钮！（突脸鬼图警告）</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            overflow-x: hidden;
+            touch-action: manipulation;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        .version {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            font-size: 12px;
+            color: #666;
+            z-index: 1000;
+        }
+
+        .start-screen, .game-screen, .win-screen {
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .title {
+            font-size: 32px;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(255,255,255,0.3);
+        }
+
+        .btn {
+            background-color: #333;
+            color: #fff;
+            border: 2px solid #fff;
+            padding: 15px 40px;
+            font-size: 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn:hover, .btn:active {
+            background-color: #555;
+            transform: scale(1.05);
+        }
+
+        .counter {
+            font-size: 48px;
+            margin-bottom: 30px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+
+        .notification {
+            position: fixed;
+            background-color: #fff;
+            color: #000;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            cursor: pointer;
+            display: none;
+            z-index: 100;
+            max-width: 300px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .notification.top {
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .notification.right {
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+        }
+
+        .notification.bottom {
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .notification.center {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .notification-app {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .notification-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .notification-text {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .volume-control {
+            background-color: #333;
+            padding: 20px;
+            border-radius: 10px;
+            color: #fff;
+        }
+
+        .volume-slider {
+            width: 150px;
+            margin: 10px 0;
+        }
+
+        .glowing-text {
+            animation: glow 1s ease-in-out infinite alternate;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #e60073;
+            }
+            to {
+                text-shadow: 0 0 20px #fff, 0 0 30px #ff4da6, 0 0 40px #ff4da6;
+            }
+        }
+
+        .ppt-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+
+        .ppt-content {
+            font-size: 48px;
+            text-align: center;
+            animation: fadeIn 1s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 300;
+        }
+
+        .modal-image {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 480px) {
+            .title {
+                font-size: 24px;
+            }
+            
+            .counter {
+                font-size: 36px;
+            }
+            
+            .btn {
+                padding: 12px 30px;
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="version">版本 V0.1-测试</div>
+        
+        <!-- 开始界面 -->
+        <div class="start-screen" id="startScreen">
+            <h1 class="title">点按钮！</h1>
+            <p style="margin-bottom: 20px; color: #ff6666;">⚠️ 突脸鬼图警告 ⚠️</p>
+            <button class="btn" onclick="startGame()">开始游戏</button>
+        </div>
+        
+        <!-- 游戏界面 -->
+        <div class="game-screen hidden" id="gameScreen">
+            <div class="counter" id="counter">0</div>
+            <button class="btn" id="clickBtn" onclick="handleClick()">点击</button>
+            <button class="btn hidden" id="clickBtn2" onclick="handleClick72()">点击！</button>
+        </div>
+        
+        <!-- 通关界面 -->
+        <div class="win-screen hidden" id="winScreen">
+            <h1 class="title">恭喜你通关！</h1>
+            <div style="margin: 20px 0; line-height: 1.8;">
+                <p>游戏内容: @用户8044</p>
+                <p>代码: K2-Kimi</p>
+                <p>版本: V0.1-测试</p>
+                <p>图片素材: 百度，GXGIF动图网</p>
+            </div>
+            <button class="btn" onclick="restartGame()">重新开始</button>
+        </div>
+    </div>
+    
+    <!-- 通知 -->
+    <div class="notification top" id="notification5">
+        <div class="notification-app">
+            <img src="https://img0.baidu.com/it/u=3007335669,4053323741&fm=253&fmt=auto?w=800&h=800" alt="微信" class="notification-icon">
+            <div class="notification-content">
+                <div class="notification-title">微信</div>
+                <div class="notification-text">你有一条新的消息</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="notification right" id="notification19">
+        <div class="volume-control">
+            <div>音量调整</div>
+            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="100">
+            <div id="volumeValue">100</div>
+        </div>
+    </div>
+    
+    <div class="notification bottom" id="notification30">
+        <div class="glowing-text">1元手机！快来抢购！</div>
+    </div>
+    
+    <div class="notification center" id="notification59">
+        <div style="text-align: center;">
+            <h2>恭喜你中大奖了！</h2>
+            <button class="btn" style="margin-top: 20px;" onclick="handleEventClick(59)">点击查看</button>
+    </div>
+</div>
+
+<div class="notification center" id="notification88">
+    <div style="text-align: center;">
+        <h2>爸爸！</h2>
+        <button class="btn" style="margin-top: 20px;" onclick="handleEventClick(88)">唉！</button>
+    </div>
+</div>
+
+<!-- PPT页面 -->
+<div class="ppt-screen" id="pptScreen45">
+    <div class="ppt-content">我喜欢你！</div>
+</div>
+
+<!-- 99事件PPT（空内容） -->
+<div class="ppt-screen" id="pptScreen99"></div>
+
+<!-- 图片弹窗 -->
+<div class="modal" id="imageModal">
+    <img src="" alt="" class="modal-image" id="modalImage">
+</div>
+
+<script>
+    let count = 0;
+    let gameActive = false;
+    let eventTimeouts = {};
+
+    function startGame() {
+        document.getElementById('startScreen').classList.add('hidden');
+        document.getElementById('gameScreen').classList.remove('hidden');
+        count = 0;
+        gameActive = true;
+        updateCounter();
+    }
+
+    function updateCounter() {
+        document.getElementById('counter').textContent = count;
+    }
+
+    function handleClick() {
+        if (!gameActive) return;
+        count++;
+        updateCounter();
+        checkSpecialEvents();
+        if (count >= 100) winGame();
+    }
+
+    function handleClick72() {
+        if (!gameActive) return;
+        showImageUnclose('https://www.gxgif.com/pic/kb/2023525135449.jpg');
+        setTimeout(restartGame, 3000);
+    }
+
+    function checkSpecialEvents() {
+        const events = {
+            5: () => showNotification('notification5', 3000),
+            19: () => {
+                showNotification('notification19', 3000);
+                startVolumeAnimation();
+            },
+            30: () => showNotification('notification30', 3000),
+            45: () => showPPT('pptScreen45', 3000),
+            59: () => showNotification('notification59', 3000),
+            72: () => {
+                document.getElementById('clickBtn').classList.add('hidden');
+                document.getElementById('clickBtn2').classList.remove('hidden');
+                eventTimeouts['72'] = setTimeout(() => {
+                    document.getElementById('clickBtn').classList.remove('hidden');
+                    document.getElementById('clickBtn2').classList.add('hidden');
+                }, 3000);
+            },
+            88: () => showNotification('notification88', 3000),
+            99: () => handle99Event()
+        };
+        if (events[count]) events[count]();
+    }
+
+    // 99事件：空PPT → 第一张图(可点击) → 3s后第二张图(不可关) → 3s后回开始界面
+    function handle99Event() {
+        const ppt = document.getElementById('pptScreen99');
+        ppt.style.display = 'flex';
+
+        // 第一张图：可点击，点击后进入第二张图流程；不点则3秒后自动回游戏
+        showImage('https://img1.baidu.com/it/u=3236826340,798614787&fm=253&fmt=auto&w=459&h=800');
+
+        let clicked = false;
+        const modal = document.getElementById('imageModal');
+        const onFirstClick = () => {
+            if (clicked) return;
+            clicked = true;
+            clearTimeout(firstTimeout);
+            modal.onclick = null; // 移除点击
+            // 进入第二张图
+            showImageUnclose('https://img1.baidu.com/it/u=3626070890,4070722962&fm=253&fmt=auto&app=138&f=JPEG?w=608&h=342');
+            setTimeout(() => {
+                closeModal();
+                restartGame();
+            }, 3000);
+        };
+        modal.onclick = onFirstClick;
+
+        // 3秒内未点击则回游戏界面
+        const firstTimeout = setTimeout(() => {
+            if (clicked) return;
+            modal.onclick = null;
+            closeModal();
+            // 回到游戏界面（不重启）
+            ppt.style.display = 'none';
+        }, 3000);
+    }
+
+    function showNotification(id, duration) {
+        const notification = document.getElementById(id);
+        notification.style.display = 'block';
+        notification.onclick = () => handleEventClick(count);
+        eventTimeouts[count] = setTimeout(() => notification.style.display = 'none', duration);
+    }
+
+    function showPPT(id, duration) {
+        const ppt = document.getElementById(id);
+        ppt.style.display = 'flex';
+        ppt.onclick = () => handleEventClick(count);
+        eventTimeouts[count] = setTimeout(() => ppt.style.display = 'none', duration);
+    }
+
+    function handleEventClick(eventNum) {
+        clearTimeout(eventTimeouts[eventNum]);
+        const imageUrls = {
+            5: 'https://www.gxgif.com/pic/kb/20236715316.jpg',
+            19: 'https://www.gxgif.com/pic/kb/2023422163048.jpg',
+            30: 'https://www.gxgif.com/pic/kb/2023327203313.png',
+            45: 'https://www.gxgif.com/pic/kb/202328205818.gif',
+            59: 'https://www.gxgif.com/pic/kb/202351484446.jpg',
+            88: 'https://img2.baidu.com/it/u=4046150578,2924715839&fm=253&fmt=auto&app=120&f=JPEG?w=800&h=500'
+        };
+        if (eventNum !== 99 && imageUrls[eventNum]) {
+            showImageUnclose(imageUrls[eventNum]);
+            setTimeout(restartGame, 3000);
+        }
+        document.querySelectorAll('.notification, .ppt-screen').forEach(el => el.style.display = 'none');
+    }
+
+    // 统一：所有图片窗口不可点击关闭
+    function showImage(src) {
+        const modal = document.getElementById('imageModal');
+        const img = document.getElementById('modalImage');
+        img.src = src;
+        modal.style.display = 'flex';
+        modal.onclick = null; // 禁止点击关闭
+    }
+
+    function showImageUnclose(src) {
+        const modal = document.getElementById('imageModal');
+        const img = document.getElementById('modalImage');
+        img.src = src;
+        modal.style.display = 'flex';
+        modal.onclick = null; // 禁止点击关闭
+    }
+
+    function closeModal() {
+        document.getElementById('imageModal').style.display = 'none';
+    }
+
+    function startVolumeAnimation() {
+        const slider = document.getElementById('volumeSlider');
+        const value = document.getElementById('volumeValue');
+        const values = [100, 75];
+        let index = 0;
+        const interval = setInterval(() => {
+            slider.value = values[index];
+            value.textContent = values[index];
+            index = (index + 1) % values.length;
+        }, 200);
+        setTimeout(() => clearInterval(interval), 3000);
+    }
+
+    function winGame() {
+        gameActive = false;
+        document.getElementById('gameScreen').classList.add('hidden');
+        document.getElementById('winScreen').classList.remove('hidden');
+    }
+
+    function restartGame() {
+        Object.values(eventTimeouts).forEach(clearTimeout);
+        eventTimeouts = {};
+        document.querySelectorAll('.notification, .ppt-screen, .modal').forEach(el => el.style.display = 'none');
+        document.getElementById('clickBtn').classList.remove('hidden');
+        document.getElementById('clickBtn2').classList.add('hidden');
+        document.getElementById('winScreen').classList.add('hidden');
+        document.getElementById('gameScreen').classList.add('hidden');
+        document.getElementById('startScreen').classList.remove('hidden');
+    }
+
+    document.addEventListener('touchstart', e => { if (e.touches.length > 1) e.preventDefault(); });
+</script>
+</body>
+</html>
