@@ -43,7 +43,7 @@
  }
  .topbar-inner {
  max-width: 720px;
- margin: 0 auto;
+ margin: 0;
  height: 64px;
  display: flex;
  align-items: center;
@@ -69,11 +69,12 @@
  flex: 1;
  width: 100%;
  max-width: 720px;
- margin: 0 auto;
- padding: 24px 20px 40px;
+ margin: 0 auto 0 0;   /* 左对齐，不居中 */
+ padding: 24px 24px 40px;
  display: flex;
  flex-direction: column;
  justify-content: center;
+ align-items: stretch;
  }
 
  .hero-head {
@@ -151,25 +152,37 @@
  letter-spacing: 0.5px;
  }
 
+ /* 窄屏也保持「图标在左、名称+版本在右」，只缩小尺寸，不改成居中竖排 */
  @media (max-width: 560px) {
  .hero-head {
- flex-direction: column;
- align-items: center;
- text-align: center;
- gap: 16px;
- }
- .hero-meta {
- align-items: center;
+ gap: 14px;
  }
  .hero-icon {
- width: 88px;
- height: 88px;
+ width: 72px;
+ height: 72px;
+ border-radius: 18px;
  }
  .hero-title {
- font-size: 23px;
+ font-size: 19px;
+ }
+ .hero-ver {
+ font-size: 12.5px;
  }
  .download-btn {
  margin-top: 34px;
+ }
+ }
+
+ @media (max-width: 380px) {
+ .hero-head {
+ gap: 12px;
+ }
+ .hero-icon {
+ width: 64px;
+ height: 64px;
+ }
+ .hero-title {
+ font-size: 17px;
  }
  }
  </style>
