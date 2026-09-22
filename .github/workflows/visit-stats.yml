@@ -8,6 +8,8 @@ on:
   push:
     paths:
       - '.github/workflows/visit-stats.yml'
+      - 'scripts/record-visit-snapshot.zbg'
+      - 'zbg.js'
 
 permissions:
   contents: write
@@ -23,21 +25,8 @@ jobs:
       - name: 检出仓库
         uses: actions/checkout@v4
 
-      - name: 读取当前累计访问量
-        id: read
-        run: |
-          resp="$(curl -sS --max-time 20 -X POST 'https://events.vercount.one/api/v2/log' \
-            -H 'Content-Type: application/json' \
-            -d '{"url":"https://zbgame001.github.io/","isNewUv":false}')"
-          echo "response: $resp"
-          pv="$(printf '%s' "$resp" | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["site_pv"])')"
-          echo "site_pv=$pv"
-          echo "pv=$pv" >> "$GITHUB_OUTPUT"
-
-      - name: 记录快照
-        env:
-          PV: ${{ steps.read.outputs.pv }}
-        run: python3 scripts/record-visit-snapshot.py "$PV"
+      - name: 记录快照（ZBG 脚本 —— 本站自己写的语言）
+        run: node zbg.js scripts/record-visit-snapshot.zbg
 
       - name: 提交变化
         run: |

@@ -134,7 +134,7 @@
   /* =====================================================================
    * 2. 语法（递归下降 + 优先级爬升）
    * ===================================================================== */
-  function parse(src) {
+  function parse(src, exprOnly) {
     var toks = tokenize(src), pos = 0;
 
     function peek(k) { return toks[pos + (k || 0)]; }
@@ -154,6 +154,17 @@
       return got;
     }
     function skipNL() { while (at('nl')) { pos++; } }
+
+    /* 这里能不能开始一个表达式（用来识别“命令式调用”：echo "你好"） */
+    function startsExpr() {
+      var x = peek();
+      if (!x) { return false; }
+      if (x.t === 'num' || x.t === 'str' || x.t === 'id') { return true; }
+      if (x.t === 'punct' && (x.v === '(' || x.v === '[' || x.v === '-')) { return true; }
+      if (x.t === 'kw' && (x.v === 'true' || x.v === 'false' || x.v === 'null' ||
+                           x.v === 'not' || x.v === 'await')) { return true; }
+      return false;
+    }
 
     function parseBlock() {
       expect('punct', '{');
@@ -288,6 +299,19 @@
       if (expr.k === 'var' && at('punct', '=')) {
         next();
         return { k: 'assign', name: expr.name, value: parseExpr(), line: t.line };
+      }
+      /* 命令式调用：echo "你好" 等价于 echo("你好")（单参数；多参数请写括号） */
+      if (expr.k === 'var' && startsExpr()) {
+        var only = parseExpr();
+        return {
+          k: 'expr',
+          value: { k: 'call', callee: expr, args: [only], line: expr.line },
+          line: t.line
+        };
+      }
+      /* 裸表达式当语句几乎都是漏写括号 —— 直接报错，否则它会静默什么都不干 */
+      if (expr.k !== 'call') {
+        throw err('这行没有作用（是不是漏了括号？）', t.line);
       }
       return { k: 'expr', value: expr, line: t.line };
     }
@@ -474,6 +498,13 @@
 
     var program = [];
     skipNL();
+    if (exprOnly) {
+      /* 只当一个表达式解析（用于字符串里的 ${...} 插值） */
+      var onlyExpr = parseExpr();
+      skipNL();
+      if (!at('eof')) { throw err('${} 里只能写一个表达式', peek().line); }
+      return onlyExpr;
+    }
     while (!at('eof')) {
       program.push(parseStatement());
       skipNL();
@@ -512,6 +543,7 @@
   function Ret(v) { this.v = v; }
   function Brk() {}
   function Cnt() {}
+  function ExitSig(code) { this.code = code; }
 
   function truthy(v) {
     if (v === null || v === undefined || v === false) { return false; }
@@ -599,7 +631,7 @@
       return Array.isArray(s) ? s.indexOf(sub) >= 0 : String(s).indexOf(sub) >= 0;
     };
     api.parseJson = function (text) { return JSON.parse(text); };
-    api.toJson = function (v) { return JSON.stringify(v); };
+    api.toJson = function (v, indent) { return JSON.stringify(v, null, indent === undefined ? 0 : indent); };
 
     /* 网络：直接用浏览器的 fetch，不经过任何第三方 */
     api.fetchText = function (url, opts) {
@@ -638,6 +670,15 @@
     api.cookie = function (name, value, days) { return HOST.cookie(name, value, days); };
     api.fixed = function (v, d) { return Number(v).toFixed(d === undefined ? 1 : d); };
 
+    /* 脚本能力：只有 Node 里才有（浏览器里不定义，免得脚本以为自己能读写磁盘） */
+    if (HOST.node) {
+      api.readFile = function (p) { return HOST.readFile(p); };
+      api.writeFile = function (p, text) { return HOST.writeFile(p, text); };
+      api.exists = function (p) { return HOST.exists(p); };
+      api.args = function () { return HOST.args(); };
+      api.exit = function (code) { throw new ExitSig(code === undefined ? 0 : code); };
+    }
+
     return api;
   }
 
@@ -661,8 +702,7 @@
           var p = node.parts[i];
           if (p.text !== undefined) { s += p.text; }
           else {
-            var sub = parse(p.code).body;
-            var v = sub.length ? await evalExpr(sub[0].k === 'expr' ? sub[0].value : sub[0], env, rt) : null;
+            var v = await evalExpr(parse(p.code, true), env, rt);
             s += toStr(v);
           }
         }
@@ -912,6 +952,26 @@
       return value;
     };
 
+    /* Node 宿主：命令行里跑同一个解释器（浏览器里这段不执行） */
+    if (typeof process !== 'undefined' && process.versions && process.versions.node && typeof require === 'function') {
+      var fs = require('fs');
+      var nodePath = require('path');
+      HOST.node = true;
+      HOST.readFile = function (p) {
+        try { return fs.readFileSync(p, 'utf8'); } catch (e) { return null; }
+      };
+      HOST.writeFile = function (p, text) {
+        try { fs.mkdirSync(nodePath.dirname(p), { recursive: true }); } catch (e) {}
+        fs.writeFileSync(p, String(text), 'utf8');
+        return true;
+      };
+      HOST.exists = function (p) {
+        try { return fs.existsSync(p); } catch (e) { return false; }
+      };
+      HOST.args = function () { return process.argv.slice(3); };
+      HOST.exit = function (code) { process.exit(code); };
+    }
+
     HOST.dom = function (op, sel, a, b) {
       if (!hasDom) { return null; }
       var el = document.querySelector(sel);
@@ -963,6 +1023,7 @@
         await execBlock(program, g, rt);
         return { ok: true, timers: rt.timers.length };
       } catch (e) {
+        if (e instanceof ExitSig) { return { ok: true, exitCode: e.code }; }
         rt.onError(e);
         return { ok: false, error: e };
       }
@@ -1018,6 +1079,7 @@
     '  网络      d = await get("https://…")     post("https://…", {a: 1})',
     '  页面      text("#id", "内容")   html("#id", "<b>…</b>")   on("#btn", "click", 函数)',
     '  容错      try { } catch e { echo e.message }',
+    '  脚本      （在 Node 里跑：node zbg.js 程序.zbg）readFile writeFile exists args exit',
     '  字符串    "共 ${n} 次"（${} 里是表达式）',
     '  注释      # 到行尾        逻辑 and / or / not',
     '  列表映射  [1, 2, 3]        { 名称: "值", pv: 3 }',
@@ -1028,6 +1090,29 @@
 
   if (typeof module !== 'undefined' && module.exports) { module.exports = ZBG; }
   root.ZBG = ZBG;
+
+  /* 命令行入口：node zbg.js 程序.zbg [参数…] */
+  if (typeof require === 'function' && typeof module !== 'undefined' && module.exports &&
+      require.main === module) {
+    var cliFs = require('fs');
+    var cliFile = process.argv[2];
+    if (!cliFile) {
+      console.error('用法: node zbg.js <程序文件.zbg> [参数…]');
+      process.exit(2);
+    }
+    var cliSrc;
+    try {
+      cliSrc = cliFs.readFileSync(cliFile, 'utf8');
+    } catch (e) {
+      console.error('读不到文件: ' + cliFile);
+      process.exit(2);
+    }
+    run(cliSrc, {}).then(function (r) {
+      /* 不用 process.exit：stdout 是管道时同步退出会把还没刷出的输出丢掉 */
+      if (r && r.ok === false) { process.exitCode = 1; }
+      else if (r && r.exitCode) { process.exitCode = r.exitCode; }
+    });
+  }
 
   if (typeof document !== 'undefined') {
     var boot = function () {
