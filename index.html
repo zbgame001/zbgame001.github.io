@@ -635,18 +635,64 @@
  }
  }
 
- /* ---- 访问统计：本站总访问量 ---- */
+ /* ---- 访问统计：总数 + 近 14 天折线图 ---- */
  .visit-stat {
- margin-top: 22px;
+ margin-top: 24px;
+ text-align: center;
  font-size: 12.5px;
  line-height: 1.5;
  color: var(--text-sub);
- text-align: center;
  letter-spacing: 0.3px;
  }
- /* 数字取到之前整段隐藏，避免空数字或跳动 */
- #vercount_container_site_pv {
- display: none;
+ .visit-stat .visit-total {
+ margin: 0;
+ }
+ .visit-total span {
+ color: var(--text);
+ font-size: 15px;
+ font-weight: 700;
+ font-variant-numeric: tabular-nums;
+ }
+ .visit-chart {
+ margin: 14px 0 0;
+ }
+ .visit-chart figcaption {
+ margin-bottom: 6px;
+ font-size: 12px;
+ }
+ .visit-chart__box {
+ max-width: 560px;
+ margin: 0 auto;
+ color: var(--text);
+ }
+ .visit-chart__box svg {
+ display: block;
+ width: 100%;
+ height: auto;
+ }
+ .vc-grid {
+ stroke: currentColor;
+ stroke-opacity: 0.12;
+ stroke-width: 1;
+ }
+ .vc-axis {
+ fill: var(--text-sub);
+ font-size: 11px;
+ }
+ .vc-line {
+ fill: none;
+ stroke: currentColor;
+ stroke-width: 2;
+ stroke-linejoin: round;
+ stroke-linecap: round;
+ }
+ .vc-dot {
+ fill: currentColor;
+ }
+ .visit-hint {
+ margin: 10px 0 0;
+ font-size: 12px;
+ opacity: 0.85;
  }
 </style>
 </head>
@@ -698,10 +744,15 @@
   <!-- 查看更多：进入全部作品页 -->
   <a class="more-btn" href="works.html">查看更多</a>
 
-  <!-- 访问统计：本站总访问量（vercount，显式上报 URL，不依赖 referrer） -->
-  <p class="visit-stat">
-   <span id="vercount_container_site_pv">本站总访问量 <span id="vercount_value_site_pv"></span> 次</span>
-  </p>
+  <!-- 访问统计：实时总数（自搓上报）+ 近 14 天折线图（数据 = 同站 stats/visits.json，Actions 每天记录） -->
+  <section class="visit-stat">
+   <p class="visit-total">本站总访问量 <span id="visitTotal">&mdash;</span> 次</p>
+   <figure class="visit-chart" id="visitChart" hidden>
+    <figcaption>近 14 天访问量</figcaption>
+    <div class="visit-chart__box" id="visitChartSvg"></div>
+   </figure>
+   <p class="visit-hint" id="visitHint">访问数据加载中&hellip;</p>
+  </section>
 
  </main>
 
@@ -1093,7 +1144,7 @@
  })();
  </script>
 
-<script defer src="https://cn.vercount.one/js"></script>
+<script defer src="visit-chart.js"></script>
 
 </body>
 </html>

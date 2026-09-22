@@ -1,0 +1,53 @@
+name: visit-stats
+
+# 每天记录一次访问量快照到 stats/visits.json（页面只读这个同站文件来画折线图）
+on:
+  schedule:
+    - cron: '57 23 * * *'
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/visit-stats.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: visit-stats
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+
+      - name: 读取当前累计访问量
+        id: read
+        run: |
+          resp="$(curl -sS --max-time 20 -X POST 'https://events.vercount.one/api/v2/log' \
+            -H 'Content-Type: application/json' \
+            -d '{"url":"https://zbgame001.github.io/","isNewUv":false}')"
+          echo "response: $resp"
+          pv="$(printf '%s' "$resp" | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["site_pv"])')"
+          echo "site_pv=$pv"
+          echo "pv=$pv" >> "$GITHUB_OUTPUT"
+
+      - name: 记录快照
+        env:
+          PV: ${{ steps.read.outputs.pv }}
+        run: python3 scripts/record-visit-snapshot.py "$PV"
+
+      - name: 提交变化
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add stats/visits.json
+          if git diff --cached --quiet; then
+            echo "无变化，跳过提交"
+            exit 0
+          fi
+          git commit -m "chore(stats): 记录 $(date -u +%F) 访问量快照"
+          git pull --rebase origin main
+          git push
