@@ -64,88 +64,80 @@
  letter-spacing: 0.5px;
  }
 
- .container {
+ /* 主体：第一行 大图标 + 标题/版本，第二行 下载按钮 */
+ .stage {
  flex: 1;
- max-width: 720px;
  width: 100%;
+ max-width: 720px;
  margin: 0 auto;
- padding: 20px;
+ padding: 24px 20px 40px;
  display: flex;
- align-items: center;
+ flex-direction: column;
  justify-content: center;
  }
 
- .left-content {
- width: 100%;
- display: flex;
- flex-direction: column;
- gap: 24px;
- background: #fff;
- border-radius: 20px;
- padding: 32px;
- box-shadow: 0 4px 20px rgba(0,0,0,0.08);
- }
-
- .header-group {
+ .hero-head {
  display: flex;
  align-items: center;
- gap: 20px;
+ gap: 22px;
  }
- .app-icon-img {
- width: 80px;
- height: 80px;
- border-radius: 18px;
+ .hero-icon {
+ width: 104px;
+ height: 104px;
+ border-radius: 24px;
  object-fit: contain;
+ flex-shrink: 0;
  }
- .app-title {
+ .hero-meta {
  display: flex;
  flex-direction: column;
- gap: 6px;
+ gap: 10px;
+ min-width: 0;
  }
- .app-title h1 {
- font-size: 32px;
+ .hero-title {
+ font-size: 30px;
  font-weight: 700;
  color: var(--text-main);
- letter-spacing: 1px;
+ letter-spacing: 0.5px;
+ line-height: 1.2;
  }
- .app-title p {
- font-size: 16px;
+ .hero-ver {
+ font-size: 14px;
  color: var(--text-sub);
+ letter-spacing: 0.3px;
  }
-
- .description {
- font-size: 16px;
+ .hero-ver .val {
  color: var(--text-main);
- line-height: 1.6;
- margin-top: 10px;
+ font-weight: 600;
+ }
+ .hero-ver .val.loading {
+ color: #9a9a9a;
+ font-weight: 400;
  }
 
- .btn-group {
- display: flex;
- gap: 20px;
- flex-wrap: wrap;
- }
  .download-btn {
  display: flex;
  align-items: center;
+ justify-content: center;
  gap: 12px;
+ width: 100%;
+ margin-top: 42px;
  background-color: var(--btn-bg);
  color: var(--btn-text);
- padding: 16px 30px;
- border-radius: 12px;
+ padding: 18px 24px;
+ border-radius: 14px;
  text-decoration: none;
- transition: opacity 0.3s;
- min-width: 160px;
+ transition: opacity 0.3s, transform 0.1s;
  }
  .download-btn:hover {
- opacity: 0.85;
+ opacity: 0.88;
+ }
+ .download-btn:active {
+ transform: scale(0.99);
  }
  .download-btn .icon {
- width: 26px;
- height: 26px;
- display: flex;
- align-items: center;
- justify-content: center;
+ width: 24px;
+ height: 24px;
  flex-shrink: 0;
  }
  .download-btn .icon svg {
@@ -153,34 +145,31 @@
  height: 100%;
  fill: #ffffff;
  }
- .download-btn .info {
- display: flex;
- flex-direction: column;
- }
- .download-btn .info .name {
- font-size: 16px;
+ .download-btn .name {
+ font-size: 17px;
  font-weight: bold;
- }
- .download-btn .info .status {
- font-size: 12px;
- opacity: 0.7;
+ letter-spacing: 0.5px;
  }
 
- @media (max-width: 850px) {
- .container {
- flex-direction: column-reverse;
- gap: 40px;
- align-items: center;
- }
- .left-content {
+ @media (max-width: 560px) {
+ .hero-head {
+ flex-direction: column;
  align-items: center;
  text-align: center;
+ gap: 16px;
  }
- .header-group {
- flex-direction: column;
+ .hero-meta {
+ align-items: center;
  }
- .btn-group {
- justify-content: center;
+ .hero-icon {
+ width: 88px;
+ height: 88px;
+ }
+ .hero-title {
+ font-size: 23px;
+ }
+ .download-btn {
+ margin-top: 34px;
  }
  }
  </style>
@@ -195,33 +184,232 @@
   </div>
  </header>
 
- <div class="container">
-  <!-- 应用信息区 -->
-  <div class="left-content">
+ <main class="stage">
 
-   <div class="header-group">
-    <img src="favicon.ico" alt="文字游戏-主播模拟器" class="app-icon-img">
-    <div class="app-title">
-     <h1>文字游戏-主播模拟器</h1>
-    </div>
+  <!-- 第一行：大图标 + 标题（版本自动检测自 game.apk） -->
+  <div class="hero-head">
+   <img src="favicon.ico" alt="文字游戏-主播模拟器" class="hero-icon">
+   <div class="hero-meta">
+    <h1 class="hero-title">文字游戏-主播模拟器</h1>
+    <p class="hero-ver">版本 <span class="val loading" id="apk-ver">检测中…</span></p>
    </div>
-
-
-   <div class="btn-group">
-    <a href="game.apk" class="download-btn" download>
-     <span class="icon">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 28 28">
-       <path d="M6 18c0 .55.45 1 1 1h1v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h1c.55 0 1-.45 1-1V8H6v10zM3.5 8C2.67 8 2 8.67 2 9.5v7c0 .83.67 1.5 1.5 1.5S5 17.33 5 16.5v-7C5 8.67 4.33 8 3.5 8zm17 0c-.83 0-1.5.67-1.5 1.5v7c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zM15.53 2.16l1.3-1.3c.2-.2.2-.51 0-.71s-.51-.2-.71 0l-1.48 1.48A5.74 5.74 0 0 0 12 1c-1.34 0-2.58.47-3.55 1.22L6.98.74c-.2-.2-.51-.2-.71 0s-.2.51 0 .71l1.3 1.3C6.23 3.48 5.15 5.07 5.03 7h13.94c-.12-1.93-1.2-3.52-2.44-4.84zM10 5.5c-.28 0-.5-.22-.5-.5s.22-.5.5-.5.5.22.5.5-.22.5-.5.5zm4 0c-.28 0-.5-.22-.5-.5s.22-.5.5-.5.5.22.5.5-.22.5-.5.5z"/>
-      </svg>
-     </span>
-     <div class="info">
-      <span class="name">Android 下载</span>
-     </div>
-    </a>
-   </div>
-
   </div>
- </div>
+
+  <!-- 第二行：下载按钮 -->
+  <a href="game.apk" class="download-btn" download>
+   <span class="icon">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 28 28">
+     <path d="M6 18c0 .55.45 1 1 1h1v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h1c.55 0 1-.45 1-1V8H6v10zM3.5 8C2.67 8 2 8.67 2 9.5v7c0 .83.67 1.5 1.5 1.5S5 17.33 5 16.5v-7C5 8.67 4.33 8 3.5 8zm17 0c-.83 0-1.5.67-1.5 1.5v7c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zM15.53 2.16l1.3-1.3c.2-.2.2-.51 0-.71s-.51-.2-.71 0l-1.48 1.48A5.74 5.74 0 0 0 12 1c-1.34 0-2.58.47-3.55 1.22L6.98.74c-.2-.2-.51-.2-.71 0s-.2.51 0 .71l1.3 1.3C6.23 3.48 5.15 5.07 5.03 7h13.94c-.12-1.93-1.2-3.52-2.44-4.84zM10 5.5c-.28 0-.5-.22-.5-.5s.22-.5.5-.5.5.22.5.5-.22.5-.5.5zm4 0c-.28 0-.5-.22-.5-.5s.22-.5.5-.5.5.22.5.5-.22.5-.5.5z"/>
+    </svg>
+   </span>
+   <span class="name">Android 下载</span>
+  </a>
+
+ </main>
+
+ <script>
+ /* ---- 自动读取 game.apk 的 versionName（不写死） ----
+    流程：EOCD -> 中央目录 -> AndroidManifest.xml -> deflate-raw 解压 -> 解析二进制 AXML */
+ (function () {
+  function findEOCD(tail) {
+   var dv = new DataView(tail.buffer, tail.byteOffset, tail.byteLength);
+   for (var i = tail.length - 22; i >= 0; i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) {
+     var commentLen = dv.getUint16(i + 20, true);
+     if (i + 22 + commentLen !== tail.length) continue;
+     return { cdSize: dv.getUint32(i + 12, true), cdOffset: dv.getUint32(i + 16, true) };
+    }
+   }
+   return null;
+  }
+
+  function findEntry(cd, name) {
+   var dv = new DataView(cd.buffer, cd.byteOffset, cd.byteLength);
+   var dec = new TextDecoder('utf-8');
+   var o = 0;
+   while (o + 46 <= cd.length) {
+    if (dv.getUint32(o, true) !== 0x02014b50) break;
+    var method = dv.getUint16(o + 10, true);
+    var csize = dv.getUint32(o + 20, true);
+    var nlen = dv.getUint16(o + 28, true);
+    var elen = dv.getUint16(o + 30, true);
+    var clen = dv.getUint16(o + 32, true);
+    var lho = dv.getUint32(o + 42, true);
+    var fname = dec.decode(cd.subarray(o + 46, o + 46 + nlen));
+    if (fname === name) return { method: method, csize: csize, lho: lho };
+    o += 46 + nlen + elen + clen;
+   }
+   return null;
+  }
+
+  function parseStringPool(u8, dv, off) {
+   var count = dv.getUint32(off + 8, true);
+   var flags = dv.getUint32(off + 16, true);
+   var stringsStart = dv.getUint32(off + 20, true);
+   var utf8 = (flags & 0x100) !== 0;
+   var out = [];
+   for (var i = 0; i < count; i++) {
+    var so = dv.getUint32(off + 28 + i * 4, true);
+    if (so === 0xffffffff) { out.push(''); continue; }
+    var p = off + stringsStart + so;
+    if (utf8) {
+     var n = u8[p++];
+     if (n & 0x80) n = ((n & 0x7f) << 8) | u8[p++];
+     var blen = u8[p++];
+     if (blen & 0x80) blen = ((blen & 0x7f) << 8) | u8[p++];
+     out.push(new TextDecoder('utf-8').decode(u8.subarray(p, p + blen)));
+    } else {
+     var w = dv.getUint16(p, true); p += 2;
+     if (w & 0x8000) { w = ((w & 0x7fff) << 16) | dv.getUint16(p, true); p += 2; }
+     out.push(new TextDecoder('utf-16le').decode(u8.subarray(p, p + w * 2)));
+    }
+   }
+   return out;
+  }
+
+  var RES_VERSION_NAME = 0x0101021c;
+
+  function parseAxmlVersionName(u8) {
+   var dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+   if (u8.length < 8 || dv.getUint16(0, true) !== 0x0003) return null;
+   var off = Math.max(8, dv.getUint16(2, true));
+   var strings = null, resMap = null;
+   while (off + 8 <= u8.length) {
+    var type = dv.getUint16(off, true);
+    var hsize = dv.getUint16(off + 2, true);
+    var csize = dv.getUint32(off + 4, true);
+    if (csize < 8 || off + csize > u8.length) break;
+    if (type === 0x0001) {
+     strings = parseStringPool(u8, dv, off);
+    } else if (type === 0x0180) {
+     resMap = [];
+     var rn = Math.floor((csize - hsize) / 4);
+     for (var k = 0; k < rn; k++) resMap.push(dv.getUint32(off + hsize + k * 4, true));
+    } else if (type === 0x0102) {
+     var base = off + hsize;
+     var nameIdx = dv.getUint32(base + 4, true);
+     var attrStart = dv.getUint16(base + 8, true);
+     var attrSize = dv.getUint16(base + 10, true) || 20;
+     var attrCount = dv.getUint16(base + 12, true);
+     if (strings && strings[nameIdx] === 'manifest') {
+      for (var a = 0; a < attrCount; a++) {
+       var ap = base + attrStart + a * attrSize;
+       if (ap + 20 > u8.length) break;
+       var anIdx = dv.getUint32(ap + 4, true);
+       var rawVal = dv.getUint32(ap + 8, true);
+       var dtype = u8[ap + 14];
+       var dval = dv.getUint32(ap + 16, true);
+       var aName = strings[anIdx];
+       var resId = resMap ? resMap[anIdx] : 0;
+       if (aName === 'versionName' || resId === RES_VERSION_NAME) {
+        if (rawVal !== 0xffffffff && strings[rawVal]) return strings[rawVal];
+        if (dtype === 0x03 && strings[dval]) return strings[dval];
+       }
+      }
+     }
+    }
+    off += csize;
+   }
+   return null;
+  }
+
+  function regexFallback(u8) {
+   var s = '';
+   var CH = 0x8000;
+   for (var i = 0; i < u8.length; i += CH) {
+    s += String.fromCharCode.apply(null, u8.subarray(i, Math.min(i + CH, u8.length)));
+   }
+   var m = s.match(/[Vv]\d+(?:\.\d+)+(?:[-_.][0-9A-Za-z]+)*/);
+   return m ? m[0] : null;
+  }
+
+  async function apkVersion(reader) {
+   var size = reader.size;
+   var TAIL = 65536;
+   var tail = await reader.read(size ? Math.max(0, size - TAIL) : 0, size ? size - 1 : TAIL - 1);
+   if (!size) size = tail.length;
+
+   var eocd = findEOCD(tail);
+   if (!eocd) throw new Error('EOCD not found');
+
+   var cd = await reader.read(eocd.cdOffset, eocd.cdOffset + eocd.cdSize - 1);
+   var entry = findEntry(cd, 'AndroidManifest.xml');
+   if (!entry) throw new Error('AndroidManifest.xml not found');
+
+   var lh = await reader.read(entry.lho, entry.lho + 29);
+   var lhdv = new DataView(lh.buffer, lh.byteOffset, lh.byteLength);
+   if (lhdv.getUint32(0, true) !== 0x04034b50) throw new Error('bad local header');
+   var dataStart = entry.lho + 30 + lhdv.getUint16(26, true) + lhdv.getUint16(28, true);
+
+   var comp = await reader.read(dataStart, dataStart + entry.csize - 1);
+   var raw;
+   if (entry.method === 0) {
+    raw = comp;
+   } else {
+    if (typeof DecompressionStream === 'undefined') throw new Error('no DecompressionStream');
+    var stream = new Blob([comp]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    raw = new Uint8Array(await new Response(stream).arrayBuffer());
+   }
+
+   return parseAxmlVersionName(raw) || regexFallback(raw);
+  }
+
+  function bufferReader(u8) {
+   return {
+    size: u8.length,
+    read: async function (s, e) { return u8.slice(s, e + 1); }
+   };
+  }
+
+  function netReader(size) {
+   return {
+    size: size,
+    read: async function (s, e) {
+     var res = await fetch('game.apk', {
+      headers: { Range: 'bytes=' + s + '-' + e },
+      cache: 'no-store'
+     });
+     var buf = new Uint8Array(await res.arrayBuffer());
+     if (res.status === 206) return buf;
+     return buf.slice(s, e + 1);   /* 服务器不支持 Range 时本地切 */
+    }
+   };
+  }
+
+  async function detectSize() {
+   try {
+    var head = await fetch('game.apk', { method: 'HEAD', cache: 'no-store' });
+    var cl = head.headers.get('content-length');
+    if (cl) return parseInt(cl, 10);
+   } catch (e) {}
+   try {
+    var probe = await fetch('game.apk', { headers: { Range: 'bytes=-1' }, cache: 'no-store' });
+    var cr = probe.headers.get('content-range');
+    if (cr) { var m = cr.match(/\/(\d+)\s*$/); if (m) return parseInt(m[1], 10); }
+   } catch (e) {}
+   return null;
+  }
+
+  document.addEventListener('DOMContentLoaded', async function () {
+   var el = document.getElementById('apk-ver');
+   function show(v) { el.textContent = v; el.classList.remove('loading'); }
+   try {
+    var size = await detectSize();
+    var reader;
+    if (size) {
+     reader = netReader(size);
+    } else {
+     var res = await fetch('game.apk', { cache: 'no-store' });
+     reader = bufferReader(new Uint8Array(await res.arrayBuffer()));
+    }
+    var v = await apkVersion(reader);
+    show(v || '—');
+   } catch (e) {
+    show('—');
+   }
+  });
+ })();
+ </script>
 
 </body>
 </html>
