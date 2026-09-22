@@ -175,10 +175,11 @@
  }
  }
 
- /* 电脑端（足够宽时）：第一行横向排布，下载按钮移到最右并缩小
+ /* 电脑端（足够宽时）：第一行横向排布，下载按钮贴到最右并缩小
     需 ≥768px 才能一行容下：图标104 + 名称/版本 + 按钮 */
  @media (min-width: 768px) {
  .stage {
+ max-width: none;   /* 放开到全屏宽，按钮才能真正贴最右 */
  flex-direction: row;
  align-items: center;
  gap: 20px;
