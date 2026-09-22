@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+ <title>用户8044使用ai制作作品</title>
+ <meta name="theme-color" content="#ffffff">
+ <link rel="icon" href="favicon.ico" type="image/x-icon">
+ <script>
+ /* 首屏渲染前先把主题定下来，避免亮/暗闪一下 */
+ (function () {
+  var t = null;
+  try { t = localStorage.getItem('theme'); } catch (e) {}
+  if (t !== 'dark' && t !== 'light') {
+   t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  }
+  document.documentElement.setAttribute('data-theme', t);
+ })();
+ </script>
+ <style>
+ :root {
+ color-scheme: light;
+ --bg-color: #ffffff;
+ --text-main: #1a1a1a;
+ --text-sub: #666666;
+ --btn-bg: #4a4a4a;
+ --btn-text: #ffffff;
+ --btn-icon: #ffffff;
+ --bar-bg: #ffffff;
+ --bar-border: #ececec;
+ --loading: #9a9a9a;
+ --link-color: #1a73e8;
+ --card-bg: #ffffff;
+ --card-border: #ececec;
+ --card-hover-border: #d8d8d8;
+ --switch-track: rgba(0, 0, 0, 0.7);
+ --switch-track-on: rgba(0, 0, 0, 0.45);
+ --switch-shadow: rgba(0, 0, 0, 0.3);
+ --switch-shadow-on: rgba(0, 0, 0, 0.1);
+ --switch-knob: #d7d7d7;
+ --switch-sun: #fdea7b;
+  }
+
+ /* 夜间模式 */
+ html[data-theme="dark"] {
+ color-scheme: dark;
+ --bg-color: #0f0f0f;
+ --text-main: #f2f2f2;
+ --text-sub: #9a9a9a;
+ --btn-bg: #fdea7b;      /* 夜间用亮色胶囊主按钮（黄底深字） */
+ --btn-text: #1a1a1a;
+ --btn-icon: #1a1a1a;
+ --bar-bg: #161616;
+ --bar-border: #262626;
+ --loading: #7a7a7a;
+ --link-color: #6aa9ff;
+ --card-bg: #161616;
+ --card-border: #262626;
+ --card-hover-border: #3a3a3a;
+ --switch-track: rgba(255, 255, 255, 0.22);
+ --switch-track-on: rgba(255, 255, 255, 0.12);
+ --switch-shadow: rgba(0, 0, 0, 0.45);
+ --switch-shadow-on: rgba(0, 0, 0, 0.25);
+ --switch-knob: #eaeaea;
+ --switch-sun: #fdea7b;
+  }
+
+ * {
+ margin: 0;
+ padding: 0;
+ box-sizing: border-box;
+ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+ -webkit-tap-highlight-color: transparent;   /* 去掉手机点击时的蓝色高亮块 */
+ }
+
+ /* 去掉浏览器自带的蓝色选中/聚焦框 */
+ ::selection {
+ background: transparent;
+ color: inherit;
+ }
+ a:focus,
+ input:focus {
+ outline: none;
+ }
+ :focus-visible {
+ outline: 2px solid var(--switch-sun);
+ outline-offset: 2px;
+ }
+
+ body {
+ background-color: var(--bg-color);
+ display: flex;
+ flex-direction: column;
+ min-height: 100vh;
+ user-select: none;
+ -webkit-user-select: none;
+ -webkit-touch-callout: none;
+ touch-action: pan-y pinch-zoom;
+ }
+
+ /* 日/夜切换：颜色平滑过渡（配合开关的渐变过场） */
+ body,
+ .topbar,
+ .topbar-title,
+ .hero-title,
+ .hero-ver,
+ .hero-ver .val,
+ .credit,
+ .credit a,
+ .download-btn .icon svg {
+ transition:
+ background-color 0.45s ease,
+ color 0.45s ease,
+ border-color 0.45s ease,
+ fill 0.45s ease;
+ }
+
+ /* 顶部栏 */
+ .topbar {
+ flex-shrink: 0;
+ position: sticky;
+ top: 0;
+ z-index: 10;
+ background: var(--bar-bg);
+ border-bottom: 1px solid var(--bar-border);
+ }
+ .topbar-inner {
+ height: 64px;
+ display: flex;
+ align-items: center;
+ gap: 12px;
+ padding: 0 24px;   /* 与内容区左边缘对齐 */
+ }
+ .topbar-icon {
+ width: 32px;
+ height: 32px;
+ border-radius: 8px;
+ object-fit: contain;
+ flex-shrink: 0;
+ }
+ .topbar-title {
+ font-size: 17px;
+ font-weight: 600;
+ color: var(--text-main);
+ letter-spacing: 0.5px;
+ min-width: 0;
+ white-space: nowrap;
+ overflow: hidden;
+ text-overflow: ellipsis;
+ }
+
+ /* 主体：第一行 大图标 + 标题/版本，第二行 下载按钮，第四行 作品标题，第五行 作品展示 */
+ .stage {
+ width: 100%;
+ max-width: 720px;
+ margin: 0 auto 0 0;   /* 左对齐，不居中 */
+ padding: 32px 24px 56px;
+ display: flex;
+ flex-direction: column;
+ align-items: stretch;
+ }
+
+ /* 首屏那两行（图标+标题 / 按钮+来源行）：窄屏竖排，宽屏横排 */
+ .hero-row {
+ display: flex;
+ flex-direction: column;
+ align-items: stretch;
+ }
+
+ /* ---- 第四行：作品展示标题 ---- */
+ .works-head {
+ margin-top: 56px;
+ font-size: 15px;
+ font-weight: 600;
+ color: var(--text-main);
+ letter-spacing: 0.3px;
+ line-height: 1.5;
+ }
+
+ /* ---- 第五行：作品展示区 ---- */
+ .works-grid {
+ margin-top: 16px;
+ display: grid;
+ grid-template-columns: 1fr;
+ gap: 12px;
+ }
+ .work-card {
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ gap: 12px;
+ padding: 15px 16px;
+ background-color: var(--card-bg);
+ border: 1px solid var(--card-border);
+ border-radius: 14px;
+ text-decoration: none;
+ transition:
+ background-color 0.45s ease,
+ border-color 0.45s ease,
+ transform 0.15s ease;
+ }
+ .work-card:hover {
+ border-color: var(--card-hover-border);
+ transform: translateY(-1px);
+ }
+ .work-card:active {
+ transform: scale(0.995);
+ }
+ .work-name {
+ min-width: 0;
+ font-size: 15px;
+ font-weight: 600;
+ color: var(--text-main);
+ letter-spacing: 0.2px;
+ white-space: nowrap;
+ overflow: hidden;
+ text-overflow: ellipsis;
+ }
+ .work-go {
+ flex-shrink: 0;
+ color: var(--text-sub);
+ font-size: 17px;
+ line-height: 1;
+ transition:
+ color 0.2s ease,
+ transform 0.2s ease;
+ }
+ .work-card:hover .work-go {
+ color: var(--link-color);
+ transform: translateX(2px);
+ }
+
+ /* 查看更多：6 张卡片下方的入口 */
+ .more-btn {
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ margin-top: 14px;
+ padding: 14px 16px;
+ font-size: 15px;
+ font-weight: 600;
+ letter-spacing: 0.3px;
+ color: var(--text-main);
+ background-color: transparent;
+ border: 1px dashed var(--card-border);
+ border-radius: 14px;
+ text-decoration: none;
+ transition:
+ background-color 0.45s ease,
+ border-color 0.2s ease,
+ color 0.2s ease;
+ }
+ .more-btn:hover {
+ border-color: var(--link-color);
+ color: var(--link-color);
+ }
+ .more-btn:active {
+ transform: scale(0.995);
+ }
+
+ .hero-head {
+ display: flex;
+ align-items: center;
+ gap: 22px;
+ }
+ .hero-icon {
+ width: 104px;
+ height: 104px;
+ border-radius: 24px;
+ object-fit: contain;
+ flex-shrink: 0;
+ }
+ .hero-meta {
+ display: flex;
+ flex-direction: column;
+ gap: 10px;
+ min-width: 0;
+ }
+ .hero-title {
+ font-size: 30px;
+ font-weight: 700;
+ color: var(--text-main);
+ letter-spacing: 0.5px;
+ line-height: 1.2;
+ }
+ .hero-ver {
+ font-size: 14px;
+ color: var(--text-sub);
+ letter-spacing: 0.3px;
+ }
+ .hero-ver .val {
+ color: var(--text-main);
+ font-weight: 600;
+ }
+ .hero-ver .val.loading {
+ color: var(--loading);
+ font-weight: 400;
+ }
+
+ /* 下载按钮 + 来源行 一整组 */
+ .dl-wrap {
+ display: flex;
+ flex-direction: column;
+ align-items: stretch;
+ margin-top: 42px;
+ }
+
+ .download-btn {
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ gap: 12px;
+ width: 100%;
+ margin-top: 0;
+ background-color: var(--btn-bg);
+ color: var(--btn-text);
+ padding: 18px 24px;
+ border-radius: 14px;
+ text-decoration: none;
+ transition:
+ opacity 0.3s,
+ transform 0.1s,
+ background-color 0.45s ease,
+ color 0.45s ease;
+ }
+ .download-btn:hover {
+ opacity: 0.88;
+ }
+ .download-btn:active {
+ transform: scale(0.99);
+ }
+ .download-btn .icon {
+ width: 24px;
+ height: 24px;
+ flex-shrink: 0;
+ }
+ .download-btn .icon svg {
+ width: 100%;
+ height: 100%;
+ fill: var(--btn-icon);
+ }
+ .download-btn .name {
+ font-size: 17px;
+ font-weight: bold;
+ letter-spacing: 0.5px;
+ }
+
+ /* 来源行：蓝色链接，可点 */
+ .credit {
+ margin-top: 12px;
+ font-size: 12.5px;
+ line-height: 1.5;
+ color: var(--text-sub);
+ text-align: center;
+ }
+ .credit a {
+ color: var(--link-color);
+ text-decoration: none;
+ }
+ .credit a:hover {
+ text-decoration: underline;
+ }
+
+ /* ---- 日/夜开关：沿用用户提供的模板，几何/动效不变，颜色接入主题变量 ---- */
+ .l {
+ cursor: pointer;
+ font-size: 1em;
+ background-color: var(--switch-track);
+ border-radius: 0.75em;
+ box-shadow: 0.125em 0.125em 0 0.125em var(--switch-shadow) inset;
+ color: var(--switch-sun);
+ display: inline-flex;
+ align-items: center;
+ padding: 0.15em;
+ width: 3em;
+ height: 1.5em;
+ transition:
+ background-color 0.1s 0.3s ease-out,
+ box-shadow 0.1s 0.3s ease-out;
+ -webkit-appearance: none;
+ -moz-appearance: none;
+ appearance: none;
+ }
+ .l:before,
+ .l:after {
+ content: "";
+ display: block;
+ }
+ .l:before {
+ background-color: var(--switch-knob);
+ border-radius: 50%;
+ width: 1.2em;
+ height: 1.2em;
+ transition:
+ background-color 0.1s 0.3s ease-out,
+ transform 0.3s ease-out;
+ z-index: 1;
+ }
+ .l:after {
+ background:
+ linear-gradient(transparent 50%, rgba(0, 0, 0, 0.15) 0) 0 50% / 50% 100%,
+ repeating-linear-gradient(90deg, #bbb 0, #bbb, #bbb 20%, #999 20%, #999 40%)
+ 0 50% / 50% 100%,
+ radial-gradient(circle at 50% 50%, #888 25%, transparent 26%);
+ background-repeat: no-repeat;
+ border: 0.25em solid transparent;
+ border-left: 0.4em solid #d8d8d8;
+ border-right: 0 solid transparent;
+ transition:
+ border-left-color 0.1s 0.3s ease-out,
+ transform 0.3s ease-out;
+ transform: translateX(-22.5%);
+ transform-origin: 25% 50%;
+ width: 1.2em;
+ height: 1em;
+ box-sizing: border-box;
+ }
+ /* Checked */
+ .l:checked {
+ background-color: var(--switch-track-on);
+ box-shadow: 0.125em 0.125em 0 0.125em var(--switch-shadow-on) inset;
+ }
+ .l:checked:before {
+ background-color: currentColor;
+ transform: translateX(125%);
+ }
+ .l:checked:after {
+ border-left-color: currentColor;
+ transform: translateX(-2.5%) rotateY(180deg);
+ }
+ /* Other States */
+ .l:focus {
+ outline: 0;
+ }
+ .l:focus-visible {
+ outline: 2px solid var(--switch-sun);
+ outline-offset: 2px;
+ }
+ /* 放进顶部栏：去掉模板演示用的外边距，靠右 */
+ .topbar .l {
+ margin: 0;
+ margin-left: auto;
+ flex-shrink: 0;
+ }
+
+ /* ---- 日/夜切换的渐变过场：从开关位置向外扩散的径向渐变 ---- */
+ #themeFx {
+ position: fixed;
+ inset: 0;
+ z-index: 90;
+ pointer-events: none;
+ opacity: 0;
+ background: radial-gradient(
+ circle at var(--fx-x, calc(100% - 48px)) var(--fx-y, 32px),
+ var(--fx-color, rgba(6, 6, 6, 0.55)) 0%,
+ rgba(0, 0, 0, 0) 62%
+ );
+ }
+ #themeFx.on {
+ animation: themeWash 0.7s ease-out;
+ }
+ @keyframes themeWash {
+ 0% {
+ opacity: 0;
+ }
+ 35% {
+ opacity: 1;
+ }
+ 100% {
+ opacity: 0;
+ }
+ }
+ @media (prefers-reduced-motion: reduce) {
+ #themeFx {
+ display: none;
+ }
+ }
+
+ /* 出场动画：第一行与第二行统一为「上滑淡入」 */
+ @keyframes slideUpIn {
+ from {
+ opacity: 0;
+ transform: translateY(20px);
+ }
+ to {
+ opacity: 1;
+ transform: translateY(0);
+ }
+ }
+ .hero-head,
+ .download-btn,
+ .credit,
+ .works-head,
+ .work-card,
+ .more-btn {
+ animation: slideUpIn 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+ }
+ .download-btn {
+ animation-delay: 0.1s;
+ }
+ .credit {
+ animation-delay: 0.2s;
+ }
+ .works-head {
+ animation-delay: 0.25s;
+ }
+ .more-btn {
+ animation-delay: 0.55s;
+ }
+ @media (prefers-reduced-motion: reduce) {
+ .hero-head,
+ .download-btn,
+ .credit,
+ .works-head,
+ .work-card,
+ .more-btn {
+ animation: none;
+ }
+ }
+
+ /* 电脑端（足够宽时）：第一行横向排布，下载按钮贴到最右并缩小
+    需 ≥768px 才能一行容下：图标104 + 名称/版本 + 按钮 */
+ @media (min-width: 768px) {
+ .stage {
+ max-width: none;   /* 放开到全屏宽，按钮才能真正贴最右 */
+ }
+ .hero-row {
+ flex-direction: row;
+ align-items: center;
+ gap: 20px;
+ }
+ .works-grid {
+ grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+ gap: 14px;
+ }
+ .dl-wrap {
+ margin-top: 0;
+ margin-left: auto;   /* 整组（按钮+来源行）推到第一行最右 */
+ align-items: flex-end;
+ }
+ .credit {
+ text-align: right;
+ }
+ .download-btn {
+ width: auto;
+ margin-top: 0;
+ padding: 13px 20px;
+ gap: 8px;
+ border-radius: 12px;
+ flex-shrink: 0;
+ }
+ .download-btn .icon {
+ width: 20px;
+ height: 20px;
+ }
+ .download-btn .name {
+ font-size: 15px;
+ letter-spacing: 0.3px;
+ }
+ }
+
+ /* 窄屏（手机）保持「图标在左、名称+版本在右」，按钮另起一行满宽 */
+ @media (max-width: 560px) {
+ .hero-head {
+ gap: 14px;
+ }
+ .hero-icon {
+ width: 72px;
+ height: 72px;
+ border-radius: 18px;
+ }
+ .hero-title {
+ font-size: 19px;
+ }
+ .hero-ver {
+ font-size: 12.5px;
+ }
+ .dl-wrap {
+ margin-top: 34px;
+ }
+ }
+
+ @media (max-width: 380px) {
+ .hero-head {
+ gap: 12px;
+ }
+ .hero-icon {
+ width: 64px;
+ height: 64px;
+ }
+ .hero-title {
+ font-size: 17px;
+ }
+ }
+ 
+ /* ---- 作品列表页专用 ---- */
+ .back-btn {
+ align-self: flex-start;
+ display: inline-flex;
+ align-items: center;
+ gap: 6px;
+ padding: 10px 16px;
+ font-size: 14px;
+ font-weight: 600;
+ color: var(--text-main);
+ background-color: var(--card-bg);
+ border: 1px solid var(--card-border);
+ border-radius: 10px;
+ text-decoration: none;
+ transition:
+ background-color 0.45s ease,
+ border-color 0.2s ease,
+ color 0.45s ease;
+ }
+ .back-btn:hover {
+ border-color: var(--card-hover-border);
+ }
+ .back-btn:active {
+ transform: scale(0.99);
+ }
+ .works-grid {
+ margin-top: 22px;
+ }
+ .back-btn,
+ .work-card {
+ animation: slideUpIn 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+ }
+ @media (prefers-reduced-motion: reduce) {
+ .back-btn,
+ .work-card {
+ animation: none;
+ }
+ }
+</style>
+</head>
+
+<body oncopy="return false" oncut="return false" oncontextmenu="return false">
+
+ <!-- 第一行：标题栏（左文字 + 右日夜开关） -->
+ <header class="topbar">
+  <div class="topbar-inner">
+   <span class="topbar-title">用户8044使用ai制作作品</span>
+   <input class="l" type="checkbox" id="themeSwitch" role="switch" aria-label="切换日间/夜间模式" title="日间 / 夜间模式">
+  </div>
+ </header>
+
+ <main class="stage">
+
+  <!-- 第二行：返回首页 -->
+  <a class="back-btn" href="index.html">← 返回首页</a>
+
+  <!-- 其余：全部作品卡片 -->
+  <div class="works-grid" id="worksGrid"></div>
+
+ </main>
+
+ <div id="themeFx" aria-hidden="true"></div>
+
+ <script src="works.js"></script>
+ <script>
+ /* 全部作品，按清单顺序展示 */
+ (function () {
+  if (window.renderWorks) window.renderWorks('worksGrid');
+ })();
+ </script>
+
+ <script>
+
+ /* ---- 日/夜模式切换：开关 + 渐变动画过场 ---- */
+ (function () {
+  var root = document.documentElement;
+  var sw = document.getElementById('themeSwitch');
+  var fx = document.getElementById('themeFx');
+  var meta = document.querySelector('meta[name="theme-color"]');
+
+  function isDark() { return root.getAttribute('data-theme') === 'dark'; }
+  function applyMeta(dark) {
+   if (meta) meta.setAttribute('content', dark ? '#0f0f0f' : '#ffffff');
+  }
+
+  applyMeta(isDark());
+  if (!sw) return;
+
+  sw.checked = isDark();
+
+  sw.addEventListener('change', function () {
+   var dark = sw.checked;
+   root.setAttribute('data-theme', dark ? 'dark' : 'light');
+   applyMeta(dark);
+   try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
+
+   /* 渐变过场：从开关所在位置向外扩散 */
+   if (fx) {
+    var r = sw.getBoundingClientRect();
+    fx.style.setProperty('--fx-x', (r.left + r.width / 2) + 'px');
+    fx.style.setProperty('--fx-y', (r.top + r.height / 2) + 'px');
+    fx.style.setProperty('--fx-color', dark ? 'rgba(6, 6, 6, 0.55)' : 'rgba(255, 255, 255, 0.6)');
+    fx.classList.remove('on');
+    void fx.offsetWidth;   /* 强制重排，让动画能重播 */
+    fx.classList.add('on');
+   }
+  });
+ })();
+ 
+ </script>
+
+</body>
+</html>

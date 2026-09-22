@@ -230,6 +230,34 @@
  transform: translateX(2px);
  }
 
+ /* 查看更多：6 张卡片下方的入口 */
+ .more-btn {
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ margin-top: 14px;
+ padding: 14px 16px;
+ font-size: 15px;
+ font-weight: 600;
+ letter-spacing: 0.3px;
+ color: var(--text-main);
+ background-color: transparent;
+ border: 1px dashed var(--card-border);
+ border-radius: 14px;
+ text-decoration: none;
+ transition:
+ background-color 0.45s ease,
+ border-color 0.2s ease,
+ color 0.2s ease;
+ }
+ .more-btn:hover {
+ border-color: var(--link-color);
+ color: var(--link-color);
+ }
+ .more-btn:active {
+ transform: scale(0.995);
+ }
+
  .hero-head {
  display: flex;
  align-items: center;
@@ -463,7 +491,8 @@
  .download-btn,
  .credit,
  .works-head,
- .work-card {
+ .work-card,
+ .more-btn {
  animation: slideUpIn 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
  }
  .download-btn {
@@ -475,12 +504,16 @@
  .works-head {
  animation-delay: 0.25s;
  }
+ .more-btn {
+ animation-delay: 0.55s;
+ }
  @media (prefers-reduced-motion: reduce) {
  .hero-head,
  .download-btn,
  .credit,
  .works-head,
- .work-card {
+ .work-card,
+ .more-btn {
  animation: none;
  }
  }
@@ -605,6 +638,9 @@
 
   <!-- 第五行：作品展示区（从 game/ 里随机抽 6 个卡片） -->
   <div class="works-grid" id="worksGrid"></div>
+
+  <!-- 查看更多：进入全部作品页 -->
+  <a class="more-btn" href="works.html">查看更多</a>
 
  </main>
 
@@ -988,57 +1024,11 @@
  })();
  </script>
 
+ <script src="works.js"></script>
  <script>
- /* ---- 作品展示：从 game/ 里随机抽 6 个（名字取自各页面自己的 <title>） ---- */
+ /* ---- 作品展示：从 game/ 里随机抽 6 个（清单与渲染逻辑见 works.js） ---- */
  (function () {
-  var WORKS = [
-   { name: '主播模拟器', url: 'game/game.html' },
-   { name: '直播观看模拟器', url: 'game/game2.html' },
-   { name: '窗外的死亡凝视', url: 'game/game3.html' },
-   { name: '下班后的事（突脸鬼图预警）', url: 'game/game4.html' },
-   { name: '心理测试？（突脸鬼图警告）', url: 'game/game5.html' },
-   { name: '主播粉丝模拟器', url: 'game/game6.html' },
-   { name: '点按钮！（突脸鬼图警告）', url: 'game/game7.html' },
-   { name: '国家管理模拟器', url: 'game/game8.html' },
-   { name: '接水小游戏', url: 'game/game9.html' },
-   { name: 'AI 2048 对战', url: 'game/game10.html' },
-   { name: '赛博朋克 2048 合作版', url: 'game/game11.html' },
-   { name: 'AI 2048 大战 - 50格', url: 'game/game12.html' },
-   { name: '小球对战游戏', url: 'game/game13.html' }
-  ];
-
-  var grid = document.getElementById('worksGrid');
-  if (!grid) return;
-
-  /* 洗牌，取前 6 个 */
-  var pool = WORKS.slice();
-  for (var i = pool.length - 1; i > 0; i--) {
-   var j = Math.floor(Math.random() * (i + 1));
-   var tmp = pool[i];
-   pool[i] = pool[j];
-   pool[j] = tmp;
-  }
-
-  pool.slice(0, 6).forEach(function (w, idx) {
-   var a = document.createElement('a');
-   a.className = 'work-card';
-   a.href = w.url;
-   a.target = '_blank';
-   a.rel = 'noopener noreferrer';
-   a.style.animationDelay = (0.3 + idx * 0.06).toFixed(2) + 's';
-
-   var nameEl = document.createElement('span');
-   nameEl.className = 'work-name';
-   nameEl.textContent = w.name;
-
-   var goEl = document.createElement('span');
-   goEl.className = 'work-go';
-   goEl.textContent = '→';
-
-   a.appendChild(nameEl);
-   a.appendChild(goEl);
-   grid.appendChild(a);
-  });
+  if (window.renderWorks) window.renderWorks('worksGrid', 6, true);
  })();
  </script>
 
