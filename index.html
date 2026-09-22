@@ -33,7 +33,6 @@
  --card-bg: #ffffff;
  --card-border: #ececec;
  --card-hover-border: #d8d8d8;
- --go-bg: #f4f4f4;
  --switch-track: rgba(0, 0, 0, 0.7);
  --switch-track-on: rgba(0, 0, 0, 0.45);
  --switch-shadow: rgba(0, 0, 0, 0.3);
@@ -58,7 +57,6 @@
  --card-bg: #161616;
  --card-border: #262626;
  --card-hover-border: #3a3a3a;
- --go-bg: #232323;
  --switch-track: rgba(255, 255, 255, 0.22);
  --switch-track-on: rgba(255, 255, 255, 0.12);
  --switch-shadow: rgba(0, 0, 0, 0.45);
@@ -220,24 +218,15 @@
  }
  .work-go {
  flex-shrink: 0;
- width: 28px;
- height: 28px;
- display: flex;
- align-items: center;
- justify-content: center;
- border-radius: 50%;
- background-color: var(--go-bg);
  color: var(--text-sub);
- font-size: 15px;
+ font-size: 17px;
  line-height: 1;
  transition:
- background-color 0.2s ease,
  color 0.2s ease,
  transform 0.2s ease;
  }
  .work-card:hover .work-go {
- background-color: var(--link-color);
- color: #ffffff;
+ color: var(--link-color);
  transform: translateX(2px);
  }
 
