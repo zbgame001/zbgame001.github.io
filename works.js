@@ -3,10 +3,6 @@
 (function () {
  var WORKS = [
   { name: '主播模拟器', url: 'game/game.html' },
-  { name: '主播模拟器 2', url: 'game/game-1.html' },
-  { name: '主播模拟器 3', url: 'game/game-2.html' },
-  { name: '主播模拟器 4', url: 'game/game-3.html' },
-  { name: '直播观看模拟器', url: 'game/game2.html' },
   { name: '窗外的死亡凝视', url: 'game/game3.html' },
   { name: '下班后的事（突脸鬼图预警）', url: 'game/game4.html' },
   { name: '心理测试？（突脸鬼图警告）', url: 'game/game5.html' },
