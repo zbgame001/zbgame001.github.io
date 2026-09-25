@@ -1,0 +1,11 @@
+{
+  "success": true,
+  "data": {
+    "latest_version_code": 52,
+    "latest_version_name": "V6.6-test-4",
+    "update_url": "https://zbgame001.github.io/game.apk",
+    "update_content": "V6.6-test-4 更新内容\n1.成就通知更改\n2.初始热度值从1000调整为0\n3.修复了同时得多个成就出现重叠覆盖的问题",
+    "force_update": false,
+    "min_version_code": 0
+  }
+}
