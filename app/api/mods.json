@@ -1,4 +1,11 @@
 {
   "success": true,
-  "data": []
+  "data": [
+    {
+      "name": "示例Mod",
+      "version": "1.0",
+      "url": "mods/example.js",
+      "enabled": true
+    }
+  ]
 }
