@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>shot harness</title>
+<style>html,body{margin:0;padding:0;background:#07090d;overflow:hidden}
+iframe{display:block;border:0;width:100vw;height:100vh}</style>
+</head>
+<body>
+<iframe id="fr" src="../index.html"></iframe>
+<script>
+/* 截图用：file:///.../tests/shot.html#list | #play | #gate | #play2 */
+var fr = document.getElementById('fr');
+var what = (location.hash || '#list').slice(1);
+fr.addEventListener('load', function () {
+  var w = fr.contentWindow, d = fr.contentDocument;
+  var t0 = Date.now();
+  var wait = setInterval(function () {
+    if (!d.querySelectorAll('.lv-card').length) {
+      if (Date.now() - t0 > 5000) clearInterval(wait);
+      return;
+    }
+    clearInterval(wait);
+    setTimeout(function () {
+      var cards = d.querySelectorAll('.lv-card');
+      if (what === 'play') { cards[0].click(); }
+      if (what === 'gate') { cards[1].click(); }
+      if (what === 'play2') {
+        cards[1].click();                       /* 先点锁住的关卡2，弹出解锁层 */
+        setTimeout(function () {
+          w.TOY_CONFIG.heart.mode = 'soft';
+          d.getElementById('ovAction').click();  /* 走「去点个心」→ 自动进关卡2 */
+        }, 80);
+      }
+    }, 150);
+  }, 80);
+});
+</script>
+</body>
+</html>

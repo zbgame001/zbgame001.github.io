@@ -1,0 +1,115 @@
+/* 霜降 — 近黑底 + 冰青点缀，直角克制、留白够多 */
+:root{
+  --bg:#07090d;
+  --panel:#0d1117;
+  --tile:#131c26;
+  --tile-hi:#1d2b3a;
+  --line:rgba(255,255,255,.07);
+  --fg:#e8f1f8;
+  --dim:#8ba3b8;
+  --ice:#7de3ff;
+  --ice-dim:rgba(125,227,255,.14);
+  --hot:#ff9a5a;
+  --good:#7dffb0;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+/* 作者样式的 display 会盖掉 UA 的 [hidden]，必须显式压回去 */
+[hidden]{display:none !important}
+html,body{margin:0;padding:0;height:100%}
+body{
+  background:var(--bg);color:var(--fg);
+  font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif;
+  display:flex;justify-content:center;
+  background-image:radial-gradient(1200px 600px at 50% -10%,rgba(125,227,255,.10),transparent 60%);
+  background-attachment:fixed;
+}
+.app{width:100%;max-width:520px;padding:34px 20px 40px;display:flex;flex-direction:column;gap:22px}
+
+/* ---------- 头部 ---------- */
+.hd{text-align:center;padding:6px 0 2px}
+.hd h1{
+  margin:0;font-size:34px;letter-spacing:.22em;font-weight:600;
+  background:linear-gradient(180deg,#ffffff,#9fd8ee);-webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hd .sub{margin:10px 0 0;color:var(--dim);font-size:13.5px;line-height:1.75}
+.hd .sub b{color:var(--ice);font-weight:600}
+
+/* ---------- 关卡卡片 ---------- */
+.levels{display:flex;flex-direction:column;gap:12px}
+.lv-card{
+  position:relative;display:grid;grid-template-columns:44px 1fr auto;grid-template-rows:auto auto;
+  gap:2px 14px;align-items:center;text-align:left;cursor:pointer;
+  background:var(--panel);border:1px solid var(--line);border-radius:0;
+  padding:16px 18px;color:var(--fg);font:inherit;
+  transition:background .15s ease,border-color .15s ease;
+}
+.lv-card:hover{background:#111823;border-color:rgba(125,227,255,.28)}
+.lv-card:active{transform:translateY(1px)}
+.lv-no{grid-row:1/3;font-size:20px;color:var(--ice);opacity:.55;font-variant-numeric:tabular-nums}
+.lv-name{font-size:16px;font-weight:600;letter-spacing:.06em}
+.lv-desc{grid-column:2;font-size:12.5px;color:var(--dim)}
+.lv-lock{grid-column:3;grid-row:1/3;font-size:12.5px;color:var(--dim);white-space:nowrap}
+.lv-card.locked{opacity:.72}
+.lv-card.locked .lv-lock{color:var(--ice)}
+.lv-card.done .lv-lock{color:var(--good)}
+
+/* ---------- 游戏区 ---------- */
+.stage{display:flex;flex-direction:column;gap:14px}
+.hud{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--dim);
+  border-bottom:1px solid var(--line);padding-bottom:10px}
+.hud b{color:var(--fg);font-variant-numeric:tabular-nums}
+.hud b.flash{color:var(--good)}
+
+.grid{display:grid;gap:10px;aspect-ratio:1/1;width:100%}
+.cell{
+  position:relative;background:var(--tile);border:1px solid var(--line);border-radius:0;
+  display:flex;align-items:center;justify-content:center;font-size:30px;
+  cursor:pointer;user-select:none;overflow:hidden;
+  transition:background .12s ease,transform .06s ease;
+}
+.cell::after{ /* 冰晶 */
+  content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,var(--ice-dim),transparent 70%);
+  opacity:0;transition:opacity .12s ease;
+}
+.cell.on::after{opacity:1}
+.cell.on{background:var(--tile-hi);border-color:rgba(125,227,255,.35)}
+.cell.hot{background:#241610;border-color:rgba(255,154,90,.4)}
+.cell.hot::after{background:radial-gradient(circle at 50% 45%,rgba(255,154,90,.20),transparent 70%);opacity:1}
+.cell.pop{animation:pop .18s ease}
+.cell.bad{animation:bad .28s ease}
+@keyframes pop{0%{transform:scale(1)}45%{transform:scale(1.12);background:rgba(125,227,255,.30)}100%{transform:scale(1)}}
+@keyframes bad{0%{transform:translateX(0)}25%{transform:translateX(-4px)}50%{transform:translateX(4px)}75%{transform:translateX(-2px)}100%{transform:translateX(0)}}
+.cell i{position:relative;z-index:1;font-style:normal;filter:drop-shadow(0 0 10px rgba(125,227,255,.55))}
+.cell.hot i{filter:drop-shadow(0 0 10px rgba(255,154,90,.6))}
+
+.stage-foot{display:flex;gap:10px}
+
+/* ---------- 按钮 ---------- */
+.btn{
+  flex:1;appearance:none;border:1px solid var(--line);background:#141b24;color:var(--fg);
+  font:inherit;font-size:14px;padding:12px 18px;border-radius:999px;cursor:pointer;
+  transition:background .15s ease,color .15s ease,border-color .15s ease,opacity .15s;
+}
+.btn:hover{background:#1a2431}
+.btn.ghost{background:transparent;color:var(--dim)}
+.btn.ghost:hover{color:var(--fg)}
+.btn.primary{background:#c8f2ff;color:#04212c;border-color:transparent;font-weight:600}
+.btn.primary:hover{background:#e2f8ff}
+.btn[disabled]{opacity:.5;cursor:default}
+
+/* ---------- 弹层 ---------- */
+.overlay{
+  position:fixed;inset:0;background:rgba(4,6,9,.82);backdrop-filter:blur(6px);
+  display:flex;align-items:center;justify-content:center;padding:24px;z-index:50;
+}
+.card{
+  width:100%;max-width:360px;background:var(--panel);border:1px solid var(--line);
+  padding:30px 24px 22px;text-align:center;display:flex;flex-direction:column;gap:12px;
+}
+.card-icon{font-size:38px;line-height:1}
+.card h2{margin:0;font-size:18px;font-weight:600;letter-spacing:.04em}
+.card p{margin:0;color:var(--dim);font-size:13.5px;line-height:1.7}
+.card .btn{margin-top:2px}
+
+/* ---------- 页脚 ---------- */
+.ft{text-align:center;color:#3f5566;font-size:11.5px;letter-spacing:.06em;margin-top:auto;padding-top:8px}

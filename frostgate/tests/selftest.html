@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>frostgate selftest</title>
+<style>body{background:#111;color:#ddd;font:13px/1.6 monospace;margin:0;padding:12px;display:flex;gap:16px}
+#out{white-space:pre-wrap;max-width:520px}iframe{width:400px;height:820px;border:1px solid #333}</style>
+</head>
+<body>
+<pre id="out">running…</pre>
+<iframe id="fr" src="../index.html"></iframe>
+<script>
+var log = [], fail = 0;
+function ok(name, cond, extra) {
+  log.push((cond ? 'PASS  ' : 'FAIL  ') + name + (extra ? '   [' + extra + ']' : ''));
+  if (!cond) fail++;
+}
+function done() {
+  document.getElementById('out').textContent = log.join('\n') + '\n----------------\n' + (fail ? fail + ' FAILED' : 'ALL PASS');
+  document.title = fail ? 'FAIL' : 'PASS';
+  document.body.setAttribute('data-test', fail ? 'fail' : 'pass');
+}
+
+var fr = document.getElementById('fr');
+fr.addEventListener('load', function () {
+  var w, d, t0 = Date.now();
+  var wait = setInterval(function () {
+    try { w = fr.contentWindow; d = fr.contentDocument; } catch (e) { return; }
+    if (!d || !d.querySelectorAll('.lv-card').length) {
+      if (Date.now() - t0 > 6000) { clearInterval(wait); ok('页面加载', false, '没有渲染出关卡卡片'); done(); }
+      return;
+    }
+    clearInterval(wait);
+    setTimeout(function () { run(w, d); }, 200);
+  }, 80);
+});
+
+function run(w, d) {
+  try {
+    function shown(node) { return !!(node && w.getComputedStyle(node).display !== 'none'); }
+
+    var cards = d.querySelectorAll('.lv-card');
+    ok('渲染出 2 个关卡', cards.length === 2, 'got ' + cards.length);
+    ok('首屏：弹层不可见', !shown(d.getElementById('overlay')));
+    ok('首屏：棋盘不可见', !shown(d.getElementById('stage')));
+    ok('首屏：关卡列表可见', shown(d.getElementById('levels')));
+    ok('关卡1 未锁', !!cards[0] && cards[0].dataset.locked === '0');
+    ok('关卡2 锁定', !!cards[1] && cards[1].dataset.locked === '1');
+    ok('关卡2 显示「未解锁」', !!cards[1] && cards[1].querySelector('.lv-lock').textContent.indexOf('未解锁') >= 0);
+
+    /* --- 关卡1 能玩 --- */
+    cards[0].click();
+    var stage = d.getElementById('stage');
+    ok('进关卡1：棋盘显示出来', shown(stage));
+    ok('关卡1：3x3 棋盘', d.querySelectorAll('.cell').length === 9, 'cells=' + d.querySelectorAll('.cell').length);
+    ok('HUD 关卡 = 1', d.getElementById('hudLevel').textContent === '1');
+    ok('HUD 目标 = 20', d.getElementById('hudTarget').textContent === '20');
+
+    /* 一定要有一块冰晶（start 时立刻 spawn 一次） */
+    var g = w.__game;
+    var ice = null;
+    for (var i = 0; i < g.cells.length; i++) if (g.cells[i].kind === 'ice') { ice = g.cells[i]; break; }
+    ok('关卡1：场上有冰晶', !!ice);
+    var before = Number(d.getElementById('hudScore').textContent);
+    if (ice) ice.el.click();
+    var after = Number(d.getElementById('hudScore').textContent);
+    ok('点碎冰晶 +1 分', after === before + 1, before + ' -> ' + after);
+    ok('连击 +1', d.getElementById('hudCombo').textContent === '1');
+
+    /* 点空格子不该掉分掉命 */
+    var life0 = d.getElementById('hudLife').textContent;
+    var empty = null;
+    for (var j = 0; j < g.cells.length; j++) if (!g.cells[j].kind) { empty = g.cells[j]; break; }
+    if (empty) empty.el.click();
+    ok('点空格子无副作用', d.getElementById('hudLife').textContent === life0 && Number(d.getElementById('hudScore').textContent) === after);
+
+    /* --- 关卡2 的锁 --- */
+    d.querySelectorAll('.lv-card')[1].click();
+    var ov = d.getElementById('overlay');
+    ok('点锁住的关卡2：弹层出现', shown(ov));
+    ok('弹层标题提到解锁', d.getElementById('ovTitle').textContent.indexOf('解锁') >= 0, d.getElementById('ovTitle').textContent);
+    var act = d.getElementById('ovAction');
+    ok('主按钮是「去点个心」', act.textContent.indexOf('点个心') >= 0, act.textContent);
+    ok('有「先玩第一关」次要按钮', !d.getElementById('ovClose').hidden);
+
+    /* SDK 侧：还没点过心 */
+    w.toy.getAuthorRelation().then(function (rel) {
+      ok('SDK：未点过心 => followed=false', rel.followed === false, JSON.stringify(rel));
+
+      /* --- 点一下，解锁（用 soft 模式，避免测试里真去联网轮询） --- */
+      w.TOY_CONFIG.heart.mode = 'soft';
+      act.click();
+      setTimeout(function () {
+        ok('弹层已关掉（计算样式）', !shown(d.getElementById('overlay')));
+        var cards2 = d.querySelectorAll('.lv-card');
+        ok('关卡2 解锁', !!cards2[1] && cards2[1].dataset.locked === '0', 'locked=' + (cards2[1] && cards2[1].dataset.locked));
+        ok('关卡2 文案变「开打」', !!cards2[1] && cards2[1].querySelector('.lv-lock').textContent.indexOf('开打') >= 0);
+
+        var st = d.getElementById('stage');
+        ok('自动进了关卡2', shown(st) && d.getElementById('hudLevel').textContent === '2', 'hud=' + d.getElementById('hudLevel').textContent);
+        ok('关卡2：4x4 棋盘', d.querySelectorAll('.cell').length === 16, 'cells=' + d.querySelectorAll('.cell').length);
+
+        w.toy.getAuthorRelation().then(function (rel2) {
+          ok('SDK：点过心 => followed=true', rel2.followed === true, JSON.stringify(rel2));
+          ok('SDK：本地缓存住', w.toy.isHearted() === true);
+
+          w.toy.resetHeart();
+          ok('resetHeart 能清掉', w.toy.isHearted() === false);
+          done();
+        });
+      }, 120);
+    });
+  } catch (e) {
+    ok('测试执行未抛异常', false, e && e.message);
+    done();
+  }
+}
+</script>
+</body>
+</html>
