@@ -1,16 +1,28 @@
 /*!
- * toy-sdk.js — 「点个心解锁」迷你 SDK  v1.0.0
+ * toy-sdk.js — 「点个心解锁」迷你 SDK  v1.1.0
  * ------------------------------------------------------------------
- * 形状照着 B 站互动玩具的 toy-sdk 抄（getAuthorRelation / getCloudStorage /
- * setCloudStorage / getUserProfile / navigate），但门槛换成了「给项目点个心」：
+ * 一道纯静态的解锁门槛：访客给仓库点个星（点个心）才放行某一关。
  *
- *   await toy.getAuthorRelation()   ->  { followed: true|false, hearted, source }
- *   await toy.requestHeart()        ->  打开仓库页并开始校验，resolve 是否通过
- *   toy.isHearted()                 ->  同步读本地缓存（渲染列表用）
- *   toy.on('heart:verified', fn)    ->  解锁成功时通知界面
+ * 校验方式（v1.1 改掉的做法）：**不轮询**。
+ *   只在两个时刻各查一次：
+ *     ① 用户点「去点个心」——记下当时的星数基线，然后开仓库页；
+ *     ② 用户回到这个页面（visibilitychange / focus / pageshow）——查一次，星数涨了就开。
+ *   外加一个手动入口 toy.checkUnlock()，给界面上「我已点过心，再查一次」用。
+ *   v1.0 那种 setInterval 轮询在后台标签页会被浏览器节流到 1 次/分钟，等于不刷新，
+ *   所以点完星回来看不到解锁 —— 不是「随时刷新」，而是根本不刷。
  *
- * 纯静态、零后端，直接丢 GitHub Pages 就能跑。
- * 校验模式见 config.js：auto / count / soft。
+ * 对外接口（v1.1 起不再沿用 B 站 toy-sdk 的命名）：
+ *   toy.isUnlocked()      同步，读本地缓存（渲染关卡列表用）
+ *   toy.checkUnlock()     按需查一次 -> Promise<{unlocked, reason}>
+ *   toy.requestUnlock()   引导去点心 + 开始校验 -> Promise<bool>
+ *   toy.lockState()       'locked' | 'checking' | 'unlocked' | 'failed'
+ *   toy.on('checking' | 'unlocked' | 'failed' | 'reset', fn)
+ *   toy.actionLabel       按钮上那句文案
+ *   toy.heartUrl          要去点心的地址
+ *   toy.saveState(obj) / toy.loadState(keys) / toy.clearState(keys)   本地存档
+ *   toy.getViewer()       访客信息（静态站没有登录态）
+ *   toy.openLink(url)     跳转
+ *   toy.resetUnlock()     调试用：清掉本地解锁状态
  */
 (function (global) {
   'use strict';
@@ -22,7 +34,7 @@
 
   var HEART_URL = 'https://github.com/' + (PROJECT.owner || '') + '/' + (PROJECT.repo || '');
 
-  /* ------------------------------ 事件总线 ------------------------------ */
+  /* ------------------------------ 事件 ------------------------------ */
   var listeners = {};
   function on(evt, fn) {
     (listeners[evt] = listeners[evt] || []).push(fn);
@@ -34,39 +46,32 @@
   }
   function emit(evt, payload) {
     (listeners[evt] || []).slice().forEach(function (fn) {
-      try { fn(payload); } catch (e) { /* 监听器自己的锅，不连累 SDK */ }
+      try { fn(payload); } catch (e) { /* 监听器自己抛的错不连累 SDK */ }
     });
   }
 
-  /* ------------------------------ 本地存档 ------------------------------ */
+  /* ------------------------------ 存档 ------------------------------ */
   function lsGet(k) { try { return global.localStorage.getItem(NS + ':' + k); } catch (e) { return null; } }
   function lsSet(k, v) { try { global.localStorage.setItem(NS + ':' + k, String(v)); } catch (e) {} }
   function lsDel(k) { try { global.localStorage.removeItem(NS + ':' + k); } catch (e) {} }
 
-  /* ------------------------------ 心 / 星 ------------------------------ */
-  var heart = {
-    state: 'idle',        // idle | pending | verified | failed
-    cache: null,          // 本地缓存：点过心没有
-    baseline: null,       // 打开仓库页之前的星数基线
-    timer: null,
+  /* ------------------------------ 门槛 ------------------------------ */
+  var gate = {
+    state: 'locked',
+    cache: null,          // 本地解锁缓存
+    baseline: null,       // 点亮「去点个心」那一刻的星数
+    armed: false,         // 「回到页面就查一次」的监听挂没挂
+    timeoutTimer: null,
+    settleTimer: null,
+    waiters: [],          // 等 requestUnlock() 结果的 resolvers
 
-    /** 同步读本地缓存 */
-    isHearted: function () {
-      if (heart.cache === null) heart.cache = lsGet('hearted') === '1';
-      return heart.cache;
+    isUnlocked: function () {
+      if (gate.cache === null) gate.cache = lsGet('unlocked') === '1';
+      return gate.cache;
     },
 
-    relation: function (source) {
-      var ok = heart.isHearted();
-      return {
-        followed: ok,      // 游戏只认这个字段（沿用 B 站 SDK 的命名）
-        hearted: ok,
-        source: source || (ok ? 'local' : 'none')
-      };
-    },
-
-    /** 读一次仓库星数（静态站没有登录态，只能看总数） */
-    fetchStars: function () {
+    /* 查一次仓库星数；静态站没有登录态，只能看总数 */
+    stars: function () {
       if (!PROJECT.owner || !PROJECT.repo) return Promise.resolve(null);
       var url = 'https://api.github.com/repos/' + PROJECT.owner + '/' + PROJECT.repo;
       return global.fetch(url, { headers: { Accept: 'application/vnd.github+json' } })
@@ -75,144 +80,146 @@
         .catch(function () { return null; });
     },
 
-    /* 模拟 B 站 SDK：getAuthorRelation() */
-    getRelation: function () {
-      if (heart.isHearted()) return Promise.resolve(heart.relation('local'));
-      var mode = HEART.mode || 'auto';
-      if (mode === 'soft') return Promise.resolve(heart.relation('none'));
-      // 顺便把基线拿上，用户点完星回来就能比对
-      return heart.fetchStars().then(function (n) {
-        if (typeof n === 'number' && heart.baseline === null) heart.baseline = n;
-        return heart.relation('none');
-      });
-    },
+    /* 按需查一次 —— 不是轮询 */
+    check: function () {
+      if (gate.isUnlocked()) return Promise.resolve({ unlocked: true, reason: 'cached' });
+      if ((HEART.mode || 'star') === 'soft') return Promise.resolve(gate.mark('soft'));
 
-    /* 用户点了「去点个心」 */
-    request: function () {
-      if (heart.isHearted()) { emit('heart:verified', { reason: 'cached' }); return Promise.resolve(true); }
+      if (gate.baseline === null) {
+        /* 还没记过基线（用户没点过按钮），先记一次，别急着判死 */
+        return gate.stars().then(function (n) {
+          if (typeof n === 'number') gate.baseline = n;
+          return { unlocked: false, reason: 'no-baseline' };
+        });
+      }
 
-      var mode = HEART.mode || 'auto';
-
-      if (mode === 'soft') { return Promise.resolve(heart.mark('soft')); }
-
-      heart.state = 'pending';
-      emit('heart:pending', { url: HEART_URL });
-
-      // 开仓库页去点星（保持 noopener，别把 opener 交出去）
-      try { global.open(HEART_URL, '_blank', 'noopener,noreferrer'); } catch (e) {}
-
-      var base     = (typeof heart.baseline === 'number') ? heart.baseline : null;
-      var deadline = Date.now() + (HEART.timeoutMs || 120000);
-      var pollMs   = HEART.pollMs || 4000;
-
-      return new Promise(function (resolve) {
-        function finish(ok, reason) {
-          if (heart.timer) { clearInterval(heart.timer); heart.timer = null; }
-          if (ok) resolve(heart.mark(reason));
-          else { heart.state = 'failed'; emit('heart:failed', { reason: reason }); resolve(false); }
+      return gate.stars().then(function (n) {
+        if (typeof n !== 'number') {
+          gate.state = 'locked';
+          return { unlocked: false, reason: 'api-unreachable' };
         }
-
-        heart.timer = setInterval(function () {
-          if (Date.now() > deadline) {
-            // auto：超时放行（别为了一个玩具把玩家卡死）；count：认输
-            if (mode === 'auto') finish(true, 'timeout-allow');
-            else finish(false, 'timeout');
-            return;
-          }
-          heart.fetchStars().then(function (n) {
-            if (typeof n !== 'number') return;          // 网络/限流，下轮再试
-            if (base === null) { base = n; return; }    // 第一次没拿到基线，补上
-            if (n > base) finish(true, 'star+');
-          });
-        }, pollMs);
+        if (n > gate.baseline) return gate.mark('star+');
+        gate.state = 'locked';
+        return { unlocked: false, reason: 'not-starred', stars: n, baseline: gate.baseline };
       });
     },
 
-    mark: function (reason) {
-      heart.cache = true;
-      heart.state = 'verified';
-      lsSet('hearted', '1');
-      emit('heart:verified', { reason: reason || '' });
-      return true;
+    /* 用户点「去点个心」 */
+    request: function () {
+      if (gate.isUnlocked()) { emit('unlocked', { reason: 'cached' }); return Promise.resolve(true); }
+      if ((HEART.mode || 'star') === 'soft') return Promise.resolve(!!gate.mark('soft').unlocked);
+
+      gate.state = 'checking';
+      emit('checking', { url: HEART_URL });
+
+      return gate.stars().then(function (n) {
+        if (typeof n === 'number') gate.baseline = n;   // 记基线：这一刻还没算他点的星
+        try { global.open(HEART_URL, '_blank', 'noopener,noreferrer'); } catch (e) {}
+        gate.arm();
+
+        var timeoutMs = HEART.timeoutMs || 120000;
+        gate.timeoutTimer = setTimeout(function () { gate.fail('timeout'); }, timeoutMs);
+
+        return new Promise(function (resolve) { gate.waiters.push(resolve); });
+      });
     },
 
-    /** 调试用：把解锁状态清掉 */
+    /* 挂了「回到页面就查一次」。幂等，只挂一次。 */
+    arm: function () {
+      if (gate.armed) return;
+      gate.armed = true;
+
+      function onReturn() {
+        if (gate.state !== 'checking') return;
+        if (global.document && global.document.visibilityState === 'hidden') return;
+        /* 给 GitHub 一点结算时间，再查这一次 */
+        clearTimeout(gate.settleTimer);
+        gate.settleTimer = setTimeout(function () { gate.check(); }, 2500);
+      }
+      global.addEventListener('visibilitychange', onReturn, false);
+      global.addEventListener('focus', onReturn, false);
+      global.addEventListener('pageshow', onReturn, false);
+    },
+
+    /* 通过校验 */
+    mark: function (reason) {
+      gate.cache = true;
+      gate.state = 'unlocked';
+      lsSet('unlocked', '1');
+      clearTimeout(gate.timeoutTimer); gate.timeoutTimer = null;
+      clearTimeout(gate.settleTimer);  gate.settleTimer = null;
+      gate.waiters.splice(0).forEach(function (r) { r(true); });
+      emit('unlocked', { reason: reason || '' });
+      return { unlocked: true, reason: reason || '' };
+    },
+
+    /* 这一轮没成（超时/星数没涨），退回 locked，界面可以再让用户点一次 */
+    fail: function (reason) {
+      if (gate.isUnlocked()) return;
+      gate.state = 'locked';
+      clearTimeout(gate.timeoutTimer); gate.timeoutTimer = null;
+      clearTimeout(gate.settleTimer);  gate.settleTimer = null;
+      gate.waiters.splice(0).forEach(function (r) { r(false); });
+      emit('failed', { reason: reason || '' });
+    },
+
     reset: function () {
-      lsDel('hearted');
-      heart.cache = false;
-      heart.state = 'idle';
-      emit('heart:reset', {});
+      lsDel('unlocked');
+      gate.cache = false;
+      gate.state = 'locked';
+      gate.baseline = null;
+      emit('reset', {});
     }
   };
 
-  /* ------------------------------ 对外接口 ------------------------------ */
+  /* ------------------------------ 对外 ------------------------------ */
   var toy = {
-    version: '1.0.0',
+    version: '1.1.0',
     project: PROJECT,
     heartUrl: HEART_URL,
-    heartLabel: HEART.label || '♥ 去点个心',
+    actionLabel: HEART.label || '♥ 去点个心',
 
     on: on,
     off: off,
 
-    /* ===== 以下形状对齐 B 站 toy-sdk，换宿主时游戏代码不用动 ===== */
+    /* ===== 门槛 ===== */
+    isUnlocked: function () { return gate.isUnlocked(); },
+    checkUnlock: function () { return gate.check(); },
+    requestUnlock: function () { return gate.request(); },
+    lockState: function () { return gate.state; },
+    resetUnlock: function () { gate.reset(); },
 
-    /** 拿用户信息；静态站没有登录态，返回游客 */
-    getUserProfile: function () {
-      return Promise.resolve({ id: null, name: '游客', anonymous: true });
-    },
-
-    /** 云存档：这里落在 localStorage，形状和 B 站 SDK 一致 */
-    getCloudStorage: function (keys) {
+    /* ===== 存档 / 跳转 / 访客 ===== */
+    loadState: function (keys) {
       var out = {};
       (keys || []).forEach(function (k) {
-        var v = lsGet('cloud:' + k);
+        var v = lsGet('state:' + k);
         if (v !== null) out[k] = v;
       });
       return Promise.resolve(out);
     },
-    setCloudStorage: function (obj) {
-      Object.keys(obj || {}).forEach(function (k) { lsSet('cloud:' + k, obj[k]); });
+    saveState: function (obj) {
+      Object.keys(obj || {}).forEach(function (k) { lsSet('state:' + k, obj[k]); });
       return Promise.resolve(true);
     },
-    removeCloudStorage: function (keys) {
-      (keys || []).forEach(function (k) { lsDel('cloud:' + k); });
+    clearState: function (keys) {
+      (keys || []).forEach(function (k) { lsDel('state:' + k); });
       return Promise.resolve(true);
     },
-
-    /** 跳转 */
-    navigate: function (opt) {
+    getViewer: function () {
+      return Promise.resolve({ id: null, name: '游客', anonymous: true });
+    },
+    openLink: function (opt) {
       var url = (typeof opt === 'string') ? opt : (opt && opt.url);
       if (!url) return Promise.resolve(false);
       try { global.open(url, (opt && opt.target) || '_blank', 'noopener,noreferrer'); } catch (e) {}
       return Promise.resolve(true);
-    },
-
-    /* ===== 本 SDK 的核心：作者关系 = 那道门槛 ===== */
-
-    /** 异步查关系（游戏里解锁判断就写这一句） */
-    getAuthorRelation: function () { return heart.getRelation(); },
-
-    /** 同步查（渲染关卡列表用） */
-    isHearted: function () { return heart.isHearted(); },
-
-    /** 弹出去点个心 */
-    requestHeart: function () { return heart.request(); },
-
-    heartState: function () { return heart.state; },
-
-    /** 调试：toy.resetHeart() 清掉本地解锁 */
-    resetHeart: function () { return heart.reset(); }
+    }
   };
 
-  /* 就把这一个东西挂出去，跟真 SDK 一样 */
   global.toy = toy;
 
-  /* 打开页面时预热一下基线星数（不阻塞） */
-  try {
-    if ((HEART.mode || 'auto') !== 'soft' && !heart.isHearted()) {
-      heart.getRelation();
-    }
-  } catch (e) {}
+  /* 回到页面时如果还在等校验，SDK 自己也要能反应过来（不轮询，只挂监听） */
+  if ((HEART.mode || 'star') !== 'soft') gate.arm();
 
 })(window);

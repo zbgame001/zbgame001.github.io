@@ -21,7 +21,7 @@
   window.__game = G;             // 自动化测试用的抓手
 
   /* ---------------------------- 小工具 ---------------------------- */
-  function hearted() { return !!(window.toy && window.toy.isHearted && window.toy.isHearted()); }
+  function hearted() { return !!(window.toy && window.toy.isUnlocked && window.toy.isUnlocked()); }
   function byId(id) { for (var i = 0; i < LEVELS.length; i++) if (LEVELS[i].id === id) return LEVELS[i]; return null; }
   function rnd(n) { return Math.floor(Math.random() * n); }
 
@@ -72,25 +72,45 @@
   function hideOverlay() { els.overlay.hidden = true; ovAction = null; gateVisible = false; }
 
   /* 「点个心」那道门槛 —— SDK 校验 + 界面提示 */
+  var gateWaiting = false;   // 引导过一次后，主按钮变成「手动再查一次」
+
+  function unlockLevel2() {
+    hideOverlay();
+    renderLevels();
+    /* 不管当时在不在玩第一关，都要真的切过去 */
+    start(byId(2) || LEVELS[LEVELS.length - 1]);
+  }
+
   function showGate() {
     gateVisible = true;
+    gateWaiting = false;
     showOverlay({
       icon: '🔒',
       title: '第二关还没解锁',
-      text: '给这个项目点个星（就是点个心），就能开「极寒」。点完不用刷新，这边会自动开。',
-      actionLabel: window.toy ? window.toy.heartLabel : '♥ 去点个心',
+      text: '给这个项目点个心（GitHub 的 star），就能开「极寒」。点完回到这里会自动检查。',
+      actionLabel: window.toy ? window.toy.actionLabel : '♥ 去点个心',
       closeLabel: '先玩第一关',
       onAction: function () {
-        els.ovAction.disabled = true;
-        els.ovText.textContent = '已打开仓库页，点完星回来自动解锁…（最多等 2 分钟）';
-        window.toy.requestHeart().then(function (ok) {
-          if (ok) { hideOverlay(); renderLevels(); if (!G.running) start(byId(2)); }
-          else {
-            els.ovAction.disabled = false;
-            els.ovText.textContent = '还没检测到星数变化，稍等一下再点一次。';
-          }
-        });
+        /* 再点一次 = 手动再查一次。什么时候查由用户决定，SDK 不轮询。 */
+        if (gateWaiting) {
+          els.ovText.textContent = '正在检查…';
+          gateway();
+          return;
+        }
+        gateWaiting = true;
+        els.ovText.textContent = '已打开仓库页 · 点完心回到这里会自动检查，也可以直接点下面按钮手动查。';
+        els.ovAction.textContent = '✓ 我已点过心，再查一次';
+        if (window.toy) window.toy.requestUnlock();   // 成功了会发 unlocked 事件
       }
+    });
+  }
+
+  function gateway() {
+    window.toy.checkUnlock().then(function (r) {
+      if (r.unlocked) { unlockLevel2(); return; }
+      els.ovText.textContent = (r.reason === 'api-unreachable')
+        ? '查不到星数（网络或接口限流），过一会儿再点一次。'
+        : '还没看到星数变化。确认点过心后稍等几秒，再点一次。';
     });
   }
 
@@ -256,9 +276,14 @@
   els.btnRestart.addEventListener('click', function () { if (G.level) start(G.level); });
 
   if (window.toy && window.toy.on) {
-    window.toy.on('heart:verified', function () {
+    window.toy.on('unlocked', function () {
       renderLevels();
-      if (gateVisible) { hideOverlay(); start(byId(2)); }
+      if (gateVisible) unlockLevel2();
+    });
+    window.toy.on('failed', function () {
+      if (gateVisible && !els.overlay.hidden) {
+        els.ovText.textContent = '还没看到星数变化。点完心后稍等几秒，再点一次「我已点过心」。';
+      }
     });
   }
 

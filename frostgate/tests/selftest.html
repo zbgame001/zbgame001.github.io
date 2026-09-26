@@ -16,7 +16,6 @@ function ok(name, cond, extra) {
 function done() {
   document.getElementById('out').textContent = log.join('\n') + '\n----------------\n' + (fail ? fail + ' FAILED' : 'ALL PASS');
   document.title = fail ? 'FAIL' : 'PASS';
-  document.body.setAttribute('data-test', fail ? 'fail' : 'pass');
 }
 
 var fr = document.getElementById('fr');
@@ -46,6 +45,13 @@ function run(w, d) {
     ok('关卡2 锁定', !!cards[1] && cards[1].dataset.locked === '1');
     ok('关卡2 显示「未解锁」', !!cards[1] && cards[1].querySelector('.lv-lock').textContent.indexOf('未解锁') >= 0);
 
+    /* --- v1.1 接口名 --- */
+    ok('SDK：isUnlocked() 未点过 = false', w.toy.isUnlocked() === false);
+    ok('SDK：lockState() = locked', w.toy.lockState() === 'locked', w.toy.lockState());
+    ok('SDK：actionLabel 有文案', String(w.toy.actionLabel || '').length > 0, w.toy.actionLabel);
+    ok('SDK：旧方法名已摘掉', w.toy.getAuthorRelation === undefined && w.toy.requestHeart === undefined && w.toy.isHearted === undefined);
+    ok('SDK：没有轮询定时器', w.toy.pollTimer === undefined);
+
     /* --- 关卡1 能玩 --- */
     cards[0].click();
     var stage = d.getElementById('stage');
@@ -54,7 +60,6 @@ function run(w, d) {
     ok('HUD 关卡 = 1', d.getElementById('hudLevel').textContent === '1');
     ok('HUD 目标 = 20', d.getElementById('hudTarget').textContent === '20');
 
-    /* 一定要有一块冰晶（start 时立刻 spawn 一次） */
     var g = w.__game;
     var ice = null;
     for (var i = 0; i < g.cells.length; i++) if (g.cells[i].kind === 'ice') { ice = g.cells[i]; break; }
@@ -65,7 +70,6 @@ function run(w, d) {
     ok('点碎冰晶 +1 分', after === before + 1, before + ' -> ' + after);
     ok('连击 +1', d.getElementById('hudCombo').textContent === '1');
 
-    /* 点空格子不该掉分掉命 */
     var life0 = d.getElementById('hudLife').textContent;
     var empty = null;
     for (var j = 0; j < g.cells.length; j++) if (!g.cells[j].kind) { empty = g.cells[j]; break; }
@@ -81,11 +85,11 @@ function run(w, d) {
     ok('主按钮是「去点个心」', act.textContent.indexOf('点个心') >= 0, act.textContent);
     ok('有「先玩第一关」次要按钮', !d.getElementById('ovClose').hidden);
 
-    /* SDK 侧：还没点过心 */
-    w.toy.getAuthorRelation().then(function (rel) {
-      ok('SDK：未点过心 => followed=false', rel.followed === false, JSON.stringify(rel));
+    w.toy.checkUnlock().then(function (r) {
+      ok('SDK：checkUnlock() 未点过 => unlocked=false', r.unlocked === false, JSON.stringify(r));
+      ok('SDK：查完仍是 locked', w.toy.lockState() === 'locked', w.toy.lockState());
 
-      /* --- 点一下，解锁（用 soft 模式，避免测试里真去联网轮询） --- */
+      /* --- 点一下（soft 模式，免得测试里真去联网） --- */
       w.TOY_CONFIG.heart.mode = 'soft';
       act.click();
       setTimeout(function () {
@@ -98,12 +102,14 @@ function run(w, d) {
         ok('自动进了关卡2', shown(st) && d.getElementById('hudLevel').textContent === '2', 'hud=' + d.getElementById('hudLevel').textContent);
         ok('关卡2：4x4 棋盘', d.querySelectorAll('.cell').length === 16, 'cells=' + d.querySelectorAll('.cell').length);
 
-        w.toy.getAuthorRelation().then(function (rel2) {
-          ok('SDK：点过心 => followed=true', rel2.followed === true, JSON.stringify(rel2));
-          ok('SDK：本地缓存住', w.toy.isHearted() === true);
+        ok('SDK：isUnlocked() = true', w.toy.isUnlocked() === true);
+        ok('SDK：lockState() = unlocked', w.toy.lockState() === 'unlocked', w.toy.lockState());
 
-          w.toy.resetHeart();
-          ok('resetHeart 能清掉', w.toy.isHearted() === false);
+        w.toy.checkUnlock().then(function (r2) {
+          ok('SDK：缓存命中不再查', r2.unlocked === true && r2.reason === 'cached', JSON.stringify(r2));
+
+          w.toy.resetUnlock();
+          ok('resetUnlock 能清掉', w.toy.isUnlocked() === false && w.toy.lockState() === 'locked');
           done();
         });
       }, 120);
