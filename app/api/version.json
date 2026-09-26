@@ -1,7 +1,7 @@
 {
     "success": true,
     "data": {
-        "latest_version_code": 54,
+        "latest_version_code": 53,
         "latest_version_name": "V6.6-test-5",
         "update_url": "https://zbgame001.github.io/game.apk",
         "update_content": "V6.6-test-5\n1.移除mod下载，联网账号\n2.新增游戏暂停状态\n3.修复了横幅显示一个问题",
