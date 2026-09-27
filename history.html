@@ -179,6 +179,11 @@
  flex-direction: column;
  gap: 12px;   /* 卡片之间的空隙 */
  }
+ /* 懒加载哨兵：不可见，进入视口即追加下一批卡片 */
+ .ver-sentinel {
+ width: 100%;
+ height: 1px;
+ }
  .ver-card {
  display: flex;
  align-items: center;
@@ -387,7 +392,7 @@
  <div id="themeFx" aria-hidden="true"></div>
 
  <script>
- /* 版本清单：从低到高（已排序）。字段：v=版本号 s=大小 f=文件名 */
+ /* 版本清单：高版本在前（最新在最上）。字段：v=版本号 s=大小 f=文件名 */
  var VERSIONS = [{"v":"V6.5-3","s":"527 KB","f":"zbgame-v6.5-3.apk"},{"v":"V6.5-2","s":"519 KB","f":"zbgame-v6.5-2.apk"},{"v":"V6.5-1","s":"519 KB","f":"zbgame-v6.5-1.apk"},{"v":"V6.5","s":"519 KB","f":"zbgame-v6.5.apk"},{"v":"V6.4-15","s":"1.8 MB","f":"zbgame-v6.4-15.apk"},{"v":"V6.4-14","s":"5.2 MB","f":"zbgame-v6.4-14.apk"},{"v":"V6.4-13","s":"5.2 MB","f":"zbgame-v6.4-13.apk"},{"v":"V6.4-12","s":"5.2 MB","f":"zbgame-v6.4-12.apk"},{"v":"V6.4-11","s":"5.2 MB","f":"zbgame-v6.4-11.apk"},{"v":"V6.4-10","s":"5.3 MB","f":"zbgame-v6.4-10.apk"},{"v":"V6.4-9","s":"4.8 MB","f":"zbgame-v6.4-9.apk"},{"v":"V6.4-8","s":"4.8 MB","f":"zbgame-v6.4-8.apk"},{"v":"V6.4-7","s":"4.8 MB","f":"zbgame-v6.4-7.apk"},{"v":"V6.4-6","s":"4.8 MB","f":"zbgame-v6.4-6.apk"},{"v":"V6.4-5","s":"4.8 MB","f":"zbgame-v6.4-5.apk"},{"v":"V6.4-4","s":"4.8 MB","f":"zbgame-v6.4-4.apk"},{"v":"V6.4-3","s":"4.8 MB","f":"zbgame-v6.4-3.apk"},{"v":"V6.4-2","s":"4.8 MB","f":"zbgame-v6.4-2.apk"},{"v":"V6.4-1","s":"4.8 MB","f":"zbgame-v6.4-1.apk"},{"v":"V6.4","s":"4.8 MB","f":"zbgame-v6.4.apk"},{"v":"V6.3-7","s":"4.8 MB","f":"zbgame-v6.3-7.apk"},{"v":"V6.3-6","s":"4.8 MB","f":"zbgame-v6.3-6.apk"},{"v":"V6.3-5","s":"4.7 MB","f":"zbgame-v6.3-5.apk"},{"v":"V6.3-4","s":"4.7 MB","f":"zbgame-v6.3-4.apk"},{"v":"V6.3-3","s":"5.3 MB","f":"zbgame-v6.3-3.apk"},{"v":"V6.3-2","s":"5.3 MB","f":"zbgame-v6.3-2.apk"},{"v":"V6.3-1","s":"314 KB","f":"zbgame-v6.3-1.apk"},{"v":"V6.3","s":"314 KB","f":"zbgame-v6.3.apk"},{"v":"V6.2-12","s":"302 KB","f":"zbgame-v6.2-12.apk"},{"v":"V6.2-11","s":"302 KB","f":"zbgame-v6.2-11.apk"},{"v":"V6.2-10","s":"4.9 MB","f":"zbgame-v6.2-10.apk"},{"v":"V6.2-9","s":"4.9 MB","f":"zbgame-v6.2-9.apk"},{"v":"V6.2-8","s":"4.9 MB","f":"zbgame-v6.2-8.apk"},{"v":"V6.2-7","s":"4.9 MB","f":"zbgame-v6.2-7.apk"},{"v":"V6.2-6","s":"4.9 MB","f":"zbgame-v6.2-6.apk"},{"v":"V6.2-5","s":"4.9 MB","f":"zbgame-v6.2-5.apk"},{"v":"V6.2-4","s":"4.9 MB","f":"zbgame-v6.2-4.apk"},{"v":"V6.2-3","s":"4.9 MB","f":"zbgame-v6.2-3.apk"},{"v":"V6.2-2","s":"4.9 MB","f":"zbgame-v6.2-2.apk"},{"v":"V6.2-1","s":"4.9 MB","f":"zbgame-v6.2-1.apk"},{"v":"V6.2","s":"4.9 MB","f":"zbgame-v6.2.apk"},{"v":"V6.1-12","s":"4.9 MB","f":"zbgame-v6.1-12.apk"},{"v":"V6.1-11","s":"4.9 MB","f":"zbgame-v6.1-11.apk"},{"v":"V6.1-10","s":"4.9 MB","f":"zbgame-v6.1-10.apk"},{"v":"V6.1-7","s":"4.9 MB","f":"zbgame-v6.1-7.apk"},{"v":"V6.1-6","s":"4.9 MB","f":"zbgame-v6.1-6.apk"},{"v":"V6.1-5","s":"4.9 MB","f":"zbgame-v6.1-5.apk"},{"v":"V6.1-4","s":"4.9 MB","f":"zbgame-v6.1-4.apk"},{"v":"V6.1-3","s":"4.8 MB","f":"zbgame-v6.1-3.apk"},{"v":"V6.1-2","s":"97 KB","f":"zbgame-v6.1-2.apk"},{"v":"V6.1-1","s":"93 KB","f":"zbgame-v6.1-1.apk"},{"v":"V6.1","s":"93 KB","f":"zbgame-v6.1.apk"}];
  var APK_BASE = "history/";
 
@@ -400,8 +405,11 @@
    '<path d="M5 18a1 1 0 0 1 1 1v1h12v-1a1 1 0 1 1 2 0v1.5A1.5 1.5 0 0 1 18.5 22h-13A1.5 1.5 0 0 1 4 20.5V19a1 1 0 0 1 1-1z"/>' +
    '</svg></span>';
 
-  var frag = document.createDocumentFragment();
-  VERSIONS.forEach(function (it) {
+  var BATCH = 12;   /* 懒加载：首批渲染数量，之后每次追加这么多 */
+  var done = 0;     /* 已渲染的卡片数 */
+  var sentinel = null;
+
+  function makeCard(it) {
    var card = document.createElement('div');
    card.className = 'ver-card';
 
@@ -425,9 +433,47 @@
 
    card.appendChild(meta);
    card.appendChild(a);
-   frag.appendChild(card);
-  });
-  box.appendChild(frag);
+   return card;
+  }
+
+  /* 追加一批；全部渲染完就把哨兵摘掉并返回 false */
+  function appendBatch() {
+   var frag = document.createDocumentFragment();
+   var end = Math.min(done + BATCH, VERSIONS.length);
+   for (; done < end; done++) frag.appendChild(makeCard(VERSIONS[done]));
+   box.appendChild(frag);
+   if (done >= VERSIONS.length) {
+    if (sentinel && sentinel.parentNode) sentinel.parentNode.removeChild(sentinel);
+    sentinel = null;
+    return false;
+   }
+   return true;
+  }
+
+  /* 哨兵仍在视口（含 240px 余量）内就继续补一批 —— 保证首屏永远是填满的 */
+  function fill() {
+   if (!sentinel) return;
+   var r = sentinel.getBoundingClientRect();
+   var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+   if (r.top <= vh + 240) {
+    appendBatch();
+    requestAnimationFrame(fill);
+   }
+  }
+
+  sentinel = document.createElement('div');
+  sentinel.className = 'ver-sentinel';
+  sentinel.setAttribute('aria-hidden', 'true');
+  box.parentNode.insertBefore(sentinel, box.nextSibling);
+
+  appendBatch();   /* 首屏先给一批 */
+
+  if ('IntersectionObserver' in window) {
+   new IntersectionObserver(function () { fill(); }, { rootMargin: '240px 0px' }).observe(sentinel);
+  } else {
+   while (sentinel) appendBatch();   /* 不支持 IntersectionObserver 的老浏览器：一次性全渲染 */
+  }
+  requestAnimationFrame(fill);
  })();
  </script>
 
