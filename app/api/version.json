@@ -1,10 +1,10 @@
 {
     "success": true,
     "data": {
-        "latest_version_code": 53,
-        "latest_version_name": "V6.6-test-5",
+        "latest_version_code": 54,
+        "latest_version_name": "V6.6-test-6",
         "update_url": "https://zbgame001.github.io/game.apk",
-        "update_content": "V6.6-test-5\n1.优化游戏\n2.新增游戏暂停状态\n3.修复了横幅显示一个问题",
+        "update_content": "✨更新内容:\nV6.6-test-6\n1.mod教程内导出文件game.zip路径更改\n2.去掉横幅扫光特效\n3.【版本信息】改为【关于】\n4.系统消息支持弹窗推送\n5.【私信通知】改为【通知】\n6.修复了返回主界面游戏状态并未暂停的问题\n7.2048小游戏新增音效\n8.【游戏选择】新增【1分钟点击挑战】小游戏\n9.随机事件弹窗可支持左右划掉\n10.【游戏选择】页面可直接录制或开始直播\n11.【小游戏】页面不再被成就解锁特效，随机事件弹窗，私信通知干扰\n",
         "force_update": false,
         "min_version_code": 0
     }
