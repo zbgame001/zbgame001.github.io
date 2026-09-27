@@ -370,6 +370,182 @@
  text-decoration: underline;
  }
 
+ /* ---- 历史版本下载按钮（模板来自 uiverse.io；作用域限定为 .hist-btn，
+  几何/动效保持原样，仅把全局 strong / id 选择器改成类名以免影响本页其它元素） ---- */
+ .hist-btn {
+ position: relative; /* 让星星/光晕的绝对定位锚在本按钮内 */
+ display: flex;
+ text-decoration: none; /* 本身是链接，去掉下划线 */
+ justify-content: center;
+ align-items: center;
+ align-self: center; /* 手机端：居中 */
+ margin-top: 18px;
+ width: 13rem;
+ max-width: 100%;
+ height: 3rem;
+ overflow: hidden;
+ padding: 0;
+ cursor: pointer;
+ -webkit-appearance: none;
+ appearance: none;
+ background-size: 300% 300%;
+ backdrop-filter: blur(1rem);
+ border-radius: 5rem;
+ transition: 0.5s;
+ animation: histGradient 5s ease infinite;
+ border: double 4px transparent;
+ background-image:
+ linear-gradient(#212121, #212121),
+ linear-gradient(
+ 137.48deg,
+ #ffdb3b 10%,
+ #fe53bb 45%,
+ #8f51ea 67%,
+ #0044ff 87%
+ );
+ background-origin: border-box;
+ background-clip: content-box, border-box;
+ }
+ .hist-btn .hist-txt {
+ z-index: 2;
+ font-size: 14px;
+ font-weight: 700;
+ letter-spacing: 3px;
+ color: #ffffff;
+ text-shadow: 0 0 4px white;
+ white-space: nowrap;
+ }
+ .hist-btn .stars-container {
+ position: absolute;
+ z-index: -1;
+ width: 100%;
+ height: 100%;
+ overflow: hidden;
+ transition: 0.5s;
+ backdrop-filter: blur(1rem);
+ border-radius: 5rem;
+ }
+ .hist-btn .glow {
+ position: absolute;
+ display: flex;
+ width: 12rem;
+ }
+ .hist-btn .circle {
+ width: 100%;
+ height: 30px;
+ filter: blur(2rem);
+ animation: histPulse 4s infinite;
+ z-index: -1;
+ }
+ .hist-btn .circle:nth-of-type(1) {
+ background: rgba(254, 83, 186, 0.636);
+ }
+ .hist-btn .circle:nth-of-type(2) {
+ background: rgba(142, 81, 234, 0.704);
+ }
+ .hist-btn:hover .stars-container {
+ z-index: 1;
+ background-color: #212121;
+ }
+ .hist-btn:hover {
+ transform: scale(1.1);
+ }
+ .hist-btn:active {
+ border: double 4px #fe53bb;
+ background-origin: border-box;
+ background-clip: content-box, border-box;
+ animation: none;
+ }
+ .hist-btn:active .circle {
+ background: #fe53bb;
+ }
+ .hist-btn .stars {
+ display: block; /* 相对定位 + 需要尺寸，span 必须块级化 */
+ position: relative;
+ background: transparent;
+ width: 200rem;
+ height: 200rem;
+ }
+ .hist-btn .stars::after {
+ content: "";
+ position: absolute;
+ top: -10rem;
+ left: -100rem;
+ width: 100%;
+ height: 100%;
+ animation: histStarRotate 90s linear infinite;
+ background-image: radial-gradient(#ffffff 1px, transparent 1%);
+ background-size: 50px 50px;
+ }
+ .hist-btn .stars::before {
+ content: "";
+ position: absolute;
+ top: 0;
+ left: -50%;
+ width: 170%;
+ height: 500%;
+ animation: histStar 60s linear infinite;
+ background-image: radial-gradient(#ffffff 1px, transparent 1%);
+ background-size: 50px 50px;
+ opacity: 0.5;
+ }
+ @keyframes histStar {
+ from {
+ transform: translateY(0);
+ }
+ to {
+ transform: translateY(-135rem);
+ }
+ }
+ @keyframes histStarRotate {
+ from {
+ transform: rotate(360deg);
+ }
+ to {
+ transform: rotate(0);
+ }
+ }
+ @keyframes histGradient {
+ 0% {
+ background-position: 0% 50%;
+ }
+ 50% {
+ background-position: 100% 50%;
+ }
+ 100% {
+ background-position: 0% 50%;
+ }
+ }
+ @keyframes histPulse {
+ 0% {
+ transform: scale(0.75);
+ box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.7);
+ }
+ 70% {
+ transform: scale(1);
+ box-shadow: 0 0 0 10px rgba(0, 0, 0, 0);
+ }
+ 100% {
+ transform: scale(0.75);
+ box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+ }
+ }
+ /* 电脑端：跟「来源行」一样靠右对齐 */
+ @media (min-width: 768px) {
+ .hist-btn {
+ align-self: flex-end;
+ margin-top: 14px;
+ }
+ }
+ @media (prefers-reduced-motion: reduce) {
+ .hist-btn,
+ .hist-btn .stars::before,
+ .hist-btn .stars::after,
+ .hist-btn .circle {
+ animation: none;
+ }
+ }
+
  /* ---- 日/夜开关：沿用用户提供的模板，几何/动效不变，颜色接入主题变量 ---- */
  .l {
  cursor: pointer;
@@ -666,6 +842,13 @@
    <span class="name">Android 下载</span>
    </a>
    <p class="credit">部分UI来源：<a href="https://uiverse.io/" target="_blank" rel="noopener noreferrer">https://uiverse.io/</a></p>
+
+   <!-- 历史版本下载：跳转到历史版本下载页 -->
+   <a class="hist-btn" id="histBtn" href="history.html" aria-label="历史版本下载">
+    <span class="hist-txt">历史版本下载</span>
+    <span class="stars-container"><span class="stars"></span></span>
+    <span class="glow"><span class="circle"></span><span class="circle"></span></span>
+   </a>
   </div>
 
   </div>
