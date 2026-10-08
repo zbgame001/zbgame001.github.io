@@ -530,11 +530,10 @@
  box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
  }
  }
- /* 电脑端：跟「来源行」一样靠右对齐 */
+ /* 电脑端：与另两枚按钮同处一行，去掉竖排时的上间距 */
  @media (min-width: 768px) {
  .hist-btn {
- align-self: flex-end;
- margin-top: 14px;
+ margin-top: 0;
  }
  }
  @media (prefers-reduced-motion: reduce) {
@@ -612,16 +611,7 @@
  .qq-btn:active::before {
  scale: 0.7;
  }
- /* 电脑端：右列三枚按钮统一同宽右对齐
-  原来三枚宽度不一（下载 163 / 历史 208 / QQ 120），右边缘虽齐，但宽的那枚会向左凸出，
-  看着就像「跑到下载按钮左边」—— 统一为 172px 后左右边缘都对齐 */
- @media (min-width: 768px) {
- .hist-wrap,
- .qq-wrap { align-self: flex-end; width: 172px; }
- .hist-btn,
- .qq-btn { width: 100%; max-width: none; }
- .qq-btn::before { inset: -4px; left: -4px; top: -1px; margin: 0; width: auto; height: auto; }
- }
+ /* 电脑端：三枚各自保持原宽，不统一长度（下载 auto≈163 / 历史 208 / QQ 120） */
  @media (prefers-reduced-motion: reduce) {
  .hist-wrap,
  .qq-wrap { animation: none; }
@@ -797,14 +787,25 @@
  }
  .dl-wrap {
  margin-top: 0;
- margin-left: auto;   /* 整组（按钮+来源行）推到第一行最右 */
+ margin-left: auto;   /* 整组推到第一行最右 */
  align-items: flex-end;
+ flex-direction: row;   /* 三枚按钮排成一行：历史版本下载 / 加入QQ频道 / Android 下载 */
+ flex-wrap: wrap;
+ justify-content: flex-end;
+ column-gap: 18px;
+ row-gap: 12px;
  }
+ .hist-wrap { order: 1; width: auto; align-self: center; }
+ .qq-wrap { order: 2; width: auto; align-self: center; margin-top: 0; }
+ .download-btn { order: 3; }
  .credit {
+ order: 4;
+ flex-basis: 100%;   /* 来源行独占一整行，仍靠右 */
  text-align: right;
+ margin-top: 0;
  }
  .download-btn {
- width: 172px;   /* 与右列另两枚按钮同宽（原为 auto≈163px），三枚左右边缘都对齐 */
+ width: auto;   /* 各按钮保持原宽，不统一长度 */
  margin-top: 0;
  padding: 13px 20px;
  gap: 8px;
