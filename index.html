@@ -612,10 +612,15 @@
  .qq-btn:active::before {
  scale: 0.7;
  }
- /* 电脑端：与「历史版本下载」按钮一样靠右 */
+ /* 电脑端：右列三枚按钮统一同宽右对齐
+  原来三枚宽度不一（下载 163 / 历史 208 / QQ 120），右边缘虽齐，但宽的那枚会向左凸出，
+  看着就像「跑到下载按钮左边」—— 统一为 172px 后左右边缘都对齐 */
  @media (min-width: 768px) {
  .hist-wrap,
- .qq-wrap { align-self: flex-end; }
+ .qq-wrap { align-self: flex-end; width: 172px; }
+ .hist-btn,
+ .qq-btn { width: 100%; max-width: none; }
+ .qq-btn::before { inset: -4px; left: -4px; top: -1px; margin: 0; width: auto; height: auto; }
  }
  @media (prefers-reduced-motion: reduce) {
  .hist-wrap,
@@ -799,7 +804,7 @@
  text-align: right;
  }
  .download-btn {
- width: auto;
+ width: 172px;   /* 与右列另两枚按钮同宽（原为 auto≈163px），三枚左右边缘都对齐 */
  margin-top: 0;
  padding: 13px 20px;
  gap: 8px;
