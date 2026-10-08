@@ -546,6 +546,82 @@
  }
  }
 
+ /* ---- 按钮出场动画承载层 + 加入QQ频道按钮（模板来自用户提供的 .button，作用域限定为 .qq-btn）----
+  动画加在包裹层上：按钮自身有 overflow:hidden / 负 z-index 子元素，
+  直接给它加 transform 动画会把它变成层叠上下文，导致星星/光晕在入场瞬间翻到正面。 */
+ .hist-wrap,
+ .qq-wrap {
+ display: block;
+ align-self: center; /* 手机端：居中 */
+ animation: slideUpIn 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+ }
+ .hist-wrap { animation-delay: 0.3s; }
+ .qq-wrap { margin-top: 14px; animation-delay: 0.42s; }
+ .qq-btn {
+ position: relative;
+ width: 120px;
+ height: 40px;
+ background-color: #000;
+ display: flex;
+ align-items: center;
+ color: white;
+ flex-direction: column;
+ justify-content: center;
+ border: none;
+ padding: 12px;
+ gap: 12px;
+ border-radius: 8px;
+ cursor: pointer;
+ text-decoration: none; /* 本身是链接，去掉下划线 */
+ font-size: 14px;
+ font-weight: 600;
+ line-height: 1;
+ letter-spacing: 1px;
+ white-space: nowrap;
+ }
+ .qq-btn::before {
+ content: '';
+ position: absolute;
+ inset: 0;
+ left: -4px;
+ top: -1px;
+ margin: auto;
+ width: 128px;
+ height: 48px;
+ border-radius: 10px;
+ background: linear-gradient(-45deg, #e81cff 0%, #40c9ff 100%);
+ z-index: -10;
+ pointer-events: none;
+ transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+ }
+ .qq-btn::after {
+ content: "";
+ z-index: -1;
+ position: absolute;
+ inset: 0;
+ background: linear-gradient(-45deg, #fc00ff 0%, #00dbde 100%);
+ transform: translate3d(0, 0, 0) scale(0.95);
+ filter: blur(20px);
+ }
+ .qq-btn:hover::after {
+ filter: blur(30px);
+ }
+ .qq-btn:hover::before {
+ transform: rotate(-180deg);
+ }
+ .qq-btn:active::before {
+ scale: 0.7;
+ }
+ /* 电脑端：与「历史版本下载」按钮一样靠右 */
+ @media (min-width: 768px) {
+ .hist-wrap,
+ .qq-wrap { align-self: flex-end; }
+ }
+ @media (prefers-reduced-motion: reduce) {
+ .hist-wrap,
+ .qq-wrap { animation: none; }
+ }
+
  /* ---- 日/夜开关：沿用用户提供的模板，几何/动效不变，颜色接入主题变量 ---- */
  .l {
  cursor: pointer;
@@ -844,11 +920,18 @@
    <p class="credit">部分UI来源：<a href="https://uiverse.io/" target="_blank" rel="noopener noreferrer">https://uiverse.io/</a></p>
 
    <!-- 历史版本下载：跳转到历史版本下载页 -->
-   <a class="hist-btn" id="histBtn" href="history.html" aria-label="历史版本下载">
-    <span class="hist-txt">历史版本下载</span>
-    <span class="stars-container"><span class="stars"></span></span>
-    <span class="glow"><span class="circle"></span><span class="circle"></span></span>
-   </a>
+   <div class="hist-wrap">
+    <a class="hist-btn" id="histBtn" href="history.html" aria-label="历史版本下载">
+     <span class="hist-txt">历史版本下载</span>
+     <span class="stars-container"><span class="stars"></span></span>
+     <span class="glow"><span class="circle"></span><span class="circle"></span></span>
+    </a>
+   </div>
+
+   <!-- 加入QQ频道 -->
+   <div class="qq-wrap">
+    <a class="qq-btn" href="https://pd.qq.com/s/8z06n1t8i?b=9" target="_blank" rel="noopener noreferrer" aria-label="加入QQ频道">加入QQ频道</a>
+   </div>
   </div>
 
   </div>
