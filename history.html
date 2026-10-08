@@ -263,6 +263,11 @@
  .dl-btn { padding: 8px 14px; font-size: 13.5px; }
  }
 
+ /* 电脑端（足够宽时）：解除 720px 栅格上限，卡片占满整行（与首页同一断点） */
+ @media (min-width: 768px) {
+ .stage { max-width: none; }
+ }
+
  /* ---- 日/夜开关（与首页同一套，几何/动效不变）---- */
  .l {
  cursor: pointer;
@@ -364,8 +369,25 @@
  35% { opacity: 1; }
  100% { opacity: 0; }
  }
+ /* 出场动画：整页元素统一「上滑淡入」（与首页同一套曲线） */
+ @keyframes slideUpIn {
+ from { opacity: 0; transform: translateY(20px); }
+ to { opacity: 1; transform: translateY(0); }
+ }
+ .back-btn,
+ .ver-list {
+ animation: slideUpIn 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+ }
+ .ver-list {
+ animation-delay: 0.1s;
+ }
  @media (prefers-reduced-motion: reduce) {
  #themeFx { display: none; }
+ .back-btn,
+ .ver-list,
+ .ver-card {
+ animation: none;
+ }
  }
  </style>
 </head>
@@ -393,7 +415,7 @@
 
  <script>
  /* 版本清单：高版本在前（最新在最上）。字段：v=版本号 s=大小 f=文件名 */
- var VERSIONS = [{"v":"V6.5-3","s":"527 KB","f":"zbgame-v6.5-3.apk"},{"v":"V6.5-2","s":"519 KB","f":"zbgame-v6.5-2.apk"},{"v":"V6.5-1","s":"519 KB","f":"zbgame-v6.5-1.apk"},{"v":"V6.5","s":"519 KB","f":"zbgame-v6.5.apk"},{"v":"V6.4-15","s":"1.8 MB","f":"zbgame-v6.4-15.apk"},{"v":"V6.4-14","s":"5.2 MB","f":"zbgame-v6.4-14.apk"},{"v":"V6.4-13","s":"5.2 MB","f":"zbgame-v6.4-13.apk"},{"v":"V6.4-12","s":"5.2 MB","f":"zbgame-v6.4-12.apk"},{"v":"V6.4-11","s":"5.2 MB","f":"zbgame-v6.4-11.apk"},{"v":"V6.4-10","s":"5.3 MB","f":"zbgame-v6.4-10.apk"},{"v":"V6.4-9","s":"4.8 MB","f":"zbgame-v6.4-9.apk"},{"v":"V6.4-8","s":"4.8 MB","f":"zbgame-v6.4-8.apk"},{"v":"V6.4-7","s":"4.8 MB","f":"zbgame-v6.4-7.apk"},{"v":"V6.4-6","s":"4.8 MB","f":"zbgame-v6.4-6.apk"},{"v":"V6.4-5","s":"4.8 MB","f":"zbgame-v6.4-5.apk"},{"v":"V6.4-4","s":"4.8 MB","f":"zbgame-v6.4-4.apk"},{"v":"V6.4-3","s":"4.8 MB","f":"zbgame-v6.4-3.apk"},{"v":"V6.4-2","s":"4.8 MB","f":"zbgame-v6.4-2.apk"},{"v":"V6.4-1","s":"4.8 MB","f":"zbgame-v6.4-1.apk"},{"v":"V6.4","s":"4.8 MB","f":"zbgame-v6.4.apk"},{"v":"V6.3-7","s":"4.8 MB","f":"zbgame-v6.3-7.apk"},{"v":"V6.3-6","s":"4.8 MB","f":"zbgame-v6.3-6.apk"},{"v":"V6.3-5","s":"4.7 MB","f":"zbgame-v6.3-5.apk"},{"v":"V6.3-4","s":"4.7 MB","f":"zbgame-v6.3-4.apk"},{"v":"V6.3-3","s":"5.3 MB","f":"zbgame-v6.3-3.apk"},{"v":"V6.3-2","s":"5.3 MB","f":"zbgame-v6.3-2.apk"},{"v":"V6.3-1","s":"314 KB","f":"zbgame-v6.3-1.apk"},{"v":"V6.3","s":"314 KB","f":"zbgame-v6.3.apk"},{"v":"V6.2-12","s":"302 KB","f":"zbgame-v6.2-12.apk"},{"v":"V6.2-11","s":"302 KB","f":"zbgame-v6.2-11.apk"},{"v":"V6.2-10","s":"4.9 MB","f":"zbgame-v6.2-10.apk"},{"v":"V6.2-9","s":"4.9 MB","f":"zbgame-v6.2-9.apk"},{"v":"V6.2-8","s":"4.9 MB","f":"zbgame-v6.2-8.apk"},{"v":"V6.2-7","s":"4.9 MB","f":"zbgame-v6.2-7.apk"},{"v":"V6.2-6","s":"4.9 MB","f":"zbgame-v6.2-6.apk"},{"v":"V6.2-5","s":"4.9 MB","f":"zbgame-v6.2-5.apk"},{"v":"V6.2-4","s":"4.9 MB","f":"zbgame-v6.2-4.apk"},{"v":"V6.2-3","s":"4.9 MB","f":"zbgame-v6.2-3.apk"},{"v":"V6.2-2","s":"4.9 MB","f":"zbgame-v6.2-2.apk"},{"v":"V6.2-1","s":"4.9 MB","f":"zbgame-v6.2-1.apk"},{"v":"V6.2","s":"4.9 MB","f":"zbgame-v6.2.apk"},{"v":"V6.1-12","s":"4.9 MB","f":"zbgame-v6.1-12.apk"},{"v":"V6.1-11","s":"4.9 MB","f":"zbgame-v6.1-11.apk"},{"v":"V6.1-10","s":"4.9 MB","f":"zbgame-v6.1-10.apk"},{"v":"V6.1-7","s":"4.9 MB","f":"zbgame-v6.1-7.apk"},{"v":"V6.1-6","s":"4.9 MB","f":"zbgame-v6.1-6.apk"},{"v":"V6.1-5","s":"4.9 MB","f":"zbgame-v6.1-5.apk"},{"v":"V6.1-4","s":"4.9 MB","f":"zbgame-v6.1-4.apk"},{"v":"V6.1-3","s":"4.8 MB","f":"zbgame-v6.1-3.apk"},{"v":"V6.1-2","s":"97 KB","f":"zbgame-v6.1-2.apk"},{"v":"V6.1-1","s":"93 KB","f":"zbgame-v6.1-1.apk"},{"v":"V6.1","s":"93 KB","f":"zbgame-v6.1.apk"}];
+ var VERSIONS = [{"v":"V6.6","s":"5.6 MB","f":"zbgame-v6.6.apk"},{"v":"V6.5-3","s":"527 KB","f":"zbgame-v6.5-3.apk"},{"v":"V6.5-2","s":"519 KB","f":"zbgame-v6.5-2.apk"},{"v":"V6.5-1","s":"519 KB","f":"zbgame-v6.5-1.apk"},{"v":"V6.5","s":"519 KB","f":"zbgame-v6.5.apk"},{"v":"V6.4-15","s":"1.8 MB","f":"zbgame-v6.4-15.apk"},{"v":"V6.4-14","s":"5.2 MB","f":"zbgame-v6.4-14.apk"},{"v":"V6.4-13","s":"5.2 MB","f":"zbgame-v6.4-13.apk"},{"v":"V6.4-12","s":"5.2 MB","f":"zbgame-v6.4-12.apk"},{"v":"V6.4-11","s":"5.2 MB","f":"zbgame-v6.4-11.apk"},{"v":"V6.4-10","s":"5.3 MB","f":"zbgame-v6.4-10.apk"},{"v":"V6.4-9","s":"4.8 MB","f":"zbgame-v6.4-9.apk"},{"v":"V6.4-8","s":"4.8 MB","f":"zbgame-v6.4-8.apk"},{"v":"V6.4-7","s":"4.8 MB","f":"zbgame-v6.4-7.apk"},{"v":"V6.4-6","s":"4.8 MB","f":"zbgame-v6.4-6.apk"},{"v":"V6.4-5","s":"4.8 MB","f":"zbgame-v6.4-5.apk"},{"v":"V6.4-4","s":"4.8 MB","f":"zbgame-v6.4-4.apk"},{"v":"V6.4-3","s":"4.8 MB","f":"zbgame-v6.4-3.apk"},{"v":"V6.4-2","s":"4.8 MB","f":"zbgame-v6.4-2.apk"},{"v":"V6.4-1","s":"4.8 MB","f":"zbgame-v6.4-1.apk"},{"v":"V6.4","s":"4.8 MB","f":"zbgame-v6.4.apk"},{"v":"V6.3-7","s":"4.8 MB","f":"zbgame-v6.3-7.apk"},{"v":"V6.3-6","s":"4.8 MB","f":"zbgame-v6.3-6.apk"},{"v":"V6.3-5","s":"4.7 MB","f":"zbgame-v6.3-5.apk"},{"v":"V6.3-4","s":"4.7 MB","f":"zbgame-v6.3-4.apk"},{"v":"V6.3-3","s":"5.3 MB","f":"zbgame-v6.3-3.apk"},{"v":"V6.3-2","s":"5.3 MB","f":"zbgame-v6.3-2.apk"},{"v":"V6.3-1","s":"314 KB","f":"zbgame-v6.3-1.apk"},{"v":"V6.3","s":"314 KB","f":"zbgame-v6.3.apk"},{"v":"V6.2-12","s":"302 KB","f":"zbgame-v6.2-12.apk"},{"v":"V6.2-11","s":"302 KB","f":"zbgame-v6.2-11.apk"},{"v":"V6.2-10","s":"4.9 MB","f":"zbgame-v6.2-10.apk"},{"v":"V6.2-9","s":"4.9 MB","f":"zbgame-v6.2-9.apk"},{"v":"V6.2-8","s":"4.9 MB","f":"zbgame-v6.2-8.apk"},{"v":"V6.2-7","s":"4.9 MB","f":"zbgame-v6.2-7.apk"},{"v":"V6.2-6","s":"4.9 MB","f":"zbgame-v6.2-6.apk"},{"v":"V6.2-5","s":"4.9 MB","f":"zbgame-v6.2-5.apk"},{"v":"V6.2-4","s":"4.9 MB","f":"zbgame-v6.2-4.apk"},{"v":"V6.2-3","s":"4.9 MB","f":"zbgame-v6.2-3.apk"},{"v":"V6.2-2","s":"4.9 MB","f":"zbgame-v6.2-2.apk"},{"v":"V6.2-1","s":"4.9 MB","f":"zbgame-v6.2-1.apk"},{"v":"V6.2","s":"4.9 MB","f":"zbgame-v6.2.apk"},{"v":"V6.1-12","s":"4.9 MB","f":"zbgame-v6.1-12.apk"},{"v":"V6.1-11","s":"4.9 MB","f":"zbgame-v6.1-11.apk"},{"v":"V6.1-10","s":"4.9 MB","f":"zbgame-v6.1-10.apk"},{"v":"V6.1-7","s":"4.9 MB","f":"zbgame-v6.1-7.apk"},{"v":"V6.1-6","s":"4.9 MB","f":"zbgame-v6.1-6.apk"},{"v":"V6.1-5","s":"4.9 MB","f":"zbgame-v6.1-5.apk"},{"v":"V6.1-4","s":"4.9 MB","f":"zbgame-v6.1-4.apk"},{"v":"V6.1-3","s":"4.8 MB","f":"zbgame-v6.1-3.apk"},{"v":"V6.1-2","s":"97 KB","f":"zbgame-v6.1-2.apk"},{"v":"V6.1-1","s":"93 KB","f":"zbgame-v6.1-1.apk"},{"v":"V6.1","s":"93 KB","f":"zbgame-v6.1.apk"}];
  var APK_BASE = "history/";
 
  (function () {
@@ -408,6 +430,7 @@
   var BATCH = 12;   /* 懒加载：首批渲染数量，之后每次追加这么多 */
   var done = 0;     /* 已渲染的卡片数 */
   var sentinel = null;
+  var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   function makeCard(it) {
    var card = document.createElement('div');
@@ -433,6 +456,13 @@
 
    card.appendChild(meta);
    card.appendChild(a);
+
+   /* 出场动画：逐张「上滑淡入」，批内错峰（尊重系统「减少动态效果」） */
+   if (!reduceMotion) {
+    var idx = box.childElementCount;
+    card.style.animation = 'slideUpIn 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) backwards';
+    card.style.animationDelay = ((idx % BATCH) * 0.045 + 0.15).toFixed(3) + 's';
+   }
    return card;
   }
 
