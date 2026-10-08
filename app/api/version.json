@@ -1,10 +1,10 @@
 {
     "success": true,
     "data": {
-        "latest_version_code": 57,
-        "latest_version_name": "V6.6-test-9",
+        "latest_version_code": 58,
+        "latest_version_name": "V6.6",
         "update_url": "https://zbgame001.github.io/game.apk",
-        "update_content": "✨更新内容:\nV6.6-test-9\n1.系统消息的消息卡片样式更改\n2.直播可在类型选择页面开始直播\n3.退出游戏后，将自动结束直播",
+        "update_content": "✨更新内容:\nV6.6\n1.日间模式下部分显示优化\n2.修复了清除数据，数据有概率没被清掉的问题\n3.热搜邀请随机事件改为剪辑话题邀请\n4.修复了存档一个问题",
         "force_update": false,
         "min_version_code": 0
     }
