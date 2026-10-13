@@ -1,4 +1,11 @@
 {
   "success": true,
-  "data": []
+  "data": [
+    {
+      "name": "tmod-verify",
+      "version": "0.0.1",
+      "url": "mods/tmod-verify.js",
+      "enabled": true
+    }
+  ]
 }
