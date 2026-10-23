@@ -1,4 +1,11 @@
 {
   "success": true,
-  "data": []
+  "data": [
+    {
+      "name": "自动赚钱mod作者判源",
+      "version": "",
+      "url": "mods/自动赚钱mod作者判源.js",
+      "enabled": true
+    }
+  ]
 }
