@@ -1,10 +1,10 @@
 {
     "success": true,
     "data": {
-        "latest_version_code": 59,
-        "latest_version_name": "V6.6-1",
+        "latest_version_code": 60,
+        "latest_version_name": "V6.6-2",
         "update_url": "https://zbgame001.github.io/game.apk",
-        "update_content": "✨更新内容:\n1.部分显示添加动画\n2.作品页面修复了一个动画问题\n3.随机事件概率再次调整\n4.修复了帧数显示一个问题\n5.mod导入新增搜索框\n6.选择要推广的作品页面新增搜索框",
+        "update_content": "✨更新内容:\n1.游戏内提示框样式更改\n2.新增性别选择，个人主页会显示性别\n3.新增类型标签，个人主页会显示类型标签\n4.视频发布输入视频标题页面新增自定义标签\n5.修改了mod加载逻辑和部分显示\n6.新增个人简介，个人主页会显示个人简介\n7.个人主页背景图可自定义\n8.修复了一个问题",
         "force_update": false,
         "min_version_code": 0
     }
