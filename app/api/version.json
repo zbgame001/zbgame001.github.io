@@ -1,10 +1,10 @@
 {
     "success": true,
     "data": {
-        "latest_version_code": 60,
-        "latest_version_name": "V6.6-2",
+        "latest_version_code": 61,
+        "latest_version_name": "V6.6-3",
         "update_url": "https://zbgame001.github.io/game.apk",
-        "update_content": "✨更新内容:\n1.游戏内提示框样式更改\n2.新增性别选择，个人主页会显示性别\n3.新增类型标签，个人主页会显示类型标签\n4.视频发布输入视频标题页面新增自定义标签\n5.修改了mod加载逻辑和部分显示\n6.新增个人简介，个人主页会显示个人简介\n7.个人主页背景图可自定义\n8.修复了一个问题",
+        "update_content": "✨更新内容:\n1.修复 Android 13 及以上系统启动崩溃的问题\n2.更换应用图标，优化启动画面",
         "force_update": false,
         "min_version_code": 0
     }
