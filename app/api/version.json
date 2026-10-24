@@ -1,10 +1,10 @@
 {
     "success": true,
     "data": {
-        "latest_version_code": 61,
-        "latest_version_name": "V6.6-3",
+        "latest_version_code": 62,
+        "latest_version_name": "V6.6-4",
         "update_url": "https://zbgame001.github.io/game.apk",
-        "update_content": "✨更新内容:\n1.修复 Android 13 及以上系统启动崩溃的问题\n2.更换应用图标，优化启动画面",
+        "update_content": "✨更新内容:\n1.修复部分设备游玩一段时间后存档被误清除的问题\n2.新增存档自动备份与损坏恢复\n3.修复 Android 13 及以上系统启动崩溃的问题",
         "force_update": false,
         "min_version_code": 0
     }
