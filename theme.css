@@ -1,0 +1,60 @@
+/* 日间 / 夜间主题 + 标题栏切换按钮 */
+html[data-theme="dark"]{
+  --bg:#0f1115;
+  --text:#f2f4f7;
+  --muted:#98a2b3;
+  --line:#242a35;
+  --hover:#1a1f28;
+  color-scheme:dark;
+}
+
+html[data-theme="dark"] body{ background:var(--bg); color:var(--text); }
+html[data-theme="dark"] .app-header{ background:var(--bg); }
+
+/* 深色下给图标加白底，避免深色图形融进背景 */
+html[data-theme="dark"] .brand-icon,
+html[data-theme="dark"] .hero-icon{ background:#ffffff; }
+
+/* 正文与细节 */
+html[data-theme="dark"] .version-value{ color:#cbd3df; }
+html[data-theme="dark"] .tut-article p{ color:#d7dde6; }
+html[data-theme="dark"] .tut-article .note{ color:#aab3c2; }
+html[data-theme="dark"] .tut-article img{ background:#151a22; }
+
+/* 全屏菜单 */
+html[data-theme="dark"] .menu-overlay{ background:var(--bg); }
+html[data-theme="dark"] .menu-item{ color:var(--text); border-color:var(--line); }
+html[data-theme="dark"] .menu-item .chev{ color:#5b6472; }
+html[data-theme="dark"] .menu-btn.is-open{ background:var(--hover); }
+
+/* 标题栏切换按钮 */
+.theme-btn{
+  -webkit-appearance:none;
+  appearance:none;
+  border:0;
+  padding:0;
+  margin-right:2px;
+  width:40px;
+  height:40px;
+  border-radius:10px;
+  background:transparent;
+  color:var(--text);
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  transition:background-color .15s ease;
+}
+
+.theme-btn:hover{ background:var(--hover); }
+
+.theme-btn svg{
+  display:block;
+  width:21px;
+  height:21px;
+}
+
+.theme-btn .icon-sun{ display:none; }
+
+html[data-theme="dark"] .theme-btn .icon-sun{ display:block; }
+html[data-theme="dark"] .theme-btn .icon-moon{ display:none; }
