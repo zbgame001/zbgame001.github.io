@@ -1,6 +1,6 @@
 /* 日间 / 夜间切换：提前设置主题，再在标题栏插入按钮 */
 (function () {
-  var KEY = 'zbg-theme';
+  var KEY = '***';
   var root = document.documentElement;
   var saved = null;
 
@@ -26,6 +26,18 @@
   }
   applyMeta(theme);
 
+  var btn = null;
+
+  function setTheme(next) {
+    root.setAttribute('data-theme', next);
+    theme = next;
+    try { localStorage.setItem(KEY, next); } catch (e) {}
+    applyMeta(next);
+    if (btn) {
+      btn.setAttribute('aria-label', next === 'dark' ? '切换到日间模式' : '切换到夜间模式');
+    }
+  }
+
   var SUN = '<svg class="icon-sun" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
     '<circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.7"/>' +
     '<path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.1 5.1l1.6 1.6M17.3 17.3l1.6 1.6M18.9 5.1l-1.6 1.6M6.7 17.3l-1.6 1.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>' +
@@ -39,7 +51,7 @@
     var actions = document.querySelector('.header-actions');
     if (!actions || actions.querySelector('.theme-btn')) return;
 
-    var btn = document.createElement('button');
+    btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'theme-btn';
     btn.setAttribute('aria-label', theme === 'dark' ? '切换到日间模式' : '切换到夜间模式');
@@ -48,11 +60,16 @@
 
     btn.addEventListener('click', function () {
       var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      root.setAttribute('data-theme', next);
-      theme = next;
-      try { localStorage.setItem(KEY, next); } catch (e) {}
-      applyMeta(next);
-      btn.setAttribute('aria-label', next === 'dark' ? '切换到日间模式' : '切换到夜间模式');
+
+      /* 给整页加颜色过渡，再切换主题，实现渐变效果 */
+      root.classList.add('theme-anim');
+      void root.offsetHeight; /* 强制重排，确保过渡规则先生效 */
+      setTheme(next);
+
+      clearTimeout(root._themeTimer);
+      root._themeTimer = setTimeout(function () {
+        root.classList.remove('theme-anim');
+      }, 460);
     });
   }
 

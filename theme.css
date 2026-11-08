@@ -27,6 +27,14 @@ html[data-theme="dark"] .menu-item{ color:var(--text); border-color:var(--line);
 html[data-theme="dark"] .menu-item .chev{ color:#5b6472; }
 html[data-theme="dark"] .menu-btn.is-open{ background:var(--hover); }
 
+/* 主题切换渐变（切换瞬间给整页加颜色过渡） */
+html.theme-anim,
+html.theme-anim *,
+html.theme-anim *::before,
+html.theme-anim *::after{
+  transition:background-color .42s ease, color .42s ease, border-color .42s ease, box-shadow .42s ease !important;
+}
+
 /* 标题栏切换按钮 */
 .theme-btn{
   -webkit-appearance:none;
@@ -54,7 +62,7 @@ html[data-theme="dark"] .menu-btn.is-open{ background:var(--hover); }
   height:21px;
 }
 
-.theme-btn .icon-sun{ display:none; }
+.theme-btn .icon-moon{ display:none; }
 
-html[data-theme="dark"] .theme-btn .icon-sun{ display:block; }
-html[data-theme="dark"] .theme-btn .icon-moon{ display:none; }
+html[data-theme="dark"] .theme-btn .icon-sun{ display:none; }
+html[data-theme="dark"] .theme-btn .icon-moon{ display:block; }
