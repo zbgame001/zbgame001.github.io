@@ -1,4 +1,11 @@
 {
   "success": true,
-  "data": []
+  "data": [
+    {
+      "name": "金钱修改器mod",
+      "version": "",
+      "url": "mods/金钱修改器mod.js",
+      "enabled": true
+    }
+  ]
 }
