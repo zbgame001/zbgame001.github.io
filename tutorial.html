@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>教程 - 文字游戏-主播模拟器</title>
+<link rel="icon" href="./favicon.ico">
+<style>
+  :root{
+    --bg:#ffffff;
+    --text:#111827;
+    --muted:#6b7280;
+    --line:#eceff3;
+    --hover:#f4f6f9;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0;
+    padding:0;
+    background:var(--bg);
+    color:var(--text);
+  }
+
+  body{
+    min-height:100vh;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    text-rendering:optimizeLegibility;
+  }
+
+  /* ===== 标题栏（与主页一致） ===== */
+  .app-header{
+    position:sticky;
+    top:0;
+    z-index:20;
+    background:var(--bg);
+    padding-top:env(safe-area-inset-top, 0px);
+  }
+
+  .app-header::after{
+    content:"";
+    display:block;
+    height:1px;
+    background:linear-gradient(90deg, transparent, var(--line) 12%, var(--line) 88%, transparent);
+  }
+
+  .header-inner{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    height:56px;
+    padding:0 16px;
+    max-width:1080px;
+    margin:0 auto;
+  }
+
+  .brand-icon{
+    flex:0 0 auto;
+    width:32px;
+    height:32px;
+    border-radius:9px;
+    object-fit:cover;
+    display:block;
+    box-shadow:0 0 0 1px rgba(17,24,39,.06);
+  }
+
+  .brand-title{
+    font-size:16px;
+    line-height:1.2;
+    font-weight:600;
+    letter-spacing:.2px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    user-select:none;
+  }
+
+  .header-actions{
+    margin-left:auto;
+    display:flex;
+    align-items:center;
+  }
+
+  .menu-btn{
+    -webkit-appearance:none;
+    appearance:none;
+    border:0;
+    padding:0;
+    width:40px;
+    height:40px;
+    border-radius:10px;
+    background:transparent;
+    color:inherit;
+    display:grid;
+    place-items:center;
+    cursor:default;
+    -webkit-tap-highlight-color:transparent;
+    transition:background-color .15s ease;
+  }
+
+  .menu-btn svg{ display:block; width:22px; height:22px; }
+  .menu-btn:hover{ background:var(--hover); }
+
+  /* ===== 内容区 ===== */
+  .page{
+    max-width:1080px;
+    margin:0 auto;
+    padding:0 16px calc(32px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .tutorial-stack{
+    animation:rise-in .62s cubic-bezier(.22,1,.36,1) both;
+  }
+
+  @keyframes rise-in{
+    from{ opacity:0; transform:translateY(22px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+
+  /* 返回首页：纯文字，无边框 */
+  .back-row{
+    text-align:center;
+    padding:22px 0 12px;
+  }
+
+  .back-link{
+    display:inline-block;
+    font-size:15px;
+    line-height:1.4;
+    font-weight:700;
+    letter-spacing:.2px;
+    color:var(--text);
+    text-decoration:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  .back-link:hover{ opacity:.65; }
+
+  /* ===== 教程列表：无外框，行间分隔线 ===== */
+  .tut-list{ margin-top:2px; }
+
+  .tut-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:16px 2px;
+    border-top:1px solid var(--line);
+    text-decoration:none;
+    color:var(--text);
+    -webkit-tap-highlight-color:transparent;
+    transition:color .15s ease;
+  }
+
+  .tut-row:first-child{ border-top:0; }
+
+  .tut-row:hover .tut-name{ color:#16a34a; }
+
+  .tut-name{
+    min-width:0;
+    font-size:15px;
+    line-height:1.5;
+    font-weight:500;
+    letter-spacing:.2px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    transition:color .15s ease;
+  }
+
+  .tut-arrow{
+    flex:0 0 auto;
+    width:18px;
+    height:18px;
+    color:#c3c9d4;
+  }
+
+  @media (max-width:380px){
+    .brand-title{ font-size:15px; }
+    .header-inner{ gap:9px; padding:0 14px; }
+    .page{ padding-left:14px; padding-right:14px; }
+    .tut-name{ font-size:14px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .tutorial-stack{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-inner">
+      <img class="brand-icon" src="./favicon.ico" alt="主播模拟器图标" width="32" height="32">
+      <h1 class="brand-title">教程</h1>
+
+      <div class="header-actions">
+        <!-- 占位：暂不绑定点击行为 -->
+        <button class="menu-btn" type="button" aria-label="菜单" aria-disabled="true" data-placeholder="menu">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="tutorial-stack">
+      <div class="back-row">
+        <a class="back-link" href="./">←返回首页</a>
+      </div>
+
+      <nav class="tut-list" aria-label="教程列表">
+        <a class="tut-row" href="./tutorial-mod.html">
+          <span class="tut-name">如何快速做出一个mod并导入</span>
+          <svg class="tut-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+      </nav>
+    </div>
+  </main>
+
+</body>
+</html>

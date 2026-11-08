@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>如何快速做出一个mod并导入 - 教程</title>
+<link rel="icon" href="./favicon.ico">
+<style>
+  :root{
+    --bg:#ffffff;
+    --text:#111827;
+    --muted:#6b7280;
+    --line:#eceff3;
+    --hover:#f4f6f9;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0;
+    padding:0;
+    background:var(--bg);
+    color:var(--text);
+  }
+
+  body{
+    min-height:100vh;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    text-rendering:optimizeLegibility;
+  }
+
+  /* ===== 标题栏（与教程页一致） ===== */
+  .app-header{
+    position:sticky;
+    top:0;
+    z-index:20;
+    background:var(--bg);
+    padding-top:env(safe-area-inset-top, 0px);
+  }
+
+  .app-header::after{
+    content:"";
+    display:block;
+    height:1px;
+    background:linear-gradient(90deg, transparent, var(--line) 12%, var(--line) 88%, transparent);
+  }
+
+  .header-inner{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    height:56px;
+    padding:0 16px;
+    max-width:1080px;
+    margin:0 auto;
+  }
+
+  .brand-icon{
+    flex:0 0 auto;
+    width:32px;
+    height:32px;
+    border-radius:9px;
+    object-fit:cover;
+    display:block;
+    box-shadow:0 0 0 1px rgba(17,24,39,.06);
+  }
+
+  .brand-title{
+    font-size:16px;
+    line-height:1.2;
+    font-weight:600;
+    letter-spacing:.2px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    user-select:none;
+  }
+
+  .header-actions{
+    margin-left:auto;
+    display:flex;
+    align-items:center;
+  }
+
+  .menu-btn{
+    -webkit-appearance:none;
+    appearance:none;
+    border:0;
+    padding:0;
+    width:40px;
+    height:40px;
+    border-radius:10px;
+    background:transparent;
+    color:inherit;
+    display:grid;
+    place-items:center;
+    cursor:default;
+    -webkit-tap-highlight-color:transparent;
+    transition:background-color .15s ease;
+  }
+
+  .menu-btn svg{ display:block; width:22px; height:22px; }
+  .menu-btn:hover{ background:var(--hover); }
+
+  /* ===== 内容区 ===== */
+  .page{
+    max-width:1080px;
+    margin:0 auto;
+    padding:0 16px calc(36px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .article-stack{
+    animation:rise-in .62s cubic-bezier(.22,1,.36,1) both;
+  }
+
+  @keyframes rise-in{
+    from{ opacity:0; transform:translateY(22px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+
+  /* 返回首页：纯文字，无边框 */
+  .back-row{
+    text-align:center;
+    padding:22px 0 14px;
+  }
+
+  .back-link{
+    display:inline-block;
+    font-size:15px;
+    line-height:1.4;
+    font-weight:700;
+    letter-spacing:.2px;
+    color:var(--text);
+    text-decoration:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  .back-link:hover{ opacity:.65; }
+
+  /* ===== 正文 ===== */
+  .tut-article{
+    max-width:760px;
+    margin:0 auto;
+    padding-bottom:12px;
+  }
+
+  .tut-article p{
+    margin:0 0 12px;
+    font-size:15px;
+    line-height:1.8;
+    color:#1f2937;
+    word-break:break-word;
+  }
+
+  .tut-article .step{
+    margin:20px 0 0;
+    font-weight:500;
+    color:var(--text);
+  }
+
+  .tut-article figure{
+    margin:12px 0 4px;
+    padding:0;
+  }
+
+  .tut-article img{
+    display:block;
+    width:100%;
+    height:auto;
+    border-radius:10px;
+    border:1px solid var(--line);
+    background:#f6f7f9;
+  }
+
+  .tut-article figure figcaption{
+    margin-top:6px;
+    font-size:12px;
+    line-height:1.5;
+    color:var(--muted);
+    text-align:center;
+  }
+
+  .notes-title{
+    margin:28px 0 8px;
+    font-size:15px;
+    line-height:1.6;
+    font-weight:700;
+    color:var(--text);
+  }
+
+  .tut-article .note{
+    margin:0 0 10px;
+    font-size:14px;
+    color:#374151;
+  }
+
+  @media (max-width:380px){
+    .brand-title{ font-size:15px; }
+    .header-inner{ gap:9px; padding:0 14px; }
+    .page{ padding-left:14px; padding-right:14px; }
+    .tut-article p{ font-size:14px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .article-stack{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-inner">
+      <img class="brand-icon" src="./favicon.ico" alt="主播模拟器图标" width="32" height="32">
+      <h1 class="brand-title">教程</h1>
+
+      <div class="header-actions">
+        <!-- 占位：暂不绑定点击行为 -->
+        <button class="menu-btn" type="button" aria-label="菜单" aria-disabled="true" data-placeholder="menu">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="article-stack">
+      <div class="back-row">
+        <a class="back-link" href="./">←返回首页</a>
+      </div>
+
+      <article class="tut-article">
+        <p>首先，我们来到mod制作教程页面</p>
+        <p>然后我们再下载一个deepseek软件</p>
+
+        <p class="step">1.点击那个方法二下方的按钮（图1）</p>
+        <figure>
+          <img src="tutorial/img1.jpg" alt="图1：Mod制作教程页面，点击方法二下方的按钮" loading="lazy" decoding="async">
+        </figure>
+
+        <p class="step">2.然后我们会跳转到deepseek里，然后输入我们的mod制作要求（例:“制作一个零钱修改器mod），然后发送（图二）</p>
+        <figure>
+          <img src="tutorial/img2.jpg" alt="图2：在 DeepSeek 中输入 mod 制作要求" loading="lazy" decoding="async">
+        </figure>
+
+        <p class="step">3.ai给出结果后，我们不用管json，在js一行右边点那个复制（图三）</p>
+        <figure>
+          <img src="tutorial/img3.jpg" alt="图3：复制 js 代码" loading="lazy" decoding="async">
+        </figure>
+
+        <p class="step">4.然后我们再回到游戏里（mod管理中心），点击“粘贴代码组成mod”（图四）</p>
+        <figure>
+          <img src="tutorial/img4.jpg" alt="图4：Mod 管理中心，点击粘贴代码组成 MOD" loading="lazy" decoding="async">
+        </figure>
+
+        <p class="step">5.我们在这里长按（图五）</p>
+        <figure>
+          <img src="tutorial/img5.jpg" alt="图5：在输入框中长按" loading="lazy" decoding="async">
+        </figure>
+
+        <p class="step">6.然后再点击粘贴（图六）</p>
+        <figure>
+          <img src="tutorial/img6.jpg" alt="图6：点击粘贴" loading="lazy" decoding="async">
+        </figure>
+
+        <p class="step">7.然后我们再点击确定生成js（图七）</p>
+        <figure>
+          <img src="tutorial/img7.jpg" alt="图7：点击确定生成 JS" loading="lazy" decoding="async">
+        </figure>
+
+        <p class="step">8.然后再点击组成mod（图八）</p>
+        <figure>
+          <img src="tutorial/img8.jpg" alt="图8：点击组成 MOD" loading="lazy" decoding="async">
+        </figure>
+
+        <p class="step">9.然后再勾选，再确定，这样就成功了（图九）</p>
+        <figure>
+          <img src="tutorial/img9.jpg" alt="图9：勾选后确定加载 MOD" loading="lazy" decoding="async">
+        </figure>
+
+        <h2 class="notes-title">注意事项:</h2>
+        <p class="note">1.如果ai给出多个js，那就再复制再粘贴再生成js再组成mod</p>
+      </article>
+    </div>
+  </main>
+
+</body>
+</html>
