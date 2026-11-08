@@ -232,6 +232,7 @@
 
   /* 分区小标题 */
   .section-label{
+    position:relative;
     margin:28px 0 0;
     font-size:14px;
     line-height:1.4;
@@ -239,6 +240,18 @@
     letter-spacing:.2px;
     color:var(--text);
     text-align:left;
+  }
+
+  .section-mid{
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    font-size:14px;
+    font-weight:700;
+    letter-spacing:.2px;
+    color:var(--text);
+    white-space:nowrap;
   }
 
   .history-link{
@@ -314,7 +327,7 @@
       </a>
 
       <!-- 第四行：其它 -->
-      <h2 class="section-label">其它</h2>
+      <h2 class="section-label">其它<span class="section-mid">讨论</span></h2>
       <a class="history-link" href="./history.html">历史版本</a>
 
     </div>
