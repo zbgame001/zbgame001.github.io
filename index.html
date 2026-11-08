@@ -1,1345 +1,344 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
- <meta charset="UTF-8">
- <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
- <title>文字游戏-主播模拟器</title>
- <meta name="theme-color" content="#ffffff">
- <link rel="icon" href="favicon.ico" type="image/x-icon">
- <script>
- /* 首屏渲染前先把主题定下来，避免亮/暗闪一下 */
- (function () {
-  var t = null;
-  try { t = localStorage.getItem('theme'); } catch (e) {}
-  if (t !== 'dark' && t !== 'light') {
-   t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
-  }
-  document.documentElement.setAttribute('data-theme', t);
- })();
- </script>
- <style>
- :root {
- color-scheme: light;
- --bg-color: #ffffff;
- --text-main: #1a1a1a;
- --text-sub: #666666;
- --btn-bg: #4a4a4a;
- --btn-text: #ffffff;
- --btn-icon: #ffffff;
- --bar-bg: #ffffff;
- --bar-border: #ececec;
- --loading: #9a9a9a;
- --link-color: #1a73e8;
- --card-bg: #ffffff;
- --card-border: #ececec;
- --card-hover-border: #d8d8d8;
- --row-hover: rgba(0, 0, 0, 0.04);
- --switch-track: rgba(0, 0, 0, 0.7);
- --switch-track-on: rgba(0, 0, 0, 0.45);
- --switch-shadow: rgba(0, 0, 0, 0.3);
- --switch-shadow-on: rgba(0, 0, 0, 0.1);
- --switch-knob: #d7d7d7;
- --switch-sun: #fdea7b;
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>文字游戏-主播模拟器</title>
+<link rel="icon" href="./favicon.ico">
+<style>
+  :root{
+    --bg:#ffffff;
+    --text:#111827;
+    --muted:#6b7280;
+    --line:#eceff3;
+    --hover:#f4f6f9;
+    --green:#22c55e;
+    --green-dark:#16a34a;
   }
 
- /* 夜间模式 */
- html[data-theme="dark"] {
- color-scheme: dark;
- --bg-color: #0f0f0f;
- --text-main: #f2f2f2;
- --text-sub: #9a9a9a;
- --btn-bg: #fdea7b;      /* 夜间用亮色胶囊主按钮（黄底深字） */
- --btn-text: #1a1a1a;
- --btn-icon: #1a1a1a;
- --bar-bg: #161616;
- --bar-border: #262626;
- --loading: #7a7a7a;
- --link-color: #6aa9ff;
- --card-bg: #161616;
- --card-border: #262626;
- --card-hover-border: #3a3a3a;
- --row-hover: rgba(255, 255, 255, 0.06);
- --switch-track: rgba(255, 255, 255, 0.22);
- --switch-track-on: rgba(255, 255, 255, 0.12);
- --switch-shadow: rgba(0, 0, 0, 0.45);
- --switch-shadow-on: rgba(0, 0, 0, 0.25);
- --switch-knob: #eaeaea;
- --switch-sun: #fdea7b;
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0;
+    padding:0;
+    background:var(--bg);
+    color:var(--text);
   }
 
- * {
- margin: 0;
- padding: 0;
- box-sizing: border-box;
- font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
- -webkit-tap-highlight-color: transparent;   /* 去掉手机点击时的蓝色高亮块 */
- }
+  body{
+    min-height:100vh;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    text-rendering:optimizeLegibility;
+  }
 
- /* 去掉浏览器自带的蓝色选中/聚焦框 */
- ::selection {
- background: transparent;
- color: inherit;
- }
- a:focus,
- input:focus {
- outline: none;
- }
- :focus-visible {
- outline: 2px solid var(--switch-sun);
- outline-offset: 2px;
- }
+  /* ===== 第一行：标题栏 ===== */
+  .app-header{
+    position:sticky;
+    top:0;
+    z-index:20;
+    background:var(--bg);
+    padding-top:env(safe-area-inset-top, 0px);
+  }
 
- body {
- background-color: var(--bg-color);
- display: flex;
- flex-direction: column;
- min-height: 100vh;
- user-select: none;
- -webkit-user-select: none;
- -webkit-touch-callout: none;
- touch-action: pan-y pinch-zoom;
- }
+  .app-header::after{
+    content:"";
+    display:block;
+    height:1px;
+    background:linear-gradient(90deg, transparent, var(--line) 12%, var(--line) 88%, transparent);
+  }
 
- /* 日/夜切换：颜色平滑过渡（配合开关的渐变过场） */
- body,
- .topbar,
- .topbar-title,
- .hero-title,
- .hero-ver,
- .hero-ver .val,
- .credit,
- .credit a,
- .download-btn .icon svg {
- transition:
- background-color 0.45s ease,
- color 0.45s ease,
- border-color 0.45s ease,
- fill 0.45s ease;
- }
+  .header-inner{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    height:56px;
+    padding:0 16px;
+    max-width:1080px;
+    margin:0 auto;
+  }
 
- /* 顶部栏 */
- .topbar {
- flex-shrink: 0;
- position: sticky;
- top: 0;
- z-index: 10;
- background: var(--bar-bg);
- border-bottom: 1px solid var(--bar-border);
- }
- .topbar-inner {
- height: 64px;
- display: flex;
- align-items: center;
- gap: 12px;
- padding: 0 24px;   /* 与内容区左边缘对齐 */
- }
- .topbar-icon {
- width: 32px;
- height: 32px;
- border-radius: 8px;
- object-fit: contain;
- flex-shrink: 0;
- }
- .topbar-title {
- font-size: 17px;
- font-weight: 600;
- color: var(--text-main);
- letter-spacing: 0.5px;
- min-width: 0;
- white-space: nowrap;
- overflow: hidden;
- text-overflow: ellipsis;
- }
+  .brand-icon{
+    flex:0 0 auto;
+    width:32px;
+    height:32px;
+    border-radius:9px;
+    object-fit:cover;
+    display:block;
+    box-shadow:0 0 0 1px rgba(17,24,39,.06);
+  }
 
- /* 主体：第一行 大图标 + 标题/版本，第二行 下载按钮，第四行 作品标题，第五行 作品展示 */
- .stage {
- width: 100%;
- max-width: 720px;
- margin: 0 auto 0 0;   /* 左对齐，不居中 */
- padding: 32px 24px 56px;
- display: flex;
- flex-direction: column;
- align-items: stretch;
- }
+  .brand-title{
+    font-size:16px;
+    line-height:1.2;
+    font-weight:600;
+    letter-spacing:.2px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    user-select:none;
+  }
 
- /* 首屏那两行（图标+标题 / 按钮+来源行）：窄屏竖排，宽屏横排 */
- .hero-row {
- display: flex;
- flex-direction: column;
- align-items: stretch;
- }
+  .header-actions{
+    margin-left:auto;
+    display:flex;
+    align-items:center;
+  }
 
- /* ---- 第四行：作品展示标题 ---- */
- .works-head {
- margin-top: 56px;
- font-size: 15px;
- font-weight: 600;
- color: var(--text-main);
- letter-spacing: 0.3px;
- line-height: 1.5;
- }
+  .menu-btn{
+    -webkit-appearance:none;
+    appearance:none;
+    border:0;
+    padding:0;
+    width:40px;
+    height:40px;
+    border-radius:10px;
+    background:transparent;
+    color:inherit;
+    display:grid;
+    place-items:center;
+    cursor:default;
+    -webkit-tap-highlight-color:transparent;
+    transition:background-color .15s ease;
+  }
 
- /* ---- 第五行：作品展示区 ---- */
- /* 作品列表：一整块面板，行与行之间用细分隔线 */
- .works-grid {
- margin-top: 16px;
- display: flex;
- flex-direction: column;
- background-color: var(--card-bg);
- border: 1px solid var(--card-border);
- border-radius: 14px;
- overflow: hidden;
- transition:
- background-color 0.45s ease,
- border-color 0.45s ease;
- }
- .work-card {
- display: flex;
- align-items: center;
- justify-content: space-between;
- gap: 12px;
- padding: 15px 16px;
- text-decoration: none;
- color: var(--text-main);
- transition:
- background-color 0.2s ease,
- border-color 0.45s ease,
- color 0.45s ease;
- }
- .work-card + .work-card {
- border-top: 1px solid var(--card-border);
- }
- .work-card:hover {
- background-color: var(--row-hover);
- }
- .work-card:active {
- transform: scale(0.995);
- }
- .work-name {
- min-width: 0;
- font-size: 15px;
- font-weight: 600;
- color: var(--text-main);
- letter-spacing: 0.2px;
- white-space: nowrap;
- overflow: hidden;
- text-overflow: ellipsis;
- }
- .work-go {
- flex-shrink: 0;
- color: var(--text-sub);
- font-size: 17px;
- line-height: 1;
- transition:
- color 0.2s ease,
- transform 0.2s ease;
- }
- .work-card:hover .work-go {
- color: var(--link-color);
- transform: translateX(2px);
- }
+  .menu-btn svg{
+    display:block;
+    width:22px;
+    height:22px;
+  }
 
- /* 查看更多：6 张卡片下方的入口 */
- .more-btn {
- display: flex;
- align-items: center;
- justify-content: center;
- margin-top: 14px;
- padding: 14px 16px;
- font-size: 15px;
- font-weight: 600;
- letter-spacing: 0.3px;
- color: var(--text-main);
- background-color: transparent;
- border: 1px dashed var(--card-border);
- border-radius: 14px;
- text-decoration: none;
- transition:
- background-color 0.45s ease,
- border-color 0.2s ease,
- color 0.2s ease;
- }
- .more-btn:hover {
- border-color: var(--link-color);
- color: var(--link-color);
- }
- .more-btn:active {
- transform: scale(0.995);
- }
+  .menu-btn:hover{ background:var(--hover); }
 
- .hero-head {
- display: flex;
- align-items: center;
- gap: 22px;
- }
- .hero-icon {
- width: 104px;
- height: 104px;
- border-radius: 24px;
- object-fit: contain;
- flex-shrink: 0;
- }
- .hero-meta {
- display: flex;
- flex-direction: column;
- gap: 10px;
- min-width: 0;
- }
- .hero-title {
- font-size: 30px;
- font-weight: 700;
- color: var(--text-main);
- letter-spacing: 0.5px;
- line-height: 1.2;
- }
- .hero-ver {
- font-size: 14px;
- color: var(--text-sub);
- letter-spacing: 0.3px;
- }
- .hero-ver .val {
- color: var(--text-main);
- font-weight: 600;
- }
- .hero-ver .val.loading {
- color: var(--loading);
- font-weight: 400;
- }
+  /* ===== 内容区 ===== */
+  .page{
+    max-width:1080px;
+    margin:0 auto;
+    padding:0 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  }
 
- /* 下载按钮 + 来源行 一整组 */
- .dl-wrap {
- display: flex;
- flex-direction: column;
- align-items: stretch;
- margin-top: 42px;
- }
+  /* 第二、三行作为整体一起上滑 */
+  .hero-stack{
+    padding-top:24px;
+    animation:rise-in .62s cubic-bezier(.22,1,.36,1) .06s both;
+  }
 
- .download-btn {
- display: flex;
- align-items: center;
- justify-content: center;
- gap: 12px;
- width: 100%;
- margin-top: 0;
- background-color: var(--btn-bg);
- color: var(--btn-text);
- padding: 18px 24px;
- border-radius: 14px;
- text-decoration: none;
- transition:
- opacity 0.3s,
- transform 0.1s,
- background-color 0.45s ease,
- color 0.45s ease;
- }
- .download-btn:hover {
- opacity: 0.88;
- }
- .download-btn:active {
- transform: scale(0.99);
- }
- .download-btn .icon {
- width: 24px;
- height: 24px;
- flex-shrink: 0;
- }
- .download-btn .icon svg {
- width: 100%;
- height: 100%;
- fill: var(--btn-icon);
- }
- .download-btn .name {
- font-size: 17px;
- font-weight: bold;
- letter-spacing: 0.5px;
- }
+  @keyframes rise-in{
+    from{
+      opacity:0;
+      transform:translateY(22px);
+    }
+    to{
+      opacity:1;
+      transform:translateY(0);
+    }
+  }
 
- /* 来源行：蓝色链接，可点 */
- .credit {
- margin-top: 12px;
- font-size: 12.5px;
- line-height: 1.5;
- color: var(--text-sub);
- text-align: center;
- }
- .credit a {
- color: var(--link-color);
- text-decoration: none;
- }
- .credit a:hover {
- text-decoration: underline;
- }
+  /* ===== 第二行：图标 + 名称 + 版本 ===== */
+  .hero-head{
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
 
- /* ---- 历史版本下载按钮（模板来自 uiverse.io；作用域限定为 .hist-btn，
-  几何/动效保持原样，仅把全局 strong / id 选择器改成类名以免影响本页其它元素） ---- */
- .hist-btn {
- position: relative; /* 让星星/光晕的绝对定位锚在本按钮内 */
- display: flex;
- text-decoration: none; /* 本身是链接，去掉下划线 */
- justify-content: center;
- align-items: center;
- align-self: center; /* 手机端：居中 */
- margin-top: 18px;
- width: 13rem;
- max-width: 100%;
- height: 3rem;
- overflow: hidden;
- padding: 0;
- cursor: pointer;
- -webkit-appearance: none;
- appearance: none;
- background-size: 300% 300%;
- backdrop-filter: blur(1rem);
- border-radius: 5rem;
- transition: 0.5s;
- animation: histGradient 5s ease infinite;
- border: double 4px transparent;
- background-image:
- linear-gradient(#212121, #212121),
- linear-gradient(
- 137.48deg,
- #ffdb3b 10%,
- #fe53bb 45%,
- #8f51ea 67%,
- #0044ff 87%
- );
- background-origin: border-box;
- background-clip: content-box, border-box;
- }
- .hist-btn .hist-txt {
- z-index: 2;
- font-size: 14px;
- font-weight: 700;
- letter-spacing: 3px;
- color: #ffffff;
- text-shadow: 0 0 4px white;
- white-space: nowrap;
- }
- .hist-btn .stars-container {
- position: absolute;
- z-index: -1;
- width: 100%;
- height: 100%;
- overflow: hidden;
- transition: 0.5s;
- backdrop-filter: blur(1rem);
- border-radius: 5rem;
- }
- .hist-btn .glow {
- position: absolute;
- display: flex;
- width: 12rem;
- }
- .hist-btn .circle {
- width: 100%;
- height: 30px;
- filter: blur(2rem);
- animation: histPulse 4s infinite;
- z-index: -1;
- }
- .hist-btn .circle:nth-of-type(1) {
- background: rgba(254, 83, 186, 0.636);
- }
- .hist-btn .circle:nth-of-type(2) {
- background: rgba(142, 81, 234, 0.704);
- }
- .hist-btn:hover .stars-container {
- z-index: 1;
- background-color: #212121;
- }
- .hist-btn:hover {
- transform: scale(1.1);
- }
- .hist-btn:active {
- border: double 4px #fe53bb;
- background-origin: border-box;
- background-clip: content-box, border-box;
- animation: none;
- }
- .hist-btn:active .circle {
- background: #fe53bb;
- }
- .hist-btn .stars {
- display: block; /* 相对定位 + 需要尺寸，span 必须块级化 */
- position: relative;
- background: transparent;
- width: 200rem;
- height: 200rem;
- }
- .hist-btn .stars::after {
- content: "";
- position: absolute;
- top: -10rem;
- left: -100rem;
- width: 100%;
- height: 100%;
- animation: histStarRotate 90s linear infinite;
- background-image: radial-gradient(#ffffff 1px, transparent 1%);
- background-size: 50px 50px;
- }
- .hist-btn .stars::before {
- content: "";
- position: absolute;
- top: 0;
- left: -50%;
- width: 170%;
- height: 500%;
- animation: histStar 60s linear infinite;
- background-image: radial-gradient(#ffffff 1px, transparent 1%);
- background-size: 50px 50px;
- opacity: 0.5;
- }
- @keyframes histStar {
- from {
- transform: translateY(0);
- }
- to {
- transform: translateY(-135rem);
- }
- }
- @keyframes histStarRotate {
- from {
- transform: rotate(360deg);
- }
- to {
- transform: rotate(0);
- }
- }
- @keyframes histGradient {
- 0% {
- background-position: 0% 50%;
- }
- 50% {
- background-position: 100% 50%;
- }
- 100% {
- background-position: 0% 50%;
- }
- }
- @keyframes histPulse {
- 0% {
- transform: scale(0.75);
- box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.7);
- }
- 70% {
- transform: scale(1);
- box-shadow: 0 0 0 10px rgba(0, 0, 0, 0);
- }
- 100% {
- transform: scale(0.75);
- box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
- }
- }
- /* 电脑端：与另两枚按钮同处一行，去掉竖排时的上间距 */
- @media (min-width: 768px) {
- .hist-btn {
- margin-top: 0;
- }
- }
- @media (prefers-reduced-motion: reduce) {
- .hist-btn,
- .hist-btn .stars::before,
- .hist-btn .stars::after,
- .hist-btn .circle {
- animation: none;
- }
- }
+  .hero-icon{
+    flex:0 0 auto;
+    width:56px;
+    height:56px;
+    border-radius:16px;
+    object-fit:cover;
+    display:block;
+    box-shadow:0 0 0 1px rgba(17,24,39,.06), 0 4px 12px rgba(17,24,39,.06);
+  }
 
- /* ---- 按钮出场动画承载层 + 加入QQ频道按钮（模板来自用户提供的 .button，作用域限定为 .qq-btn）----
-  动画加在包裹层上：按钮自身有 overflow:hidden / 负 z-index 子元素，
-  直接给它加 transform 动画会把它变成层叠上下文，导致星星/光晕在入场瞬间翻到正面。 */
- .hist-wrap,
- .qq-wrap {
- display: block;
- align-self: center; /* 手机端：居中 */
- animation: slideUpIn 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
- }
- .hist-wrap { animation-delay: 0.3s; }
- .qq-wrap { margin-top: 14px; animation-delay: 0.42s; }
- .qq-btn {
- position: relative;
- width: 120px;
- height: 40px;
- background-color: #000;
- display: flex;
- align-items: center;
- color: white;
- flex-direction: column;
- justify-content: center;
- border: none;
- padding: 12px;
- gap: 12px;
- border-radius: 8px;
- cursor: pointer;
- text-decoration: none; /* 本身是链接，去掉下划线 */
- font-size: 14px;
- font-weight: 600;
- line-height: 1;
- letter-spacing: 1px;
- white-space: nowrap;
- }
- .qq-btn::before {
- content: '';
- position: absolute;
- inset: 0;
- left: -4px;
- top: -1px;
- margin: auto;
- width: 128px;
- height: 48px;
- border-radius: 10px;
- background: linear-gradient(-45deg, #e81cff 0%, #40c9ff 100%);
- z-index: -10;
- pointer-events: none;
- transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
- }
- .qq-btn::after {
- content: "";
- z-index: -1;
- position: absolute;
- inset: 0;
- background: linear-gradient(-45deg, #fc00ff 0%, #00dbde 100%);
- transform: translate3d(0, 0, 0) scale(0.95);
- filter: blur(20px);
- }
- .qq-btn:hover::after {
- filter: blur(30px);
- }
- .qq-btn:hover::before {
- transform: rotate(-180deg);
- }
- .qq-btn:active::before {
- scale: 0.7;
- }
- /* 电脑端：三枚各自保持原宽，不统一长度（下载 auto≈163 / 历史 208 / QQ 120） */
- @media (prefers-reduced-motion: reduce) {
- .hist-wrap,
- .qq-wrap { animation: none; }
- }
+  .hero-meta{
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    gap:5px;
+  }
 
- /* ---- 日/夜开关：沿用用户提供的模板，几何/动效不变，颜色接入主题变量 ---- */
- .l {
- cursor: pointer;
- font-size: 1em;
- background-color: var(--switch-track);
- border-radius: 0.75em;
- box-shadow: 0.125em 0.125em 0 0.125em var(--switch-shadow) inset;
- color: var(--switch-sun);
- display: inline-flex;
- align-items: center;
- padding: 0.15em;
- width: 3em;
- height: 1.5em;
- transition:
- background-color 0.1s 0.3s ease-out,
- box-shadow 0.1s 0.3s ease-out;
- -webkit-appearance: none;
- -moz-appearance: none;
- appearance: none;
- }
- .l:before,
- .l:after {
- content: "";
- display: block;
- }
- .l:before {
- background-color: var(--switch-knob);
- border-radius: 50%;
- width: 1.2em;
- height: 1.2em;
- transition:
- background-color 0.1s 0.3s ease-out,
- transform 0.3s ease-out;
- z-index: 1;
- }
- .l:after {
- background:
- linear-gradient(transparent 50%, rgba(0, 0, 0, 0.15) 0) 0 50% / 50% 100%,
- repeating-linear-gradient(90deg, #bbb 0, #bbb, #bbb 20%, #999 20%, #999 40%)
- 0 50% / 50% 100%,
- radial-gradient(circle at 50% 50%, #888 25%, transparent 26%);
- background-repeat: no-repeat;
- border: 0.25em solid transparent;
- border-left: 0.4em solid #d8d8d8;
- border-right: 0 solid transparent;
- transition:
- border-left-color 0.1s 0.3s ease-out,
- transform 0.3s ease-out;
- transform: translateX(-22.5%);
- transform-origin: 25% 50%;
- width: 1.2em;
- height: 1em;
- box-sizing: border-box;
- }
- /* Checked */
- .l:checked {
- background-color: var(--switch-track-on);
- box-shadow: 0.125em 0.125em 0 0.125em var(--switch-shadow-on) inset;
- }
- .l:checked:before {
- background-color: currentColor;
- transform: translateX(125%);
- }
- .l:checked:after {
- border-left-color: currentColor;
- transform: translateX(-2.5%) rotateY(180deg);
- }
- /* Other States */
- .l:focus {
- outline: 0;
- }
- .l:focus-visible {
- outline: 2px solid var(--switch-sun);
- outline-offset: 2px;
- }
- /* 放进顶部栏：去掉模板演示用的外边距，靠右 */
- .topbar .l {
- margin: 0;
- margin-left: auto;
- flex-shrink: 0;
- }
+  .hero-title{
+    margin:0;
+    font-size:19px;
+    line-height:1.25;
+    font-weight:600;
+    letter-spacing:.2px;
+    color:var(--text);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
 
- /* ---- 日/夜切换的渐变过场：从开关位置向外扩散的径向渐变 ---- */
- #themeFx {
- position: fixed;
- inset: 0;
- z-index: 90;
- pointer-events: none;
- opacity: 0;
- background: radial-gradient(
- circle at var(--fx-x, calc(100% - 48px)) var(--fx-y, 32px),
- var(--fx-color, rgba(6, 6, 6, 0.55)) 0%,
- rgba(0, 0, 0, 0) 62%
- );
- }
- #themeFx.on {
- animation: themeWash 0.7s ease-out;
- }
- @keyframes themeWash {
- 0% {
- opacity: 0;
- }
- 35% {
- opacity: 1;
- }
- 100% {
- opacity: 0;
- }
- }
- @media (prefers-reduced-motion: reduce) {
- #themeFx {
- display: none;
- }
- }
+  .hero-version{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:13px;
+    line-height:1.3;
+    color:var(--muted);
+    min-height:18px;
+  }
 
- /* 出场动画：第一行与第二行统一为「上滑淡入」 */
- @keyframes slideUpIn {
- from {
- opacity: 0;
- transform: translateY(20px);
- }
- to {
- opacity: 1;
- transform: translateY(0);
- }
- }
- .hero-head,
- .download-btn,
- .credit,
- .works-head,
- .work-card,
- .more-btn {
- animation: slideUpIn 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
- }
- .download-btn {
- animation-delay: 0.1s;
- }
- .credit {
- animation-delay: 0.2s;
- }
- .works-head {
- animation-delay: 0.25s;
- }
- .more-btn {
- animation-delay: 0.55s;
- }
- @media (prefers-reduced-motion: reduce) {
- .hero-head,
- .download-btn,
- .credit,
- .works-head,
- .work-card,
- .more-btn {
- animation: none;
- }
- }
+  /* 在线状态小圆点 */
+  .hero-version::before{
+    content:"";
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    background:var(--green);
+    flex:0 0 auto;
+  }
 
- /* 电脑端（足够宽时）：第一行横向排布，下载按钮贴到最右并缩小
-    需 ≥768px 才能一行容下：图标104 + 名称/版本 + 按钮 */
- @media (min-width: 768px) {
- .stage {
- max-width: none;   /* 放开到全屏宽，按钮才能真正贴最右 */
- }
- .hero-row {
- flex-direction: row;
- align-items: center;
- gap: 20px;
- }
- .dl-wrap {
- margin-top: 0;
- margin-left: auto;   /* 整组推到第一行最右 */
- align-items: flex-end;
- flex-direction: row;   /* 三枚按钮排成一行：历史版本下载 / 加入QQ频道 / Android 下载 */
- flex-wrap: wrap;
- justify-content: flex-end;
- column-gap: 18px;
- row-gap: 12px;
- }
- .hist-wrap { order: 1; width: auto; align-self: center; }
- .qq-wrap { order: 2; width: auto; align-self: center; margin-top: 0; }
- .download-btn { order: 3; }
- .credit {
- order: 4;
- flex-basis: 100%;   /* 来源行独占一整行，仍靠右 */
- text-align: right;
- margin-top: 0;
- }
- .download-btn {
- width: auto;   /* 各按钮保持原宽，不统一长度 */
- margin-top: 0;
- padding: 13px 20px;
- gap: 8px;
- border-radius: 12px;
- flex-shrink: 0;
- }
- .download-btn .icon {
- width: 20px;
- height: 20px;
- }
- .download-btn .name {
- font-size: 15px;
- letter-spacing: 0.3px;
- }
- }
+  .version-value{
+    font-weight:600;
+    color:#374151;
+    font-variant-numeric:tabular-nums;
+  }
 
- /* 窄屏（手机）保持「图标在左、名称+版本在右」，按钮另起一行满宽 */
- @media (max-width: 560px) {
- .hero-head {
- gap: 14px;
- }
- .hero-icon {
- width: 72px;
- height: 72px;
- border-radius: 18px;
- }
- .hero-title {
- font-size: 19px;
- }
- .hero-ver {
- font-size: 12.5px;
- }
- .dl-wrap {
- margin-top: 34px;
- }
- }
+  .hero-version.is-error::before{ background:#f59e0b; }
 
- @media (max-width: 380px) {
- .hero-head {
- gap: 12px;
- }
- .hero-icon {
- width: 64px;
- height: 64px;
- }
- .hero-title {
- font-size: 17px;
- }
- }
- 
- /* 空位补齐块：电脑端两列且作品数为奇数时由 works.js 插入，保证横线连续 */
- .work-filler {
- display: none;
- background-color: var(--card-bg);
- }
- /* 电脑端：一排两个，同样是连在一起的一整块（列间竖线 + 行间横线） */
- @media (min-width: 768px) {
- .works-grid {
- display: grid;
- grid-template-columns: repeat(2, minmax(0, 1fr));
- }
- .work-card:nth-child(n) {
- border-top: 1px solid var(--card-border);
- }
- .work-card:nth-child(-n+2) {
- border-top: 0;
- }
- .work-card:nth-child(odd) {
- border-right: 1px solid var(--card-border);
- }
- .work-filler {
- display: block;
- border-top: 1px solid var(--card-border);
- animation: slideUpIn 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
- }
- }
- @media (prefers-reduced-motion: reduce) {
- .work-filler {
- animation: none;
- }
- }
+  /* ===== 第三行：下载按钮 ===== */
+  .download-btn{
+    margin-top:22px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:9px;
+    width:100%;
+    height:54px;
+    padding:0 18px;
+    border-radius:14px;
+    border:0;
+    background:linear-gradient(180deg,#2bd06d 0%, var(--green) 55%, #1cb45a 100%);
+    color:#fff;
+    font-size:16px;
+    font-weight:600;
+    letter-spacing:.3px;
+    text-decoration:none;
+    -webkit-tap-highlight-color:transparent;
+    user-select:none;
+    box-shadow:0 6px 18px rgba(34,197,94,.28), inset 0 1px 0 rgba(255,255,255,.22);
+    transition:transform .12s ease, box-shadow .2s ease, filter .2s ease;
+  }
+
+  .download-btn svg{
+    display:block;
+    width:21px;
+    height:21px;
+    flex:0 0 auto;
+  }
+
+  .download-btn:hover{
+    filter:brightness(1.03);
+    box-shadow:0 8px 22px rgba(34,197,94,.34), inset 0 1px 0 rgba(255,255,255,.22);
+  }
+
+  .download-btn:active{
+    transform:translateY(1px) scale(.995);
+    box-shadow:0 4px 12px rgba(34,197,94,.24), inset 0 1px 0 rgba(255,255,255,.18);
+  }
+
+  .download-btn:focus-visible{
+    outline:3px solid rgba(34,197,94,.35);
+    outline-offset:2px;
+  }
+
+  @media (max-width:380px){
+    .brand-title{ font-size:15px; }
+    .header-inner{ gap:9px; padding:0 14px; }
+    .page{ padding-left:14px; padding-right:14px; }
+    .hero-title{ font-size:18px; }
+    .hero-icon{ width:52px; height:52px; border-radius:15px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .hero-stack{ animation:none; }
+    .download-btn{ transition:none; }
+  }
 </style>
 </head>
-<body oncopy="return false" oncut="return false" oncontextmenu="return false">
+<body>
 
- <!-- 顶部栏：左 ico 图标 + 标题 -->
- <header class="topbar">
-  <div class="topbar-inner">
-   <img src="favicon.ico" alt="文字游戏-主播模拟器" class="topbar-icon">
-   <span class="topbar-title">文字游戏-主播模拟器</span>
-   <input class="l" type="checkbox" id="themeSwitch" role="switch" aria-label="切换日间/夜间模式" title="日间 / 夜间模式">
-  </div>
- </header>
+  <!-- 第一行 -->
+  <header class="app-header">
+    <div class="header-inner">
+      <img class="brand-icon" src="./favicon.ico" alt="主播模拟器图标" width="32" height="32">
+      <h1 class="brand-title">文字游戏-主播模拟器</h1>
 
- <main class="stage">
+      <div class="header-actions">
+        <!-- 占位：暂不绑定点击行为 -->
+        <button class="menu-btn" type="button" aria-label="菜单" aria-disabled="true" data-placeholder="menu">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
 
-  <div class="hero-row">
+  <main class="page">
+    <!-- 第二、三行：整体上滑入场 -->
+    <div class="hero-stack">
 
-  <!-- 第一行：大图标 + 标题（版本自动检测自 game.apk） -->
-  <div class="hero-head">
-   <img src="favicon.ico" alt="文字游戏-主播模拟器" class="hero-icon">
-   <div class="hero-meta">
-    <h1 class="hero-title">文字游戏-主播模拟器</h1>
-    <p class="hero-ver">版本 <span class="val loading" id="apk-ver">检测中…</span></p>
-   </div>
-  </div>
+      <!-- 第二行 -->
+      <section class="hero-head">
+        <img class="hero-icon" src="./favicon.ico" alt="主播模拟器图标" width="56" height="56">
+        <div class="hero-meta">
+          <h2 class="hero-title">文字游戏-主播模拟器</h2>
+          <p class="hero-version" data-version-wrap>
+            <span>版本</span>
+            <span class="version-value" data-version>检测中…</span>
+          </p>
+        </div>
+      </section>
 
-  <!-- 第二行：下载按钮 + 来源行 -->
-  <div class="dl-wrap">
-   <a href="game.apk" class="download-btn" download>
-   <span class="icon">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 28 28">
-     <path d="M6 18c0 .55.45 1 1 1h1v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h1c.55 0 1-.45 1-1V8H6v10zM3.5 8C2.67 8 2 8.67 2 9.5v7c0 .83.67 1.5 1.5 1.5S5 17.33 5 16.5v-7C5 8.67 4.33 8 3.5 8zm17 0c-.83 0-1.5.67-1.5 1.5v7c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zM15.53 2.16l1.3-1.3c.2-.2.2-.51 0-.71s-.51-.2-.71 0l-1.48 1.48A5.74 5.74 0 0 0 12 1c-1.34 0-2.58.47-3.55 1.22L6.98.74c-.2-.2-.51-.2-.71 0s-.2.51 0 .71l1.3 1.3C6.23 3.48 5.15 5.07 5.03 7h13.94c-.12-1.93-1.2-3.52-2.44-4.84zM10 5.5c-.28 0-.5-.22-.5-.5s.22-.5.5-.5.5.22.5.5-.22.5-.5.5zm4 0c-.28 0-.5-.22-.5-.5s.22-.5.5-.5.5.22.5.5-.22.5-.5.5z"/>
-    </svg>
-   </span>
-   <span class="name">Android 下载</span>
-   </a>
-   <p class="credit">部分UI来源：<a href="https://uiverse.io/" target="_blank" rel="noopener noreferrer">https://uiverse.io/</a></p>
+      <!-- 第三行 -->
+      <a class="download-btn" href="./game.apk" download>
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M17.6 9.48l1.84-3.18a.62.62 0 0 0-.26-.85.62.62 0 0 0-.83.22l-1.88 3.24a11.46 11.46 0 0 0-8.94 0L5.65 5.67a.62.62 0 0 0-.87-.2.62.62 0 0 0-.22.83L6.4 9.48A10.78 10.78 0 0 0 1 18h22a10.78 10.78 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/>
+        </svg>
+        <span>Android下载</span>
+      </a>
 
-   <!-- 历史版本下载：跳转到历史版本下载页 -->
-   <div class="hist-wrap">
-    <a class="hist-btn" id="histBtn" href="history.html" aria-label="历史版本下载">
-     <span class="hist-txt">历史版本下载</span>
-     <span class="stars-container"><span class="stars"></span></span>
-     <span class="glow"><span class="circle"></span><span class="circle"></span></span>
-    </a>
-   </div>
+    </div>
+  </main>
 
-   <!-- 加入QQ频道 -->
-   <div class="qq-wrap">
-    <a class="qq-btn" href="https://pd.qq.com/s/8z06n1t8i?b=9" target="_blank" rel="noopener noreferrer" aria-label="加入QQ频道">加入QQ频道</a>
-   </div>
-  </div>
+  <script>
+  /* 版本自动检测：读取站点发布元数据 app/api/version.json
+     （由 pages.conf 生成，跟 game.apk 同步发布） */
+  (function () {
+    var wrap = document.querySelector('[data-version-wrap]');
+    var el = document.querySelector('[data-version]');
+    if (!wrap || !el) return;
 
-  </div>
-
-  <!-- 第四行：作品展示标题（左对齐） -->
-  <p class="works-head">用户8044其它使用AI制作的游戏作品</p>
-
-  <!-- 第五行：作品展示区（从 game/ 里随机抽 6 个卡片） -->
-  <div class="works-grid" id="worksGrid"></div>
-
-  <!-- 查看更多：进入全部作品页 -->
-  <a class="more-btn" href="works.html">查看更多</a>
-
- </main>
-
- <script>
- /* ---- 自动读取 game.apk 的 versionName（不写死） ----
-    流程：EOCD -> 中央目录 -> AndroidManifest.xml -> deflate-raw 解压 -> 解析二进制 AXML */
- (function () {
-  function findEOCD(tail) {
-   var dv = new DataView(tail.buffer, tail.byteOffset, tail.byteLength);
-   for (var i = tail.length - 22; i >= 0; i--) {
-    if (dv.getUint32(i, true) === 0x06054b50) {
-     var commentLen = dv.getUint16(i + 20, true);
-     if (i + 22 + commentLen !== tail.length) continue;
-     return { cdSize: dv.getUint32(i + 12, true), cdOffset: dv.getUint32(i + 16, true) };
+    function render(name, code) {
+      if (!name) throw new Error('no version');
+      el.textContent = name;
+      el.title = code ? ('版本号 ' + code) : name;
     }
-   }
-   return null;
-  }
 
-  function findEntry(cd, name) {
-   var dv = new DataView(cd.buffer, cd.byteOffset, cd.byteLength);
-   var dec = new TextDecoder('utf-8');
-   var o = 0;
-   while (o + 46 <= cd.length) {
-    if (dv.getUint32(o, true) !== 0x02014b50) break;
-    var method = dv.getUint16(o + 10, true);
-    var csize = dv.getUint32(o + 20, true);
-    var nlen = dv.getUint16(o + 28, true);
-    var elen = dv.getUint16(o + 30, true);
-    var clen = dv.getUint16(o + 32, true);
-    var lho = dv.getUint32(o + 42, true);
-    var fname = dec.decode(cd.subarray(o + 46, o + 46 + nlen));
-    if (fname === name) return { method: method, csize: csize, lho: lho };
-    o += 46 + nlen + elen + clen;
-   }
-   return null;
-  }
-
-  function parseStringPool(u8, dv, off) {
-   var count = dv.getUint32(off + 8, true);
-   var flags = dv.getUint32(off + 16, true);
-   var stringsStart = dv.getUint32(off + 20, true);
-   var utf8 = (flags & 0x100) !== 0;
-   var out = [];
-   for (var i = 0; i < count; i++) {
-    var so = dv.getUint32(off + 28 + i * 4, true);
-    if (so === 0xffffffff) { out.push(''); continue; }
-    var p = off + stringsStart + so;
-    if (utf8) {
-     var n = u8[p++];
-     if (n & 0x80) n = ((n & 0x7f) << 8) | u8[p++];
-     var blen = u8[p++];
-     if (blen & 0x80) blen = ((blen & 0x7f) << 8) | u8[p++];
-     out.push(new TextDecoder('utf-8').decode(u8.subarray(p, p + blen)));
-    } else {
-     var w = dv.getUint16(p, true); p += 2;
-     if (w & 0x8000) { w = ((w & 0x7fff) << 16) | dv.getUint16(p, true); p += 2; }
-     out.push(new TextDecoder('utf-16le').decode(u8.subarray(p, p + w * 2)));
+    function fail() {
+      el.textContent = '暂不可用';
+      wrap.classList.add('is-error');
     }
-   }
-   return out;
-  }
 
-  var RES_VERSION_NAME = 0x0101021c;
-
-  function parseAxmlVersionName(u8) {
-   var dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
-   if (u8.length < 8 || dv.getUint16(0, true) !== 0x0003) return null;
-   var off = Math.max(8, dv.getUint16(2, true));
-   var strings = null, resMap = null;
-   while (off + 8 <= u8.length) {
-    var type = dv.getUint16(off, true);
-    var hsize = dv.getUint16(off + 2, true);
-    var csize = dv.getUint32(off + 4, true);
-    if (csize < 8 || off + csize > u8.length) break;
-    if (type === 0x0001) {
-     strings = parseStringPool(u8, dv, off);
-    } else if (type === 0x0180) {
-     resMap = [];
-     var rn = Math.floor((csize - hsize) / 4);
-     for (var k = 0; k < rn; k++) resMap.push(dv.getUint32(off + hsize + k * 4, true));
-    } else if (type === 0x0102) {
-     var base = off + hsize;
-     var nameIdx = dv.getUint32(base + 4, true);
-     var attrStart = dv.getUint16(base + 8, true);
-     var attrSize = dv.getUint16(base + 10, true) || 20;
-     var attrCount = dv.getUint16(base + 12, true);
-     if (strings && strings[nameIdx] === 'manifest') {
-      for (var a = 0; a < attrCount; a++) {
-       var ap = base + attrStart + a * attrSize;
-       if (ap + 20 > u8.length) break;
-       var anIdx = dv.getUint32(ap + 4, true);
-       var rawVal = dv.getUint32(ap + 8, true);
-       var dtype = u8[ap + 14];
-       var dval = dv.getUint32(ap + 16, true);
-       var aName = strings[anIdx];
-       var resId = resMap ? resMap[anIdx] : 0;
-       if (aName === 'versionName' || resId === RES_VERSION_NAME) {
-        if (rawVal !== 0xffffffff && strings[rawVal]) return strings[rawVal];
-        if (dtype === 0x03 && strings[dval]) return strings[dval];
-       }
-      }
-     }
-    }
-    off += csize;
-   }
-   return null;
-  }
-
-  function regexFallback(u8) {
-   var s = '', i, CH = 0x8000;
-   for (i = 0; i < u8.length; i += CH) {
-    s += String.fromCharCode.apply(null, u8.subarray(i, Math.min(i + CH, u8.length)));
-   }
-   var m = s.match(/[Vv]\d+(?:\.\d+)+(?:[-_.][0-9A-Za-z]+)*/);
-   if (m) return m[0];
-   /* 字符串池也可能是 UTF-16LE（字符间夹 0x00），再试一次 */
-   var s16 = '';
-   for (i = 0; i + 1 < u8.length; i += 2) s16 += String.fromCharCode(u8[i] | (u8[i + 1] << 8));
-   var m16 = s16.match(/[Vv]\d+(?:\.\d+)+(?:[-_.][0-9A-Za-z]+)*/);
-   return m16 ? m16[0] : null;
-  }
-
-  /* 纯 JS raw-DEFLATE：老浏览器/WebView 没有 DecompressionStream('deflate-raw') 时的兜底 */
-  function inflateRaw(data) {
-   var pos = 0, bitBuf = 0, bitCnt = 0;
-   var out = new Uint8Array(Math.max(4096, data.length * 8));
-   var outLen = 0;
-
-   function ensure(n) {
-    if (outLen + n > out.length) {
-     var size = out.length;
-     while (size < outLen + n) size *= 2;
-     var bigger = new Uint8Array(size);
-     bigger.set(out.subarray(0, outLen));
-     out = bigger;
-    }
-   }
-   function bits(n) {
-    while (bitCnt < n) {
-     if (pos >= data.length) throw new Error('out of input');
-     bitBuf |= data[pos++] << bitCnt;
-     bitCnt += 8;
-    }
-    var v = bitBuf & ((1 << n) - 1);
-    bitBuf >>>= n;
-    bitCnt -= n;
-    return v;
-   }
-   function buildTree(lengths) {
-    var i, maxLen = 0;
-    for (i = 0; i < lengths.length; i++) if (lengths[i] > maxLen) maxLen = lengths[i];
-    var blCount = new Array(maxLen + 2).fill(0);
-    for (i = 0; i < lengths.length; i++) if (lengths[i]) blCount[lengths[i]]++;
-    var nextCode = new Array(maxLen + 2).fill(0);
-    var code = 0;
-    for (var b = 1; b <= maxLen; b++) { code = (code + blCount[b - 1]) << 1; nextCode[b] = code; }
-    var map = {};
-    for (i = 0; i < lengths.length; i++) {
-     var l = lengths[i];
-     if (!l) continue;
-     map[l + ':' + nextCode[l]] = i;
-     nextCode[l]++;
-    }
-    return { maxLen: maxLen, map: map };
-   }
-   function decodeSym(tree) {
-    var code = 0;
-    for (var l = 1; l <= tree.maxLen; l++) {
-     code = (code << 1) | bits(1);
-     var s = tree.map[l + ':' + code];
-     if (s !== undefined) return s;
-    }
-    throw new Error('bad huffman code');
-   }
-
-   var LEN_BASE = [3,4,5,6,7,8,9,10,11,13,15,17,19,23,27,31,35,43,51,59,67,83,99,115,131,163,195,227,258];
-   var LEN_EXTRA = [0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0];
-   var DIST_BASE = [1,2,3,4,5,7,9,13,17,25,33,49,65,97,129,193,257,385,513,769,1025,1537,2049,3073,4097,6145,8193,12289,16385,24577];
-   var DIST_EXTRA = [0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13];
-   var ORDER = [16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15];
-
-   var fixedLit = null, fixedDist = null, final = 0;
-   do {
-    final = bits(1);
-    var type = bits(2);
-    if (type === 0) {
-     bitBuf = 0; bitCnt = 0;
-     var len = data[pos] | (data[pos + 1] << 8);
-     pos += 4;
-     ensure(len);
-     out.set(data.subarray(pos, pos + len), outLen);
-     outLen += len;
-     pos += len;
-    } else if (type === 1 || type === 2) {
-     var litTree, distTree, i;
-     if (type === 1) {
-      if (!fixedLit) {
-       var ll = new Array(288);
-       for (i = 0; i < 144; i++) ll[i] = 8;
-       for (; i < 256; i++) ll[i] = 9;
-       for (; i < 280; i++) ll[i] = 7;
-       for (; i < 288; i++) ll[i] = 8;
-       fixedLit = buildTree(ll);
-       fixedDist = buildTree(new Array(30).fill(5));
-      }
-      litTree = fixedLit; distTree = fixedDist;
-     } else {
-      var hlit = bits(5) + 257;
-      var hdist = bits(5) + 1;
-      var hclen = bits(4) + 4;
-      var clen = new Array(19).fill(0);
-      for (i = 0; i < hclen; i++) clen[ORDER[i]] = bits(3);
-      var clTree = buildTree(clen);
-      var lens = [];
-      while (lens.length < hlit + hdist) {
-       var sym = decodeSym(clTree);
-       if (sym < 16) lens.push(sym);
-       else if (sym === 16) { var r = 3 + bits(2), p = lens[lens.length - 1]; while (r--) lens.push(p); }
-       else if (sym === 17) { var r2 = 3 + bits(3); while (r2--) lens.push(0); }
-       else { var r3 = 11 + bits(7); while (r3--) lens.push(0); }
-      }
-      litTree = buildTree(lens.slice(0, hlit));
-      distTree = buildTree(lens.slice(hlit));
-     }
-     for (;;) {
-      var s = decodeSym(litTree);
-      if (s < 256) { ensure(1); out[outLen++] = s; }
-      else if (s === 256) break;
-      else {
-       var li = s - 257;
-       var llen = LEN_BASE[li] + bits(LEN_EXTRA[li]);
-       var dsi = decodeSym(distTree);
-       var dlen = DIST_BASE[dsi] + bits(DIST_EXTRA[dsi]);
-       ensure(llen);
-       var from = outLen - dlen;
-       for (var k = 0; k < llen; k++) out[outLen + k] = out[from + k];
-       outLen += llen;
-      }
-     }
-    } else {
-     throw new Error('bad block type');
-    }
-   } while (!final);
-   return out.subarray(0, outLen);
-  }
-
-  async function inflateRawAuto(comp) {
-   if (typeof DecompressionStream !== 'undefined') {
-    try {
-     var stream = new Blob([comp]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
-     return new Uint8Array(await new Response(stream).arrayBuffer());
-    } catch (e) { /* 该浏览器不支持 deflate-raw：落到纯 JS */ }
-   }
-   return inflateRaw(comp);
-  }
-
-  async function apkVersion(reader) {
-   var size = reader.size;
-   var TAIL = 65536;
-   var tail = await reader.read(size ? Math.max(0, size - TAIL) : 0, size ? size - 1 : TAIL - 1);
-   if (!size) size = tail.length;
-
-   var eocd = findEOCD(tail);
-   if (!eocd) throw new Error('EOCD not found');
-
-   var cd = await reader.read(eocd.cdOffset, eocd.cdOffset + eocd.cdSize - 1);
-   var entry = findEntry(cd, 'AndroidManifest.xml');
-   if (!entry) throw new Error('AndroidManifest.xml not found');
-
-   var lh = await reader.read(entry.lho, entry.lho + 29);
-   var lhdv = new DataView(lh.buffer, lh.byteOffset, lh.byteLength);
-   if (lhdv.getUint32(0, true) !== 0x04034b50) throw new Error('bad local header');
-   var dataStart = entry.lho + 30 + lhdv.getUint16(26, true) + lhdv.getUint16(28, true);
-
-   var comp = await reader.read(dataStart, dataStart + entry.csize - 1);
-   var raw;
-   if (entry.method === 0) {
-    raw = comp;
-   } else {
-    raw = await inflateRawAuto(comp);
-   }
-
-   return parseAxmlVersionName(raw) || regexFallback(raw);
-  }
-
-  function bufferReader(u8) {
-   return {
-    size: u8.length,
-    read: async function (s, e) { return u8.slice(s, e + 1); }
-   };
-  }
-
-  function netReader(size) {
-   return {
-    size: size,
-    read: async function (s, e) {
-     var res = await fetch('game.apk', {
-      headers: { Range: 'bytes=' + s + '-' + e },
-      cache: 'no-store'
-     });
-     var buf = new Uint8Array(await res.arrayBuffer());
-     if (res.status === 206) return buf;
-     return buf.slice(s, e + 1);   /* 服务器不支持 Range 时本地切 */
-    }
-   };
-  }
-
-  async function detectSize() {
-   try {
-    var head = await fetch('game.apk', { method: 'HEAD', cache: 'no-store' });
-    var cl = head.headers.get('content-length');
-    if (cl) return parseInt(cl, 10);
-   } catch (e) {}
-   try {
-    var probe = await fetch('game.apk', { headers: { Range: 'bytes=-1' }, cache: 'no-store' });
-    var cr = probe.headers.get('content-range');
-    if (cr) { var m = cr.match(/\/(\d+)\s*$/); if (m) return parseInt(m[1], 10); }
-   } catch (e) {}
-   return null;
-  }
-
-  document.addEventListener('DOMContentLoaded', async function () {
-   var el = document.getElementById('apk-ver');
-   function show(v) { el.textContent = v; el.classList.remove('loading'); }
-   try {
-    var size = await detectSize();
-    var reader;
-    if (size) {
-     reader = netReader(size);
-    } else {
-     var res = await fetch('game.apk', { cache: 'no-store' });
-     reader = bufferReader(new Uint8Array(await res.arrayBuffer()));
-    }
-    var v = await apkVersion(reader);
-    show(v || '—');
-   } catch (e) {
-    show('—');
-   }
-  });
- })();
- </script>
-
- <div id="themeFx" aria-hidden="true"></div>
-
- <script>
- /* ---- 日/夜模式切换：开关 + 渐变动画过场 ---- */
- (function () {
-  var root = document.documentElement;
-  var sw = document.getElementById('themeSwitch');
-  var fx = document.getElementById('themeFx');
-  var meta = document.querySelector('meta[name="theme-color"]');
-
-  function isDark() { return root.getAttribute('data-theme') === 'dark'; }
-  function applyMeta(dark) {
-   if (meta) meta.setAttribute('content', dark ? '#0f0f0f' : '#ffffff');
-  }
-
-  applyMeta(isDark());
-  if (!sw) return;
-
-  sw.checked = isDark();
-
-  sw.addEventListener('change', function () {
-   var dark = sw.checked;
-   root.setAttribute('data-theme', dark ? 'dark' : 'light');
-   applyMeta(dark);
-   try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
-
-   /* 渐变过场：从开关所在位置向外扩散 */
-   if (fx) {
-    var r = sw.getBoundingClientRect();
-    fx.style.setProperty('--fx-x', (r.left + r.width / 2) + 'px');
-    fx.style.setProperty('--fx-y', (r.top + r.height / 2) + 'px');
-    fx.style.setProperty('--fx-color', dark ? 'rgba(6, 6, 6, 0.55)' : 'rgba(255, 255, 255, 0.6)');
-    fx.classList.remove('on');
-    void fx.offsetWidth;   /* 强制重排，让动画能重播 */
-    fx.classList.add('on');
-   }
-  });
- })();
- </script>
-
- <script src="works.js"></script>
- <script>
- /* ---- 作品展示：从 game/ 里随机抽 6 个（清单与渲染逻辑见 works.js） ---- */
- (function () {
-  if (window.renderWorks) window.renderWorks('worksGrid', 6, true);
- })();
- </script>
+    // 禁缓存，避免 GitHub Pages / CDN 返回旧版本号
+    fetch('./app/api/version.json?t=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (j) {
+        var d = (j && j.data) || j || {};
+        render(d.latest_version_name, d.latest_version_code);
+      })
+      .catch(fail);
+  })();
+  </script>
 
 </body>
 </html>
