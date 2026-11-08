@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>历史版本 - 文字游戏-主播模拟器</title>
+<link rel="icon" href="./favicon.ico">
+<style>
+  :root{
+    --bg:#ffffff;
+    --text:#111827;
+    --muted:#6b7280;
+    --line:#eceff3;
+    --hover:#f4f6f9;
+    --green:#22c55e;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0;
+    padding:0;
+    background:var(--bg);
+    color:var(--text);
+  }
+
+  body{
+    min-height:100vh;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    text-rendering:optimizeLegibility;
+  }
+
+  /* ===== 标题栏（与首页一致） ===== */
+  .app-header{
+    position:sticky;
+    top:0;
+    z-index:20;
+    background:var(--bg);
+    padding-top:env(safe-area-inset-top, 0px);
+  }
+
+  .app-header::after{
+    content:"";
+    display:block;
+    height:1px;
+    background:linear-gradient(90deg, transparent, var(--line) 12%, var(--line) 88%, transparent);
+  }
+
+  .header-inner{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    height:56px;
+    padding:0 16px;
+    max-width:1080px;
+    margin:0 auto;
+  }
+
+  .brand-icon{
+    flex:0 0 auto;
+    width:32px;
+    height:32px;
+    border-radius:9px;
+    object-fit:cover;
+    display:block;
+    box-shadow:0 0 0 1px rgba(17,24,39,.06);
+  }
+
+  .brand-title{
+    font-size:16px;
+    line-height:1.2;
+    font-weight:600;
+    letter-spacing:.2px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    user-select:none;
+  }
+
+  .header-actions{
+    margin-left:auto;
+    display:flex;
+    align-items:center;
+  }
+
+  .menu-btn{
+    -webkit-appearance:none;
+    appearance:none;
+    border:0;
+    padding:0;
+    width:40px;
+    height:40px;
+    border-radius:10px;
+    background:transparent;
+    color:inherit;
+    display:grid;
+    place-items:center;
+    cursor:default;
+    -webkit-tap-highlight-color:transparent;
+    transition:background-color .15s ease;
+  }
+
+  .menu-btn svg{ display:block; width:22px; height:22px; }
+  .menu-btn:hover{ background:var(--hover); }
+
+  /* ===== 内容区 ===== */
+  .page{
+    max-width:1080px;
+    margin:0 auto;
+    padding:0 16px calc(32px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .history-stack.is-ready{
+    animation:rise-in .62s cubic-bezier(.22,1,.36,1) both;
+  }
+
+  @keyframes rise-in{
+    from{ opacity:0; transform:translateY(22px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+
+  /* 返回首页：纯文字，无边框 */
+  .back-row{
+    text-align:center;
+    padding:22px 0 12px;
+  }
+
+  .back-link{
+    display:inline-block;
+    font-size:15px;
+    line-height:1.4;
+    font-weight:700;
+    letter-spacing:.2px;
+    color:var(--text);
+    text-decoration:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  .back-link:hover{ opacity:.65; }
+
+  /* ===== 版本列表：无外框，行间分隔线 ===== */
+  .ver-list{ margin-top:2px; }
+
+  .ver-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:14px 2px;
+    border-top:1px solid var(--line);
+    content-visibility:auto;
+    contain-intrinsic-size:auto 57px;
+  }
+
+  .ver-row:first-child{ border-top:0; }
+
+  .ver-name{
+    min-width:0;
+    font-size:15px;
+    line-height:1.3;
+    font-weight:600;
+    color:var(--text);
+    font-variant-numeric:tabular-nums;
+    letter-spacing:.2px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  .ver-btn{
+    flex:0 0 auto;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    height:36px;
+    padding:0 18px;
+    border-radius:9px;
+    background:var(--green);
+    color:#fff;
+    font-size:14px;
+    font-weight:600;
+    letter-spacing:.2px;
+    text-decoration:none;
+    -webkit-tap-highlight-color:transparent;
+    user-select:none;
+    transition:background-color .15s ease, transform .12s ease;
+  }
+
+  .ver-btn:hover{ background:#1fb457; }
+  .ver-btn:active{ background:#1aa94f; transform:translateY(1px); }
+  .ver-btn:focus-visible{ outline:3px solid rgba(34,197,94,.35); outline-offset:2px; }
+
+  .list-msg{
+    padding:28px 2px;
+    text-align:center;
+    font-size:14px;
+    color:var(--muted);
+  }
+
+  .sentinel{ height:1px; }
+
+  @media (max-width:380px){
+    .brand-title{ font-size:15px; }
+    .header-inner{ gap:9px; padding:0 14px; }
+    .page{ padding-left:14px; padding-right:14px; }
+    .ver-name{ font-size:14px; }
+    .ver-btn{ height:34px; padding:0 16px; font-size:13px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .history-stack.is-ready{ animation:none; }
+    .ver-btn{ transition:none; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-inner">
+      <img class="brand-icon" src="./favicon.ico" alt="主播模拟器图标" width="32" height="32">
+      <h1 class="brand-title">历史版本</h1>
+
+      <div class="header-actions">
+        <!-- 占位：暂不绑定点击行为 -->
+        <button class="menu-btn" type="button" aria-label="菜单" aria-disabled="true" data-placeholder="menu">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="history-stack" id="stack">
+      <div class="back-row">
+        <a class="back-link" href="./">←返回首页</a>
+      </div>
+
+      <section class="ver-list" id="verList" aria-label="历史版本列表"></section>
+      <div class="sentinel" id="sentinel" aria-hidden="true"></div>
+    </div>
+  </main>
+
+  <script>
+  /* 历史版本列表：数据来自 app/api/history.json，分批懒渲染（每批 12 行） */
+  (function () {
+    var listEl = document.getElementById('verList');
+    var sentinel = document.getElementById('sentinel');
+    var stack = document.getElementById('stack');
+    var items = [];
+    var rendered = 0;
+    var BATCH = 12;
+    var io = null;
+
+    function makeRow(it) {
+      var row = document.createElement('div');
+      row.className = 'ver-row';
+
+      var name = document.createElement('span');
+      name.className = 'ver-name';
+      name.textContent = it.name;
+
+      var btn = document.createElement('a');
+      btn.className = 'ver-btn';
+      btn.textContent = '下载';
+      btn.href = 'history/' + encodeURIComponent(it.file);
+      btn.setAttribute('download', it.file);
+      btn.setAttribute('aria-label', '下载 ' + it.name);
+
+      row.appendChild(name);
+      row.appendChild(btn);
+      return row;
+    }
+
+    function renderMore() {
+      if (rendered >= items.length) return;
+      var end = Math.min(rendered + BATCH, items.length);
+      var frag = document.createDocumentFragment();
+      for (var i = rendered; i < end; i++) frag.appendChild(makeRow(items[i]));
+      listEl.appendChild(frag);
+      rendered = end;
+
+      if (rendered >= items.length && io) {
+        io.disconnect();
+        io = null;
+      }
+    }
+
+    function renderAll() {
+      while (rendered < items.length) renderMore();
+    }
+
+    function observe() {
+      if (!('IntersectionObserver' in window)) {
+        renderAll();
+        return;
+      }
+      io = new IntersectionObserver(function (entries) {
+        for (var i = 0; i < entries.length; i++) {
+          if (entries[i].isIntersecting) {
+            renderMore();
+            break;
+          }
+        }
+      }, { rootMargin: '240px 0px' });
+      io.observe(sentinel);
+    }
+
+    function showMessage(text) {
+      var p = document.createElement('p');
+      p.className = 'list-msg';
+      p.textContent = text;
+      listEl.appendChild(p);
+    }
+
+    fetch('app/api/history.json?t=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (j) {
+        items = (j && j.data) || [];
+        if (!items.length) {
+          showMessage('暂无历史版本');
+          stack.classList.add('is-ready');
+          return;
+        }
+        renderMore();                 /* 先渲染首屏一批 */
+        stack.classList.add('is-ready');
+        observe();                    /* 滚动到底部再继续加载 */
+      })
+      .catch(function () {
+        showMessage('历史版本加载失败，请稍后重试');
+        stack.classList.add('is-ready');
+      });
+  })();
+  </script>
+
+</body>
+</html>
