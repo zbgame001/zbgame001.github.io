@@ -145,9 +145,9 @@
 
   .hero-icon{
     flex:0 0 auto;
-    width:56px;
-    height:56px;
-    border-radius:16px;
+    width:64px;
+    height:64px;
+    border-radius:18px;
     object-fit:cover;
     display:block;
     box-shadow:0 0 0 1px rgba(17,24,39,.06), 0 4px 12px rgba(17,24,39,.06);
@@ -174,23 +174,11 @@
   }
 
   .hero-version{
-    display:flex;
-    align-items:center;
-    gap:6px;
+    display:block;
     font-size:13px;
     line-height:1.3;
     color:var(--muted);
     min-height:18px;
-  }
-
-  /* 在线状态小圆点 */
-  .hero-version::before{
-    content:"";
-    width:6px;
-    height:6px;
-    border-radius:50%;
-    background:var(--green);
-    flex:0 0 auto;
   }
 
   .version-value{
@@ -198,8 +186,6 @@
     color:#374151;
     font-variant-numeric:tabular-nums;
   }
-
-  .hero-version.is-error::before{ background:#f59e0b; }
 
   /* ===== 第三行：下载按钮 ===== */
   .download-btn{
@@ -213,7 +199,7 @@
     padding:0 18px;
     border-radius:14px;
     border:0;
-    background:linear-gradient(180deg,#2bd06d 0%, var(--green) 55%, #1cb45a 100%);
+    background:#22c55e;
     color:#fff;
     font-size:16px;
     font-weight:600;
@@ -221,8 +207,7 @@
     text-decoration:none;
     -webkit-tap-highlight-color:transparent;
     user-select:none;
-    box-shadow:0 6px 18px rgba(34,197,94,.28), inset 0 1px 0 rgba(255,255,255,.22);
-    transition:transform .12s ease, box-shadow .2s ease, filter .2s ease;
+    transition:transform .12s ease, background-color .2s ease;
   }
 
   .download-btn svg{
@@ -232,14 +217,11 @@
     flex:0 0 auto;
   }
 
-  .download-btn:hover{
-    filter:brightness(1.03);
-    box-shadow:0 8px 22px rgba(34,197,94,.34), inset 0 1px 0 rgba(255,255,255,.22);
-  }
+  .download-btn:hover{ background:#1fb457; }
 
   .download-btn:active{
     transform:translateY(1px) scale(.995);
-    box-shadow:0 4px 12px rgba(34,197,94,.24), inset 0 1px 0 rgba(255,255,255,.18);
+    background:#1aa94f;
   }
 
   .download-btn:focus-visible{
@@ -252,7 +234,7 @@
     .header-inner{ gap:9px; padding:0 14px; }
     .page{ padding-left:14px; padding-right:14px; }
     .hero-title{ font-size:18px; }
-    .hero-icon{ width:52px; height:52px; border-radius:15px; }
+    .hero-icon{ width:60px; height:60px; border-radius:17px; }
   }
 
   @media (prefers-reduced-motion: reduce){
