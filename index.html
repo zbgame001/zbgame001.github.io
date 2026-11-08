@@ -254,17 +254,25 @@
     white-space:nowrap;
   }
 
-  .history-link{
-    display:inline-block;
+  .other-links{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:10px;
     margin-top:10px;
+  }
+
+  .other-link{
+    display:inline-block;
     font-size:13px;
     line-height:1.4;
     font-weight:400;
     color:var(--muted);
     text-decoration:none;
+    -webkit-tap-highlight-color:transparent;
   }
 
-  .history-link:hover{
+  .other-link:hover{
     color:var(--text);
     text-decoration:underline;
   }
@@ -328,7 +336,12 @@
 
       <!-- 第四行：其它 -->
       <h2 class="section-label">其它<span class="section-mid">讨论</span></h2>
-      <a class="history-link" href="./history.html">历史版本</a>
+      <nav class="other-links" aria-label="其它链接">
+        <a class="other-link" href="./history.html">历史版本</a>
+        <a class="other-link" href="https://pd.qq.com/qqweb/qunpro/share?_wv=3&amp;_wwv=128&amp;appChannel=share&amp;attaContentID=6de15c0e97984a3dbe9ff23ade5494b9&amp;biz=ka&amp;businessType=9&amp;from=246610&amp;inviteCode=2OiO9WfJf8o&amp;mainSourceId=share&amp;subSourceId=others&amp;b=9" target="_blank" rel="noopener">QQ频道</a>
+        <a class="other-link" href="https://pd.qq.com/qqweb/qunpro/share?_wv=3&amp;_wwv=128&amp;appChannel=share&amp;attaContentID=6de15c0e97984a3dbe9ff23ade5494b9&amp;biz=ka&amp;businessType=9&amp;from=246610&amp;inviteCode=2OiO9WfJf8o&amp;mainSourceId=share&amp;subSourceId=others&amp;b=9&amp;subc=743238259&amp;type=7" target="_blank" rel="noopener">bug反馈</a>
+        <a class="other-link" href="https://pd.qq.com/qqweb/qunpro/share?_wv=3&amp;_wwv=128&amp;appChannel=share&amp;attaContentID=6de15c0e97984a3dbe9ff23ade5494b9&amp;biz=ka&amp;businessType=9&amp;from=246610&amp;inviteCode=2OiO9WfJf8o&amp;mainSourceId=share&amp;subSourceId=others&amp;b=9&amp;subc=743250110&amp;type=7" target="_blank" rel="noopener">建议</a>
+      </nav>
 
     </div>
   </main>
