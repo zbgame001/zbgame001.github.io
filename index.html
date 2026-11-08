@@ -231,9 +231,27 @@
   }
 
   /* 分区小标题 */
+  /* 其它 / 讨论 两栏 */
+  .other-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    align-items:start;
+    margin-top:28px;
+  }
+
+  .other-col-left{
+    grid-column:1;
+    justify-self:start;
+  }
+
+  .other-col-mid{
+    grid-column:2;
+    justify-self:center;
+    text-align:center;
+  }
+
   .section-label{
-    position:relative;
-    margin:28px 0 0;
+    margin:0;
     font-size:14px;
     line-height:1.4;
     font-weight:700;
@@ -242,28 +260,22 @@
     text-align:left;
   }
 
-  .section-mid{
-    position:absolute;
-    left:50%;
-    top:50%;
-    transform:translate(-50%,-50%);
-    font-size:14px;
-    font-weight:700;
-    letter-spacing:.2px;
-    color:var(--text);
-    white-space:nowrap;
-  }
+  .other-col-mid .section-label{ text-align:center; }
 
   .other-links{
     display:flex;
     flex-direction:column;
-    align-items:flex-start;
+    align-items:center;
     gap:10px;
     margin-top:10px;
   }
 
-  .other-link{
+  .other-col-left .other-link{
     display:inline-block;
+    margin-top:10px;
+  }
+
+  .other-link{
     font-size:13px;
     line-height:1.4;
     font-weight:400;
@@ -334,14 +346,22 @@
         <span>Android下载</span>
       </a>
 
-      <!-- 第四行：其它 -->
-      <h2 class="section-label">其它<span class="section-mid">讨论</span></h2>
-      <nav class="other-links" aria-label="其它链接">
-        <a class="other-link" href="./history.html">历史版本</a>
-        <a class="other-link" href="https://pd.qq.com/qqweb/qunpro/share?_wv=3&amp;_wwv=128&amp;appChannel=share&amp;attaContentID=6de15c0e97984a3dbe9ff23ade5494b9&amp;biz=ka&amp;businessType=9&amp;from=246610&amp;inviteCode=2OiO9WfJf8o&amp;mainSourceId=share&amp;subSourceId=others&amp;b=9" target="_blank" rel="noopener">QQ频道</a>
-        <a class="other-link" href="https://pd.qq.com/qqweb/qunpro/share?_wv=3&amp;_wwv=128&amp;appChannel=share&amp;attaContentID=6de15c0e97984a3dbe9ff23ade5494b9&amp;biz=ka&amp;businessType=9&amp;from=246610&amp;inviteCode=2OiO9WfJf8o&amp;mainSourceId=share&amp;subSourceId=others&amp;b=9&amp;subc=743238259&amp;type=7" target="_blank" rel="noopener">bug反馈</a>
-        <a class="other-link" href="https://pd.qq.com/qqweb/qunpro/share?_wv=3&amp;_wwv=128&amp;appChannel=share&amp;attaContentID=6de15c0e97984a3dbe9ff23ade5494b9&amp;biz=ka&amp;businessType=9&amp;from=246610&amp;inviteCode=2OiO9WfJf8o&amp;mainSourceId=share&amp;subSourceId=others&amp;b=9&amp;subc=743250110&amp;type=7" target="_blank" rel="noopener">建议</a>
-      </nav>
+      <!-- 第四行：其它 / 讨论 -->
+      <div class="other-grid">
+        <div class="other-col-left">
+          <h2 class="section-label">其它</h2>
+          <a class="other-link" href="./history.html">历史版本</a>
+        </div>
+
+        <div class="other-col-mid">
+          <h2 class="section-label">讨论</h2>
+          <nav class="other-links" aria-label="讨论链接">
+            <a class="other-link" href="https://pd.qq.com/qqweb/qunpro/share?_wv=3&amp;_wwv=128&amp;appChannel=share&amp;attaContentID=6de15c0e97984a3dbe9ff23ade5494b9&amp;biz=ka&amp;businessType=9&amp;from=246610&amp;inviteCode=2OiO9WfJf8o&amp;mainSourceId=share&amp;subSourceId=others&amp;b=9" target="_blank" rel="noopener">QQ频道</a>
+            <a class="other-link" href="https://pd.qq.com/qqweb/qunpro/share?_wv=3&amp;_wwv=128&amp;appChannel=share&amp;attaContentID=6de15c0e97984a3dbe9ff23ade5494b9&amp;biz=ka&amp;businessType=9&amp;from=246610&amp;inviteCode=2OiO9WfJf8o&amp;mainSourceId=share&amp;subSourceId=others&amp;b=9&amp;subc=743238259&amp;type=7" target="_blank" rel="noopener">bug反馈</a>
+            <a class="other-link" href="https://pd.qq.com/qqweb/qunpro/share?_wv=3&amp;_wwv=128&amp;appChannel=share&amp;attaContentID=6de15c0e97984a3dbe9ff23ade5494b9&amp;biz=ka&amp;businessType=9&amp;from=246610&amp;inviteCode=2OiO9WfJf8o&amp;mainSourceId=share&amp;subSourceId=others&amp;b=9&amp;subc=743250110&amp;type=7" target="_blank" rel="noopener">建议</a>
+          </nav>
+        </div>
+      </div>
 
     </div>
   </main>
