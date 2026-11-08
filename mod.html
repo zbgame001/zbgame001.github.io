@@ -244,14 +244,41 @@
     .download-btn{ transition:none; }
   }
 
+  /* ===== 其它入口（移动端在按钮下方） ===== */
+  .side-links{ margin-top:24px; }
+  .side-title{
+    margin:0 0 10px;
+    font-size:14px;
+    line-height:1.4;
+    font-weight:700;
+    letter-spacing:.2px;
+    color:var(--text);
+  }
+  .side-nav{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:10px;
+  }
+  .side-nav a{
+    font-size:13px;
+    line-height:1.4;
+    font-weight:400;
+    color:var(--muted);
+    text-decoration:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .side-nav a:hover{ color:var(--text); text-decoration:underline; }
+
   /* 仅桌面端：去掉页面左右边距（移动端保持不变） */
   @media (min-width: 768px){
     .header-inner{ max-width:none; margin:0; padding-left:0; padding-right:0; }
     .page{ max-width:none; margin:0; padding-left:0; padding-right:0; }
     /* 下载按钮缩小并移到图标/标题/版本这一行右侧 */
     .hero-stack{ display:flex; flex-wrap:wrap; align-items:center; column-gap:24px; }
-    .hero-head{ flex:1 1 auto; }
-    .download-btn{ flex:0 0 auto; width:auto; min-width:168px; height:48px; margin-top:0; padding:0 26px; font-size:15px; }
+    .hero-head{ order:0; flex:1 1 auto; }
+    .side-links{ order:1; flex:0 0 auto; margin-top:0; }
+    .download-btn{ order:2; flex:0 0 auto; width:auto; min-width:168px; height:48px; margin-top:0; padding:0 26px; font-size:15px; }
   }
 </style>
 </head>
@@ -297,6 +324,15 @@
         </svg>
         <span>Android下载</span>
       </a>
+
+      <!-- 其它 -->
+      <div class="side-links">
+        <h2 class="side-title">其它</h2>
+        <nav class="side-nav" aria-label="其它入口">
+          <a href="./">主播模拟器</a>
+          <a href="./mod-history.html">历史版本</a>
+        </nav>
+      </div>
 
 
 
