@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>3D Scene - Swimming Pool</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            touch-action: none;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #loading-screen {
+            position: fixed;
+            inset: 0;
+            background-color: #0f0f0f;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease;
+        }
+
+        #loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #progress-text {
+            color: #fff;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .progress-container {
+            width: 70%;
+            max-width: 300px;
+            height: 6px;
+            background-color: #2a2a2a;
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: #5c9ce6;
+            border-radius: 3px;
+            transition: width 0.1s linear;
+        }
+
+        #loading-file {
+            color: #888;
+            font-size: 12px;
+            margin-top: 16px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 70%;
+            max-width: 300px;
+            text-align: center;
+        }
+        
+        #error-box {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            background: rgba(255, 0, 0, 0.9);
+            color: white;
+            padding: 12px;
+            font-size: 13px;
+            z-index: 10000;
+            display: none;
+            word-break: break-all;
+            border-radius: 5px;
+            line-height: 1.4;
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+    </style>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <div id="error-box"></div>
+
+    <div id="loading-screen">
+        <div id="progress-text">0%</div>
+        <div class="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+        <div id="loading-file">正在加载资源...</div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script type="module">
+        const errorBox = document.getElementById('error-box');
+        
+        window.addEventListener('error', function(event) {
+            errorBox.style.display = 'block';
+            errorBox.innerText = 'JS 运行异常:\n' + event.message;
+        });
+
+        import * as THREE from 'three';
+        import { EXRLoader } from 'three/addons/loaders/EXRLoader.js';
+
+        try {
+            const scene = new THREE.Scene();
+            
+            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 2.2, 0); 
+            
+            const renderer = new THREE.WebGLRenderer({ 
+                antialias: true, 
+                alpha: false,
+                powerPreference: "high-performance"
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            
+            // 伪光追渲染管线
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.0; 
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            const maxAnisotropy = renderer.capabilities.getMaxAnisotropy();
+
+            // --- 加载管理器 ---
+            const manager = new THREE.LoadingManager();
+            const textureLoader = new THREE.TextureLoader(manager);
+            const exrLoader = new EXRLoader(manager);
+            exrLoader.setDataType(THREE.HalfFloatType);
+
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            const loadingFile = document.getElementById('loading-file');
+            const loadingScreen = document.getElementById('loading-screen');
+
+            manager.onProgress = (url, loaded, total) => {
+                const percent = Math.round((loaded / total) * 100);
+                progressBar.style.width = percent + '%';
+                progressText.innerText = percent + '%';
+                loadingFile.innerText = '正在加载 ' + url.split('/').pop().split('?')[0];
+            };
+
+            manager.onLoad = () => {
+                loadingScreen.classList.add('hidden');
+                setTimeout(() => { loadingScreen.style.display = 'none'; }, 500);
+            };
+
+            manager.onError = (url) => {
+                console.error('资源加载失败:', url);
+                errorBox.style.display = 'block';
+                errorBox.innerText = '资源网络请求失败: ' + url + '\n请确保文件存在且为 HTTP 环境。';
+            };
+
+            // --- 1. 加载地砖材质 ---
+            const colorMap = textureLoader.load('Tiles036_2K-JPG_Color.jpg');
+            const normalMap = textureLoader.load('Tiles036_2K-JPG_NormalGL.jpg');
+            const roughnessMap = textureLoader.load('Tiles036_2K-JPG_Roughness.jpg');
+
+            const repeatCount = 128; 
+            [colorMap, normalMap, roughnessMap].forEach(tex => {
+                tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+                tex.repeat.set(repeatCount, repeatCount);
+                tex.anisotropy = maxAnisotropy;
+                if (tex === colorMap) {
+                    tex.colorSpace = THREE.SRGBColorSpace;
+                }
+            });
+
+            // --- 2. 加载 HDR ---
+            exrLoader.load('DaySkyHDRI069B_2K_HDR.exr', 
+                (texture) => {
+                    texture.mapping = THREE.EquirectangularReflectionMapping;
+                    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+                    pmremGenerator.compileEquirectangularShader();
+                    const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+                    
+                    scene.environment = envMap;
+                    scene.background = envMap; 
+                    
+                    texture.dispose();
+                    pmremGenerator.dispose();
+                },
+                (xhr) => {},
+                (error) => {
+                    console.error('EXR 加载异常:', error);
+                    errorBox.style.display = 'block';
+                    errorBox.innerText = 'EXR 解析失败:\n' + (error.message || '未知错误') + '\n请检查文件是否损坏或手机显存是否溢出。';
+                    manager.itemError('DaySkyHDRI069B_2K_HDR.exr');
+                    manager.itemEnd('DaySkyHDRI069B_2K_HDR.exr');
+                }
+            );
+
+            // --- 3. 构建场景光影 (纯环境光) ---
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x66aaff, 0.6);
+            scene.add(hemiLight);
+
+            // 池底
+            const floorGeometry = new THREE.PlaneGeometry(256, 256, 1, 1);
+            const floorMaterial = new THREE.MeshStandardMaterial({
+                color: 0xffffff, 
+                map: colorMap,
+                normalMap: normalMap,
+                roughnessMap: roughnessMap,
+                metalness: 0.0,
+                roughness: 0.7,
+                envMapIntensity: 1.2 
+            });
+
+            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // --- 4. 左侧墙面 (x=-4) ---
+            const wallColorMap = colorMap.clone();
+            const wallNormalMap = normalMap.clone();
+            const wallRoughnessMap = roughnessMap.clone();
+            
+            [wallColorMap, wallNormalMap, wallRoughnessMap].forEach(tex => {
+                tex.needsUpdate = true;
+                tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+                tex.repeat.set(100, 4);
+                tex.anisotropy = maxAnisotropy;
+                if (tex === wallColorMap) tex.colorSpace = THREE.SRGBColorSpace;
+            });
+
+            const wallGeo = new THREE.PlaneGeometry(200, 8);
+            const wallMat = new THREE.MeshStandardMaterial({
+                map: wallColorMap,
+                normalMap: wallNormalMap,
+                roughnessMap: wallRoughnessMap,
+                metalness: 0.0, 
+                roughness: 0.8, 
+                side: THREE.DoubleSide,
+                envMapIntensity: 1.2
+            });
+            const wall = new THREE.Mesh(wallGeo, wallMat);
+            wall.position.set(-4, 4, 0); 
+            wall.rotation.y = Math.PI / 2; 
+            wall.receiveShadow = true;
+            scene.add(wall);
+
+            // --- 5. 右侧圆柱子阵列 (x=4，间距 6) ---
+            const pillarColorMap = colorMap.clone();
+            const pillarNormalMap = normalMap.clone();
+            const pillarRoughnessMap = roughnessMap.clone();
+            
+            [pillarColorMap, pillarNormalMap, pillarRoughnessMap].forEach(tex => {
+                tex.needsUpdate = true;
+                tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+                tex.repeat.set(3, 4);
+                tex.anisotropy = maxAnisotropy;
+                if (tex === pillarColorMap) tex.colorSpace = THREE.SRGBColorSpace;
+            });
+
+            const pillarGeo = new THREE.CylinderGeometry(1, 1, 8, 32);
+            const pillarMat = new THREE.MeshStandardMaterial({
+                map: pillarColorMap,
+                normalMap: pillarNormalMap,
+                roughnessMap: pillarRoughnessMap,
+                metalness: 0.0,
+                roughness: 0.8,
+                envMapIntensity: 1.2
+            });
+
+            const pillarsGroup = new THREE.Group();
+            for (let z = -96; z <= 96; z += 6) {
+                const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+                pillar.position.set(4, 4, z); 
+                pillar.receiveShadow = true;
+                pillarsGroup.add(pillar);
+            }
+            scene.add(pillarsGroup);
+
+            // --- 6. 天花板 ---
+            const ceilingColorMap = colorMap.clone();
+            const ceilingNormalMap = normalMap.clone();
+            const ceilingRoughnessMap = roughnessMap.clone();
+            
+            [ceilingColorMap, ceilingNormalMap, ceilingRoughnessMap].forEach(tex => {
+                tex.needsUpdate = true;
+                tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+                tex.repeat.set(6, 100); 
+                tex.anisotropy = maxAnisotropy;
+                if (tex === ceilingColorMap) tex.colorSpace = THREE.SRGBColorSpace;
+            });
+
+            const ceilingGeo = new THREE.PlaneGeometry(12, 200);
+            const ceilingMat = new THREE.MeshStandardMaterial({
+                map: ceilingColorMap,
+                normalMap: ceilingNormalMap,
+                roughnessMap: ceilingRoughnessMap,
+                metalness: 0.0,
+                roughness: 0.8,
+                side: THREE.DoubleSide,
+                envMapIntensity: 0.8
+            });
+            const ceiling = new THREE.Mesh(ceilingGeo, ceilingMat);
+            ceiling.position.set(0, 8, 0); 
+            ceiling.rotation.x = Math.PI / 2; 
+            ceiling.receiveShadow = true; 
+            scene.add(ceiling);
+
+            // --- 7. 实时反射相机 (用于水面准确倒影) ---
+            const cubeRenderTarget = new THREE.WebGLCubeRenderTarget(128, {
+                generateMipmaps: true,
+                minFilter: THREE.LinearMipmapLinearFilter,
+            });
+            const cubeCamera = new THREE.CubeCamera(0.1, 1000, cubeRenderTarget);
+            cubeCamera.position.set(0, 1.0, -10); // 放在水面中心区域上方一点
+            scene.add(cubeCamera);
+
+            // --- 8. 泳池水面 (使用实时反射) ---
+            const waterNormalTex = textureLoader.load('waternormals.jpg'); 
+            waterNormalTex.wrapS = waterNormalTex.wrapT = THREE.RepeatWrapping;
+            waterNormalTex.repeat.set(30, 30);
+            waterNormalTex.anisotropy = maxAnisotropy;
+
+            const waterGeometry = new THREE.PlaneGeometry(256, 256, 1, 1);
+            const waterMaterial = new THREE.MeshPhysicalMaterial({
+                color: 0x40c4ff,                 
+                roughness: 0.05,                 
+                metalness: 0.0,
+                transmission: 0.9,               
+                thickness: 0.2,                  
+                ior: 1.33,                       
+                clearcoat: 1.0,                  
+                clearcoatRoughness: 0.05,
+                normalMap: waterNormalTex,
+                normalScale: new THREE.Vector2(0.15, 0.15), // 微调波纹避免过度扭曲天花板倒影
+                envMap: cubeRenderTarget.texture, // 使用实时相机捕捉的纹理
+                envMapIntensity: 1.5,            
+                transparent: true,
+                opacity: 0.95
+            });
+
+            const water = new THREE.Mesh(waterGeometry, waterMaterial);
+            water.rotation.x = -Math.PI / 2;
+            water.position.y = 1.0;              
+            water.receiveShadow = true;
+            scene.add(water);
+
+            // --- 9. 视角控制 ---
+            camera.rotation.order = 'YXZ';
+            let cameraYaw = 0; 
+            let cameraPitch = -0.1;               
+            const pitchLimit = Math.PI / 2 - 0.05;
+
+            let isDragging = false;
+            let previousX = 0;
+            let previousY = 0;
+            const canvas = renderer.domElement;
+
+            canvas.addEventListener('pointerdown', (e) => {
+                isDragging = true;
+                previousX = e.clientX;
+                previousY = e.clientY;
+                if (canvas.setPointerCapture) canvas.setPointerCapture(e.pointerId);
+            });
+
+            canvas.addEventListener('pointermove', (e) => {
+                if (!isDragging) return;
+                const deltaX = e.clientX - previousX;
+                const deltaY = e.clientY - previousY;
+                
+                cameraYaw -= deltaX * 0.005;
+                cameraPitch -= deltaY * 0.005;
+                cameraPitch = Math.max(-pitchLimit, Math.min(pitchLimit, cameraPitch));
+                
+                previousX = e.clientX;
+                previousY = e.clientY;
+            });
+
+            canvas.addEventListener('pointerup', (e) => {
+                isDragging = false;
+                if (canvas.releasePointerCapture) canvas.releasePointerCapture(e.pointerId);
+            });
+            
+            canvas.addEventListener('pointercancel', () => isDragging = false);
+
+            // --- 10. 渲染循环 ---
+            const clock = new THREE.Clock();
+
+            function animate() {
+                requestAnimationFrame(animate);
+
+                const elapsedTime = clock.getElapsedTime();
+
+                if (waterNormalTex) {
+                    waterNormalTex.offset.x = Math.sin(elapsedTime * 0.2) * 0.1 + elapsedTime * 0.05;
+                    waterNormalTex.offset.y = Math.cos(elapsedTime * 0.15) * 0.1 + elapsedTime * 0.03;
+                }
+
+                // 更新实时反射：隐藏水面自身，防止无限递归反射
+                water.visible = false;
+                cubeCamera.update(renderer, scene);
+                water.visible = true;
+
+                camera.rotation.y = cameraYaw;
+                camera.rotation.x = cameraPitch;
+                renderer.render(scene, camera);
+            }
+            
+            animate();
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+        } catch (error) {
+            errorBox.style.display = 'block';
+            errorBox.innerText = '初始化崩溃: ' + error.message;
+        }
+    </script>
+</body>
+</html>
