@@ -1,0 +1,960 @@
+/* ------------------------------------------------------------------
+   Corridor — a 256 m tiled hallway
+   Three.js scene, fixed viewpoint look-around, baked probe GI + GTAO + bloom
+------------------------------------------------------------------ */
+
+import * as THREE from 'three';
+import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
+import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { FXAAShader } from 'three/addons/shaders/FXAAShader.js';
+
+/* ------------------------------------------------------------------ */
+/* Constants                                                           */
+/* ------------------------------------------------------------------ */
+
+const CORRIDOR = {
+  length: 256,
+  width: 2.4,
+  height: 3.6,
+  tileWorld: 3.6, // one 2K texture spans 3.6 m (12 × 12 tiles of 30 cm)
+};
+
+// The camera is fixed at the exact middle of the corridor. Only the view
+// direction changes; position never moves.
+const VIEW = {
+  x: 0,
+  y: 1.62,
+  z: CORRIDOR.length / 2,
+  minPitch: -1.15,
+  maxPitch: 1.15,
+};
+const PARAMS = new URLSearchParams(window.location.search);
+const IS_COARSE = window.matchMedia('(pointer: coarse)').matches;
+const MIN_VIEWPORT = Math.min(window.innerWidth, window.innerHeight);
+const LOW_POWER =
+  PARAMS.has('low') ||
+  IS_COARSE ||
+  MIN_VIEWPORT < 700 ||
+  (navigator.hardwareConcurrency || 8) <= 4;
+
+const BASE_DPR_CAP = LOW_POWER ? 1.5 : 2;
+const ADAPTIVE = !PARAMS.has('fixed');
+const MAX_RENDER_PIXELS = LOW_POWER ? 3.0e6 : 8.4e6;
+
+function resolveDpr(width, height, cap) {
+  let dpr = Math.min(window.devicePixelRatio || 1, cap);
+  const pixels = width * height * dpr * dpr;
+  if (pixels > MAX_RENDER_PIXELS) {
+    dpr = Math.max(0.5, Math.sqrt(MAX_RENDER_PIXELS / (width * height)));
+  }
+  return dpr;
+}
+
+// Final look. These values are the result of the calibration passes.
+const TUNE = {
+  exposure: 0.92,
+  environment: 1.0,
+  hemi: 0.48,
+  ceiling: 0.38,
+  background: 1.0,
+  bloom: 0.2,
+  bgRotation: 0.55,
+};
+
+const QUALITY = {
+  dpr: resolveDpr(window.innerWidth, window.innerHeight, BASE_DPR_CAP),
+  gtao: !LOW_POWER,
+  fxaa: true,
+  bloom: true,
+  dust: LOW_POWER ? 520 : 1100,
+};
+
+const ASSETS = [
+  {
+    key: 'color',
+    url: './assets/textures/tiles_color.jpg',
+    name: 'Tiles133A_2K-JPG_Color.jpg',
+    bytes: 1464653,
+    srgb: true,
+  },
+  {
+    key: 'normal',
+    url: './assets/textures/tiles_normal.jpg',
+    name: 'Tiles133A_2K-JPG_NormalGL.jpg',
+    bytes: 3600024,
+    srgb: false,
+  },
+  {
+    key: 'roughness',
+    url: './assets/textures/tiles_roughness.jpg',
+    name: 'Tiles133A_2K-JPG_Roughness.jpg',
+    bytes: 1891031,
+    srgb: false,
+  },
+  {
+    key: 'ao',
+    url: './assets/textures/tiles_ao.jpg',
+    name: 'Tiles133A_2K-JPG_AmbientOcclusion.jpg',
+    bytes: 594122,
+    srgb: false,
+  },
+  {
+    key: 'hdr',
+    url: './assets/hdri/day_sky_2k.hdr',
+    name: 'DaySkyHDRI071B_2K_HDR.hdr',
+    bytes: 3131558,
+    srgb: false,
+    type: 'hdr',
+  },
+];
+
+const TOTAL_BYTES = ASSETS.reduce((sum, asset) => sum + asset.bytes, 0);
+
+/* ------------------------------------------------------------------ */
+/* DOM                                                                 */
+/* ------------------------------------------------------------------ */
+
+const canvas = document.getElementById('scene');
+const loaderEl = document.getElementById('loader');
+const percentEl = document.getElementById('percent');
+const filenameEl = document.getElementById('filename');
+const ringProgressEl = document.getElementById('ring-progress');
+
+/* ------------------------------------------------------------------ */
+/* State                                                               */
+/* ------------------------------------------------------------------ */
+
+let renderer = null;
+let scene = null;
+let camera = null;
+let composer = null;
+let pmrem = null;
+let gtaoPass = null;
+let bloomPass = null;
+let fxaaPass = null;
+let finalPass = null;
+let areaLight = null;
+let dust = null;
+
+let hdrTexture = null;
+let skyEnvironment = null;
+let corridorEnvironment = null;
+let textures = null;
+
+let viewYaw = 0;
+let viewPitch = 0;
+let targetYaw = 0;
+let targetPitch = 0;
+let dragPointerId = null;
+let dragLastX = 0;
+let dragLastY = 0;
+
+let targetProgress = 0;
+let shownProgress = 0;
+let bytesDone = 0;
+let ready = false;
+let revealStarted = false;
+let revealPendingAt = 0;
+let failed = false;
+
+let perfStartedAt = 0;
+let perfFrames = 0;
+let perfChecked = false;
+let dprCap = BASE_DPR_CAP;
+
+const clockStart = performance.now();
+let lastFrameAt = clockStart;
+
+/* ------------------------------------------------------------------ */
+/* Small helpers                                                       */
+/* ------------------------------------------------------------------ */
+
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+function damp(current, target, lambda, dt) {
+  return current + (target - current) * (1 - Math.exp(-lambda * dt));
+}
+
+function setProgressTarget(value) {
+  targetProgress = clamp(value, 0, 100);
+}
+
+function nextPaint() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
+
+function showError(message) {
+  if (failed) return;
+  failed = true;
+  console.error(message);
+  filenameEl.textContent = message;
+  percentEl.textContent = '!';
+  ringProgressEl.style.strokeDashoffset = '100';
+}
+
+/* ------------------------------------------------------------------ */
+/* Boot                                                                */
+/* ------------------------------------------------------------------ */
+
+boot();
+
+async function boot() {
+  try {
+    renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: false,
+      alpha: false,
+      stencil: false,
+      powerPreference: 'high-performance',
+    });
+    renderer.setPixelRatio(QUALITY.dpr);
+    renderer.setSize(window.innerWidth, window.innerHeight, false);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = TUNE.exposure;
+    renderer.setClearColor(0x07080a, 1);
+  } catch (error) {
+    showError('WebGL 无法初始化');
+    return;
+  }
+
+  try {
+  scene = new THREE.Scene();
+  scene.background = null;
+  scene.fog = new THREE.Fog(0xdde7ec, 24, 210);
+
+  camera = new THREE.PerspectiveCamera(60, 1, 0.05, 500);
+  camera.position.set(VIEW.x, VIEW.y, VIEW.z);
+  camera.lookAt(VIEW.x, VIEW.y, VIEW.z + 1);
+
+  window.addEventListener('resize', onResize, { passive: true });
+  window.addEventListener('orientationchange', onResize, { passive: true });
+  canvas.addEventListener('pointerdown', onPointerDown, { passive: false });
+  canvas.addEventListener('pointermove', onPointerMove, { passive: false });
+  canvas.addEventListener('pointerup', onPointerEnd, { passive: true });
+  canvas.addEventListener('pointercancel', onPointerEnd, { passive: true });
+  canvas.addEventListener('lostpointercapture', onPointerEnd, { passive: true });
+
+  await loadAssets();
+  if (failed) return;
+
+  setProgressTarget(90.5);
+  await nextPaint();
+
+  buildWorld();
+  setProgressTarget(93);
+  await nextPaint();
+
+  bakeEnvironment();
+  setProgressTarget(96);
+  await nextPaint();
+
+  buildPostProcessing();
+  onResize();
+  setProgressTarget(97.5);
+  await nextPaint();
+
+  try {
+    await renderer.compileAsync(scene, camera);
+  } catch (error) {
+    console.warn('compileAsync skipped:', error);
+  }
+
+  setProgressTarget(98.8);
+
+  try {
+    composer.render();
+  } catch (error) {
+    showError('渲染初始化失败');
+    console.error(error);
+    return;
+  }
+
+  setProgressTarget(100);
+  ready = true;
+  lastFrameAt = performance.now();
+  requestAnimationFrame(animate);
+  } catch (error) {
+    console.error(error);
+    showError('场景初始化失败');
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Asset loading                                                       */
+/* ------------------------------------------------------------------ */
+
+async function loadAssets() {
+  const loaded = {};
+
+  for (const asset of ASSETS) {
+    filenameEl.textContent = asset.name;
+
+    try {
+      const blob = await fetchAsset(asset);
+      bytesDone += blob.size;
+      setProgressTarget((bytesDone / TOTAL_BYTES) * 90);
+
+      if (asset.type === 'hdr') {
+        const buffer = await blob.arrayBuffer();
+        const loader = new HDRLoader();
+        hdrTexture = loader.createDataTexture(buffer);
+        hdrTexture.mapping = THREE.EquirectangularReflectionMapping;
+        hdrTexture.minFilter = THREE.LinearFilter;
+        hdrTexture.magFilter = THREE.LinearFilter;
+        hdrTexture.generateMipmaps = false;
+        hdrTexture.needsUpdate = true;
+        loaded.hdr = hdrTexture;
+      } else {
+        const { img, url } = await decodeImage(blob);
+        const texture = new THREE.Texture(img);
+        texture.colorSpace = asset.srgb
+          ? THREE.SRGBColorSpace
+          : THREE.NoColorSpace;
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.anisotropy = Math.min(
+          16,
+          renderer.capabilities.getMaxAnisotropy()
+        );
+        texture.minFilter = THREE.LinearMipmapLinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        texture.needsUpdate = true;
+        loaded[asset.key] = texture;
+        URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.error(error);
+      showError(`加载失败 · ${asset.name}`);
+      return;
+    }
+
+    await nextPaint();
+  }
+
+  textures = loaded;
+  setProgressTarget(90);
+}
+
+async function fetchAsset(asset) {
+  const response = await fetch(asset.url, { cache: 'force-cache' });
+  if (!response.ok) {
+    throw new Error(`${response.status} ${response.statusText} — ${asset.url}`);
+  }
+
+  if (!response.body) {
+    const blob = await response.blob();
+    setProgressTarget(((bytesDone + blob.size) / TOTAL_BYTES) * 90);
+    return blob;
+  }
+
+  const reader = response.body.getReader();
+  const chunks = [];
+  let received = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    received += value.length;
+    setProgressTarget(((bytesDone + received) / TOTAL_BYTES) * 90);
+  }
+
+  return new Blob(chunks);
+}
+
+function decodeImage(blob) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.decoding = 'async';
+    img.onload = () => resolve({ img, url });
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('图片解码失败'));
+    };
+    img.src = url;
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* World                                                               */
+/* ------------------------------------------------------------------ */
+
+function buildWorld() {
+  const { length: L, width: W, height: H, tileWorld } = CORRIDOR;
+  const maxAnisotropy = Math.min(16, renderer.capabilities.getMaxAnisotropy());
+
+  for (const key of ['color', 'normal', 'roughness', 'ao']) {
+    const texture = textures[key];
+    texture.anisotropy = maxAnisotropy;
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.needsUpdate = true;
+  }
+
+  RectAreaLightUniformsLib.init();
+
+  const floorMaterial = new THREE.MeshPhysicalMaterial({
+    map: textures.color,
+    normalMap: textures.normal,
+    roughnessMap: textures.roughness,
+    aoMap: textures.ao,
+    aoMapIntensity: 0.62,
+    color: 0xffffff,
+    roughness: 0.56,
+    metalness: 0,
+    clearcoat: 0.58,
+    clearcoatRoughness: 0.24,
+    envMapIntensity: 0.85,
+    normalScale: new THREE.Vector2(0.55, 0.55),
+  });
+
+  const wallMaterial = new THREE.MeshPhysicalMaterial({
+    map: textures.color,
+    normalMap: textures.normal,
+    roughnessMap: textures.roughness,
+    aoMap: textures.ao,
+    aoMapIntensity: 0.55,
+    color: 0xffffff,
+    roughness: 0.7,
+    metalness: 0,
+    clearcoat: 0.55,
+    clearcoatRoughness: 0.16,
+    envMapIntensity: 0.95,
+    normalScale: new THREE.Vector2(0.62, 0.62),
+  });
+
+  const ceilingMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    emissive: 0xffffff,
+    emissiveIntensity: TUNE.ceiling,
+    roughness: 0.94,
+    metalness: 0,
+    envMapIntensity: 0.8,
+  });
+
+  const fixtureMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    roughness: 0.62,
+    metalness: 0,
+    envMapIntensity: 0.6,
+  });
+
+  const emissiveMaterial = new THREE.MeshBasicMaterial({
+    color: new THREE.Color().setRGB(2.7, 2.45, 2.0),
+    toneMapped: true,
+    fog: true,
+  });
+
+  /* floor ---------------------------------------------------------- */
+
+  const floorGeometry = planeWithUv(W, L, W / tileWorld, L / tileWorld);
+  const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.set(0, 0, L / 2);
+  scene.add(floor);
+
+  /* walls ---------------------------------------------------------- */
+
+  const wallGeometry = planeWithUv(L, H, L / tileWorld, H / tileWorld);
+
+  const leftWall = new THREE.Mesh(wallGeometry, wallMaterial);
+  leftWall.rotation.y = Math.PI / 2;
+  leftWall.position.set(-W / 2, H / 2, L / 2);
+  scene.add(leftWall);
+
+  const rightWall = new THREE.Mesh(wallGeometry, wallMaterial);
+  rightWall.rotation.y = -Math.PI / 2;
+  rightWall.position.set(W / 2, H / 2, L / 2);
+  scene.add(rightWall);
+
+  /* ceiling -------------------------------------------------------- */
+
+  const ceilingGeometry = new THREE.PlaneGeometry(W, L);
+  const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
+  ceiling.rotation.x = Math.PI / 2;
+  ceiling.position.set(0, H, L / 2);
+  scene.add(ceiling);
+
+  /* open end at z = 256: the corridor ends in daylight ------------- */
+
+  /* start wall (behind the camera) --------------------------------- */
+
+  const startWallGeometry = planeWithUv(W, H, W / tileWorld, H / tileWorld);
+  const startWall = new THREE.Mesh(startWallGeometry, wallMaterial);
+  startWall.position.set(0, H / 2, 0);
+  scene.add(startWall);
+
+  /* ceiling light coves -------------------------------------------- */
+
+  for (const x of [-0.9, 0.9]) {
+    const housing = new THREE.Mesh(
+      new THREE.BoxGeometry(0.26, 0.05, L),
+      fixtureMaterial
+    );
+    housing.position.set(x, H - 0.025, L / 2);
+    scene.add(housing);
+
+    const strip = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.072, L),
+      emissiveMaterial
+    );
+    strip.rotation.x = Math.PI / 2;
+    strip.position.set(x, H - 0.053, L / 2);
+    scene.add(strip);
+  }
+
+  /* environment / background --------------------------------------- */
+
+  pmrem = new THREE.PMREMGenerator(renderer);
+  pmrem.compileEquirectangularShader();
+  skyEnvironment = pmrem.fromEquirectangular(hdrTexture).texture;
+
+  scene.background = hdrTexture;
+  scene.backgroundIntensity = TUNE.background;
+  scene.environment = skyEnvironment;
+  scene.environmentIntensity = 0.46;
+
+  scene.backgroundRotation = new THREE.Euler(0, Math.PI * TUNE.bgRotation, 0);
+
+  /* lights --------------------------------------------------------- */
+
+  areaLight = new THREE.RectAreaLight(0xfff1de, 4.0, 2.05, 0.12);
+  areaLight.position.set(0, H - 0.09, VIEW.z + 2.4);
+  areaLight.lookAt(0, 0, VIEW.z + 2.4);
+  scene.add(areaLight);
+
+  const hemi = new THREE.HemisphereLight(0xf7fbfe, 0xe3ebef, TUNE.hemi);
+  scene.add(hemi);
+
+  /* dust ----------------------------------------------------------- */
+
+  dust = makeDust(QUALITY.dust);
+  scene.add(dust);
+}
+
+function planeWithUv(width, height, uRepeat, vRepeat) {
+  const geometry = new THREE.PlaneGeometry(width, height, 1, 1);
+  const uv = geometry.attributes.uv;
+  for (let i = 0; i < uv.count; i += 1) {
+    uv.setXY(i, uv.getX(i) * uRepeat, uv.getY(i) * vRepeat);
+  }
+  uv.needsUpdate = true;
+  geometry.setAttribute('uv1', uv.clone());
+  return geometry;
+}
+
+/* ------------------------------------------------------------------ */
+/* Baked reflection / bounce probe                                     */
+/* ------------------------------------------------------------------ */
+
+function bakeEnvironment() {
+  const { length: L } = CORRIDOR;
+  const previousFog = scene.fog;
+  const previousIntensity = scene.environmentIntensity;
+  const previousAreaZ = areaLight.position.z;
+
+  scene.fog = null;
+  scene.environment = skyEnvironment;
+  scene.environmentIntensity = 0.42;
+
+  areaLight.position.z = L / 2;
+  areaLight.lookAt(0, 0, L / 2);
+
+  const cubeTarget = new THREE.WebGLCubeRenderTarget(256, {
+    type: THREE.HalfFloatType,
+    generateMipmaps: false,
+    minFilter: THREE.LinearFilter,
+    magFilter: THREE.LinearFilter,
+  });
+  const cubeCamera = new THREE.CubeCamera(0.08, 340, cubeTarget);
+  cubeCamera.position.set(0, 1.72, L / 2);
+  cubeCamera.update(renderer, scene);
+
+  corridorEnvironment = pmrem.fromCubemap(cubeTarget.texture).texture;
+
+  scene.environment = corridorEnvironment;
+  scene.environmentIntensity = TUNE.environment;
+  scene.fog = previousFog;
+  areaLight.position.z = previousAreaZ;
+  scene.environmentIntensity = Math.max(previousIntensity, TUNE.environment);
+
+  cubeTarget.dispose();
+}
+
+/* ------------------------------------------------------------------ */
+/* Dust                                                                */
+/* ------------------------------------------------------------------ */
+
+function makeDust(count) {
+  const positions = new Float32Array(count * 3);
+  for (let i = 0; i < count; i += 1) {
+    positions[i * 3 + 0] = (Math.random() - 0.5) * (CORRIDOR.width - 0.18);
+    positions[i * 3 + 1] = 0.12 + Math.random() * (CORRIDOR.height - 0.2);
+    positions[i * 3 + 2] = Math.random() * CORRIDOR.length;
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+  const material = new THREE.PointsMaterial({
+    map: makeDustTexture(),
+    color: 0xfff5e8,
+    size: 0.026,
+    sizeAttenuation: true,
+    transparent: true,
+    opacity: 0.28,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    fog: true,
+  });
+
+  const points = new THREE.Points(geometry, material);
+  points.frustumCulled = false;
+  return points;
+}
+
+function makeDustTexture() {
+  const size = 64;
+  const textureCanvas = document.createElement('canvas');
+  textureCanvas.width = size;
+  textureCanvas.height = size;
+  const context = textureCanvas.getContext('2d');
+  const gradient = context.createRadialGradient(
+    size / 2,
+    size / 2,
+    0,
+    size / 2,
+    size / 2,
+    size / 2
+  );
+  gradient.addColorStop(0, 'rgba(255,255,255,1)');
+  gradient.addColorStop(0.35, 'rgba(255,255,255,0.55)');
+  gradient.addColorStop(1, 'rgba(255,255,255,0)');
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, size, size);
+
+  const texture = new THREE.CanvasTexture(textureCanvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+/* ------------------------------------------------------------------ */
+/* Post-processing                                                     */
+/* ------------------------------------------------------------------ */
+
+const FinalShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    uTime: { value: 0 },
+    uResolution: { value: new THREE.Vector2(1, 1) },
+  },
+  vertexShader: /* glsl */ `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: /* glsl */ `
+    uniform sampler2D tDiffuse;
+    uniform float uTime;
+    uniform vec2 uResolution;
+    varying vec2 vUv;
+
+    float hash(vec2 p) {
+      p = fract(p * vec2(123.34, 456.21));
+      p += dot(p, p + 45.32);
+      return fract(p.x * p.y);
+    }
+
+    void main() {
+      vec3 color = texture2D(tDiffuse, vUv).rgb;
+
+      // gentle filmic contrast: deepen the lower mid-tones, keep highlights open
+      color = (color - 0.5) * 1.045 + 0.5;
+      float luma = dot(clamp(color, 0.0, 1.0), vec3(0.299, 0.587, 0.114));
+      color *= mix(vec3(0.965, 0.99, 1.02), vec3(1.025, 1.005, 0.975), smoothstep(0.25, 0.85, luma));
+
+      vec2 q = vUv - 0.5;
+      float radius = length(q * vec2(1.0, 0.82));
+      float vignette = smoothstep(0.92, 0.24, radius);
+      color *= mix(0.7, 1.0, vignette);
+
+      float grain = hash(vUv * uResolution + fract(uTime) * 91.7) - 0.5;
+      color += grain * (1.0 / 255.0) * 1.5;
+
+      gl_FragColor = vec4(max(color, 0.0), 1.0);
+    }
+  `,
+};
+
+function buildPostProcessing() {
+  const width = Math.max(1, canvas.clientWidth);
+  const height = Math.max(1, canvas.clientHeight);
+
+  composer = new EffectComposer(renderer);
+  composer.setPixelRatio(renderer.getPixelRatio());
+  composer.setSize(width, height);
+
+  composer.addPass(new RenderPass(scene, camera));
+
+  if (QUALITY.gtao) {
+    gtaoPass = new GTAOPass(scene, camera, width, height);
+    gtaoPass.output = GTAOPass.OUTPUT.Default;
+    gtaoPass.blendIntensity = 0.92;
+    gtaoPass.updateGtaoMaterial({
+      radius: 0.42,
+      distanceExponent: 1.15,
+      thickness: 0.85,
+      scale: 1.0,
+      samples: 12,
+      distanceFallOff: 1.0,
+    });
+    gtaoPass.updatePdMaterial({
+      lumaPhi: 10,
+      depthPhi: 2,
+      normalPhi: 3,
+      radius: 4,
+      rings: 2,
+      samples: 8,
+    });
+    composer.addPass(gtaoPass);
+  }
+
+  bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(width, height),
+    LOW_POWER ? TUNE.bloom * 0.75 : TUNE.bloom,
+    0.58,
+    1.12
+  );
+  composer.addPass(bloomPass);
+
+  composer.addPass(new OutputPass());
+
+  fxaaPass = new ShaderPass(FXAAShader);
+  composer.addPass(fxaaPass);
+
+  finalPass = new ShaderPass(FinalShader);
+  composer.addPass(finalPass);
+}
+
+/* ------------------------------------------------------------------ */
+/* Resize                                                              */
+/* ------------------------------------------------------------------ */
+
+function onResize() {
+  if (!renderer || !camera || !composer) return;
+
+  const width = Math.max(1, canvas.clientWidth);
+  const height = Math.max(1, canvas.clientHeight);
+  const aspect = width / height;
+
+  QUALITY.dpr = resolveDpr(width, height, dprCap);
+
+  renderer.setPixelRatio(QUALITY.dpr);
+  renderer.setSize(width, height, false);
+
+  camera.aspect = aspect;
+  camera.fov = 58 + Math.max(0, 1 - aspect) * 30;
+  camera.updateProjectionMatrix();
+
+  composer.setPixelRatio(QUALITY.dpr);
+  composer.setSize(width, height);
+
+  if (fxaaPass) {
+    fxaaPass.material.uniforms.resolution.value.set(
+      1 / (width * QUALITY.dpr),
+      1 / (height * QUALITY.dpr)
+    );
+  }
+  if (finalPass) {
+    finalPass.material.uniforms.uResolution.value.set(
+      width * QUALITY.dpr,
+      height * QUALITY.dpr
+    );
+  }
+
+}
+
+/* ------------------------------------------------------------------ */
+/* Input                                                               */
+/* ------------------------------------------------------------------ */
+
+function onPointerDown(event) {
+  if (event.pointerType === 'mouse' && event.button !== 0) return;
+  if (dragPointerId !== null) return;
+
+  dragPointerId = event.pointerId;
+  dragLastX = event.clientX;
+  dragLastY = event.clientY;
+  canvas.setPointerCapture(event.pointerId);
+  canvas.classList.add('is-dragging');
+  event.preventDefault();
+}
+
+function onPointerMove(event) {
+  if (event.pointerId !== dragPointerId) return;
+
+  const dx = event.clientX - dragLastX;
+  const dy = event.clientY - dragLastY;
+  dragLastX = event.clientX;
+  dragLastY = event.clientY;
+
+  // A drag across the short side of the viewport turns roughly 110–120°.
+  const sensitivity = 2.0 / Math.max(320, Math.min(window.innerWidth, window.innerHeight));
+  targetYaw -= dx * sensitivity;
+  targetPitch = clamp(
+    targetPitch - dy * sensitivity,
+    VIEW.minPitch,
+    VIEW.maxPitch
+  );
+
+  event.preventDefault();
+}
+
+function onPointerEnd(event) {
+  if (event.pointerId !== dragPointerId) return;
+  dragPointerId = null;
+  canvas.classList.remove('is-dragging');
+  if (canvas.hasPointerCapture(event.pointerId)) {
+    canvas.releasePointerCapture(event.pointerId);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Frame loop                                                          */
+/* ------------------------------------------------------------------ */
+
+function animate(now) {
+  if (!ready) return;
+
+  const dt = Math.min(0.05, Math.max(0.001, (now - lastFrameAt) / 1000));
+  lastFrameAt = now;
+
+  updateCamera(dt);
+  updateAreaLight();
+  updatePostUniforms(now);
+  composer.render();
+  checkPerformance(now);
+
+  requestAnimationFrame(animate);
+}
+
+function dampAngle(current, target, lambda, dt) {
+  const delta = Math.atan2(
+    Math.sin(target - current),
+    Math.cos(target - current)
+  );
+  return current + delta * (1 - Math.exp(-lambda * dt));
+}
+
+function updateCamera(dt) {
+  viewYaw = dampAngle(viewYaw, targetYaw, 11, dt);
+  viewPitch = damp(viewPitch, targetPitch, 11, dt);
+
+  const cosPitch = Math.cos(viewPitch);
+  const dirX = Math.sin(viewYaw) * cosPitch;
+  const dirY = Math.sin(viewPitch);
+  const dirZ = Math.cos(viewYaw) * cosPitch;
+
+  camera.position.set(VIEW.x, VIEW.y, VIEW.z);
+  camera.lookAt(
+    VIEW.x + dirX,
+    VIEW.y + dirY,
+    VIEW.z + dirZ
+  );
+}
+
+function updateAreaLight() {
+  if (!areaLight) return;
+  const lightZ = camera.position.z + 2.4;
+  areaLight.position.z = lightZ;
+  areaLight.lookAt(0, 0, lightZ);
+}
+
+function updatePostUniforms(now) {
+  if (finalPass) {
+    finalPass.material.uniforms.uTime.value = (now - clockStart) / 1000;
+  }
+}
+
+function checkPerformance(now) {
+  if (perfChecked || !ADAPTIVE) return;
+  if (!perfStartedAt) perfStartedAt = now;
+  perfFrames += 1;
+
+  const elapsed = now - perfStartedAt;
+  if (elapsed < 2600) return;
+
+  const fps = (perfFrames / elapsed) * 1000;
+  perfChecked = true;
+
+  if (fps < 38) {
+    if (gtaoPass) gtaoPass.enabled = false;
+    if (dprCap > 1.25) {
+      dprCap = Math.max(1.25, dprCap * 0.75);
+      onResize();
+    }
+    if (fps < 24 && bloomPass) bloomPass.enabled = false;
+    console.info(`Adaptive quality: ${fps.toFixed(1)} fps`);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Loading screen                                                      */
+/* ------------------------------------------------------------------ */
+
+function updateLoadingScreen(now) {
+  if (failed) return;
+
+  const target = ready ? 100 : targetProgress;
+  shownProgress = damp(shownProgress, target, 8.5, 1 / 60);
+
+  if (ready) shownProgress = 100;
+  if (target - shownProgress < 0.05) shownProgress = target;
+
+  const display = ready ? 100 : Math.min(99, Math.floor(shownProgress));
+  percentEl.textContent = String(display);
+  ringProgressEl.style.strokeDashoffset = String(100 - shownProgress);
+  loaderEl.setAttribute('aria-valuenow', String(display));
+
+  if (ready && !loaderEl.classList.contains('is-complete')) {
+    loaderEl.classList.add('is-complete');
+  }
+  if (ready && revealPendingAt === 0) revealPendingAt = now;
+
+  if (revealPendingAt && now - revealPendingAt > 650) {
+    reveal();
+  }
+}
+
+function reveal() {
+  if (revealStarted) return;
+  revealStarted = true;
+
+  loaderEl.classList.add('is-hidden');
+  document.documentElement.classList.remove('is-loading');
+
+  window.setTimeout(() => {
+    loaderEl.style.display = 'none';
+  }, 1300);
+}
+
+function loadingLoop(now) {
+  updateLoadingScreen(now);
+  if (!revealStarted) {
+    requestAnimationFrame(loadingLoop);
+  }
+}
+
+requestAnimationFrame(loadingLoop);
